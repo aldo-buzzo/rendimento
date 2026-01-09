@@ -4,6 +4,7 @@ import com.example.rendimento.dto.SimulazioneDTO;
 import com.example.rendimento.model.Simulazione;
 import com.example.rendimento.model.Titolo;
 import com.example.rendimento.repository.TitoloRepository;
+import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

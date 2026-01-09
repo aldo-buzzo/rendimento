@@ -2,6 +2,7 @@ package com.example.rendimento.mapper;
 
 import com.example.rendimento.dto.TitoloDTO;
 import com.example.rendimento.model.Titolo;
+import java.math.BigDecimal;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

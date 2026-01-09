@@ -1,6 +1,7 @@
 package com.example.rendimento.model;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -25,7 +26,7 @@ public class Titolo {
     private LocalDate dataScadenza;
 
     @Column(name = "tasso_nominale", nullable = false, precision = 5, scale = 2)
-    private Double tassoNominale;
+    private BigDecimal tassoNominale;
 
     @Column(name = "periodicita_cedole", nullable = false, length = 20)
     private String periodicitaCedole;
@@ -50,7 +51,7 @@ public class Titolo {
      * @param periodicitaBollo la frequenza del bollo
      */
     public Titolo(String nome, String codiceIsin, LocalDate dataScadenza, 
-                 Double tassoNominale, String periodicitaCedole, String periodicitaBollo) {
+                 BigDecimal tassoNominale, String periodicitaCedole, String periodicitaBollo) {
         this.nome = nome;
         this.codiceIsin = codiceIsin;
         this.dataScadenza = dataScadenza;
@@ -93,11 +94,11 @@ public class Titolo {
         this.dataScadenza = dataScadenza;
     }
 
-    public Double getTassoNominale() {
+    public BigDecimal getTassoNominale() {
         return tassoNominale;
     }
 
-    public void setTassoNominale(Double tassoNominale) {
+    public void setTassoNominale(BigDecimal tassoNominale) {
         this.tassoNominale = tassoNominale;
     }
 

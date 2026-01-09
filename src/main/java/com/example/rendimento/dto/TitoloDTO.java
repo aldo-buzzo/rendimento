@@ -1,5 +1,6 @@
 package com.example.rendimento.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -12,7 +13,7 @@ public class TitoloDTO {
     private String nome;
     private String codiceIsin;
     private LocalDate dataScadenza;
-    private Double tassoNominale;
+    private BigDecimal tassoNominale;
     private String periodicitaCedole;
     private String periodicitaBollo;
 
@@ -34,7 +35,7 @@ public class TitoloDTO {
      * @param periodicitaBollo la frequenza del bollo
      */
     public TitoloDTO(Integer idTitolo, String nome, String codiceIsin, LocalDate dataScadenza,
-                    Double tassoNominale, String periodicitaCedole, String periodicitaBollo) {
+                    BigDecimal tassoNominale, String periodicitaCedole, String periodicitaBollo) {
         this.idTitolo = idTitolo;
         this.nome = nome;
         this.codiceIsin = codiceIsin;
@@ -78,11 +79,11 @@ public class TitoloDTO {
         this.dataScadenza = dataScadenza;
     }
 
-    public Double getTassoNominale() {
+    public BigDecimal getTassoNominale() {
         return tassoNominale;
     }
 
-    public void setTassoNominale(Double tassoNominale) {
+    public void setTassoNominale(BigDecimal tassoNominale) {
         this.tassoNominale = tassoNominale;
     }
 

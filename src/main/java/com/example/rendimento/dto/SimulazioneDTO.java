@@ -1,5 +1,6 @@
 package com.example.rendimento.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -12,14 +13,14 @@ public class SimulazioneDTO {
     private Integer idTitolo;
     private TitoloDTO titolo;
     private LocalDate dataAcquisto;
-    private Double prezzoAcquisto;
-    private Double rendimentoLordo;
-    private Double rendimentoTassato;
-    private Double commissioniAcquisto;
-    private Double rendimentoNettoCedole;
-    private Double impostaBollo;
-    private Double rendimentoNettoBollo;
-    private Double plusMinusValenza;
+    private BigDecimal prezzoAcquisto;
+    private BigDecimal rendimentoLordo;
+    private BigDecimal rendimentoTassato;
+    private BigDecimal commissioniAcquisto;
+    private BigDecimal rendimentoNettoCedole;
+    private BigDecimal impostaBollo;
+    private BigDecimal rendimentoNettoBollo;
+    private BigDecimal plusMinusValenza;
 
     /**
      * Costruttore predefinito.
@@ -43,9 +44,9 @@ public class SimulazioneDTO {
      * @param plusMinusValenza la differenza tra prezzo di acquisto e 100
      */
     public SimulazioneDTO(Integer idSimulazione, Integer idTitolo, LocalDate dataAcquisto,
-                         Double prezzoAcquisto, Double rendimentoLordo, Double rendimentoTassato,
-                         Double commissioniAcquisto, Double rendimentoNettoCedole,
-                         Double impostaBollo, Double rendimentoNettoBollo, Double plusMinusValenza) {
+                         BigDecimal prezzoAcquisto, BigDecimal rendimentoLordo, BigDecimal rendimentoTassato,
+                         BigDecimal commissioniAcquisto, BigDecimal rendimentoNettoCedole,
+                         BigDecimal impostaBollo, BigDecimal rendimentoNettoBollo, BigDecimal plusMinusValenza) {
         this.idSimulazione = idSimulazione;
         this.idTitolo = idTitolo;
         this.dataAcquisto = dataAcquisto;
@@ -75,9 +76,9 @@ public class SimulazioneDTO {
      * @param plusMinusValenza la differenza tra prezzo di acquisto e 100
      */
     public SimulazioneDTO(Integer idSimulazione, TitoloDTO titolo, LocalDate dataAcquisto,
-                         Double prezzoAcquisto, Double rendimentoLordo, Double rendimentoTassato,
-                         Double commissioniAcquisto, Double rendimentoNettoCedole,
-                         Double impostaBollo, Double rendimentoNettoBollo, Double plusMinusValenza) {
+                         BigDecimal prezzoAcquisto, BigDecimal rendimentoLordo, BigDecimal rendimentoTassato,
+                         BigDecimal commissioniAcquisto, BigDecimal rendimentoNettoCedole,
+                         BigDecimal impostaBollo, BigDecimal rendimentoNettoBollo, BigDecimal plusMinusValenza) {
         this.idSimulazione = idSimulazione;
         this.titolo = titolo;
         this.idTitolo = titolo != null ? titolo.getIdTitolo() : null;
@@ -127,67 +128,67 @@ public class SimulazioneDTO {
         this.dataAcquisto = dataAcquisto;
     }
 
-    public Double getPrezzoAcquisto() {
+    public BigDecimal getPrezzoAcquisto() {
         return prezzoAcquisto;
     }
 
-    public void setPrezzoAcquisto(Double prezzoAcquisto) {
+    public void setPrezzoAcquisto(BigDecimal prezzoAcquisto) {
         this.prezzoAcquisto = prezzoAcquisto;
     }
 
-    public Double getRendimentoLordo() {
+    public BigDecimal getRendimentoLordo() {
         return rendimentoLordo;
     }
 
-    public void setRendimentoLordo(Double rendimentoLordo) {
+    public void setRendimentoLordo(BigDecimal rendimentoLordo) {
         this.rendimentoLordo = rendimentoLordo;
     }
 
-    public Double getRendimentoTassato() {
+    public BigDecimal getRendimentoTassato() {
         return rendimentoTassato;
     }
 
-    public void setRendimentoTassato(Double rendimentoTassato) {
+    public void setRendimentoTassato(BigDecimal rendimentoTassato) {
         this.rendimentoTassato = rendimentoTassato;
     }
 
-    public Double getCommissioniAcquisto() {
+    public BigDecimal getCommissioniAcquisto() {
         return commissioniAcquisto;
     }
 
-    public void setCommissioniAcquisto(Double commissioniAcquisto) {
+    public void setCommissioniAcquisto(BigDecimal commissioniAcquisto) {
         this.commissioniAcquisto = commissioniAcquisto;
     }
 
-    public Double getRendimentoNettoCedole() {
+    public BigDecimal getRendimentoNettoCedole() {
         return rendimentoNettoCedole;
     }
 
-    public void setRendimentoNettoCedole(Double rendimentoNettoCedole) {
+    public void setRendimentoNettoCedole(BigDecimal rendimentoNettoCedole) {
         this.rendimentoNettoCedole = rendimentoNettoCedole;
     }
 
-    public Double getImpostaBollo() {
+    public BigDecimal getImpostaBollo() {
         return impostaBollo;
     }
 
-    public void setImpostaBollo(Double impostaBollo) {
+    public void setImpostaBollo(BigDecimal impostaBollo) {
         this.impostaBollo = impostaBollo;
     }
 
-    public Double getRendimentoNettoBollo() {
+    public BigDecimal getRendimentoNettoBollo() {
         return rendimentoNettoBollo;
     }
 
-    public void setRendimentoNettoBollo(Double rendimentoNettoBollo) {
+    public void setRendimentoNettoBollo(BigDecimal rendimentoNettoBollo) {
         this.rendimentoNettoBollo = rendimentoNettoBollo;
     }
 
-    public Double getPlusMinusValenza() {
+    public BigDecimal getPlusMinusValenza() {
         return plusMinusValenza;
     }
 
-    public void setPlusMinusValenza(Double plusMinusValenza) {
+    public void setPlusMinusValenza(BigDecimal plusMinusValenza) {
         this.plusMinusValenza = plusMinusValenza;
     }
 

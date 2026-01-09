@@ -5,6 +5,7 @@ import com.example.rendimento.model.Titolo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -46,5 +47,5 @@ public interface SimulazioneRepository extends JpaRepository<Simulazione, Intege
      * @param rendimentoMinimo il valore minimo del rendimento netto
      * @return lista di simulazioni con rendimento netto superiore al valore specificato
      */
-    List<Simulazione> findByRendimentoNettoBolloGreaterThanEqual(Double rendimentoMinimo);
+    List<Simulazione> findByRendimentoNettoBolloGreaterThanEqual(BigDecimal rendimentoMinimo);
 }

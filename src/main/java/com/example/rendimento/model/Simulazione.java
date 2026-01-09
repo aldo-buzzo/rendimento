@@ -1,6 +1,7 @@
 package com.example.rendimento.model;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -23,28 +24,28 @@ public class Simulazione {
     private LocalDate dataAcquisto;
 
     @Column(name = "prezzo_acquisto", nullable = false, precision = 10, scale = 4)
-    private Double prezzoAcquisto;
+    private BigDecimal prezzoAcquisto;
 
     @Column(name = "rendimento_lordo", nullable = false, precision = 10, scale = 4)
-    private Double rendimentoLordo;
+    private BigDecimal rendimentoLordo;
 
     @Column(name = "rendimento_tassato", nullable = false, precision = 10, scale = 4)
-    private Double rendimentoTassato;
+    private BigDecimal rendimentoTassato;
 
     @Column(name = "commissioni_acquisto", nullable = false, precision = 10, scale = 6)
-    private Double commissioniAcquisto;
+    private BigDecimal commissioniAcquisto;
 
     @Column(name = "rendimento_netto_cedole", nullable = false, precision = 10, scale = 4)
-    private Double rendimentoNettoCedole;
+    private BigDecimal rendimentoNettoCedole;
 
     @Column(name = "imposta_bollo", nullable = false, precision = 10, scale = 6)
-    private Double impostaBollo;
+    private BigDecimal impostaBollo;
 
     @Column(name = "rendimento_netto_bollo", nullable = false, precision = 10, scale = 4)
-    private Double rendimentoNettoBollo;
+    private BigDecimal rendimentoNettoBollo;
 
     @Column(name = "plus_minus_valenza", nullable = false, precision = 10, scale = 4)
-    private Double plusMinusValenza;
+    private BigDecimal plusMinusValenza;
 
     /**
      * Costruttore predefinito richiesto da JPA.
@@ -66,10 +67,10 @@ public class Simulazione {
      * @param rendimentoNettoBollo il rendimento netto finale al netto del bollo
      * @param plusMinusValenza la differenza tra prezzo di acquisto e 100
      */
-    public Simulazione(Titolo titolo, LocalDate dataAcquisto, Double prezzoAcquisto,
-                      Double rendimentoLordo, Double rendimentoTassato, Double commissioniAcquisto,
-                      Double rendimentoNettoCedole, Double impostaBollo, Double rendimentoNettoBollo,
-                      Double plusMinusValenza) {
+    public Simulazione(Titolo titolo, LocalDate dataAcquisto, BigDecimal prezzoAcquisto,
+                      BigDecimal rendimentoLordo, BigDecimal rendimentoTassato, BigDecimal commissioniAcquisto,
+                      BigDecimal rendimentoNettoCedole, BigDecimal impostaBollo, BigDecimal rendimentoNettoBollo,
+                      BigDecimal plusMinusValenza) {
         this.titolo = titolo;
         this.dataAcquisto = dataAcquisto;
         this.prezzoAcquisto = prezzoAcquisto;
@@ -108,67 +109,67 @@ public class Simulazione {
         this.dataAcquisto = dataAcquisto;
     }
 
-    public Double getPrezzoAcquisto() {
+    public BigDecimal getPrezzoAcquisto() {
         return prezzoAcquisto;
     }
 
-    public void setPrezzoAcquisto(Double prezzoAcquisto) {
+    public void setPrezzoAcquisto(BigDecimal prezzoAcquisto) {
         this.prezzoAcquisto = prezzoAcquisto;
     }
 
-    public Double getRendimentoLordo() {
+    public BigDecimal getRendimentoLordo() {
         return rendimentoLordo;
     }
 
-    public void setRendimentoLordo(Double rendimentoLordo) {
+    public void setRendimentoLordo(BigDecimal rendimentoLordo) {
         this.rendimentoLordo = rendimentoLordo;
     }
 
-    public Double getRendimentoTassato() {
+    public BigDecimal getRendimentoTassato() {
         return rendimentoTassato;
     }
 
-    public void setRendimentoTassato(Double rendimentoTassato) {
+    public void setRendimentoTassato(BigDecimal rendimentoTassato) {
         this.rendimentoTassato = rendimentoTassato;
     }
 
-    public Double getCommissioniAcquisto() {
+    public BigDecimal getCommissioniAcquisto() {
         return commissioniAcquisto;
     }
 
-    public void setCommissioniAcquisto(Double commissioniAcquisto) {
+    public void setCommissioniAcquisto(BigDecimal commissioniAcquisto) {
         this.commissioniAcquisto = commissioniAcquisto;
     }
 
-    public Double getRendimentoNettoCedole() {
+    public BigDecimal getRendimentoNettoCedole() {
         return rendimentoNettoCedole;
     }
 
-    public void setRendimentoNettoCedole(Double rendimentoNettoCedole) {
+    public void setRendimentoNettoCedole(BigDecimal rendimentoNettoCedole) {
         this.rendimentoNettoCedole = rendimentoNettoCedole;
     }
 
-    public Double getImpostaBollo() {
+    public BigDecimal getImpostaBollo() {
         return impostaBollo;
     }
 
-    public void setImpostaBollo(Double impostaBollo) {
+    public void setImpostaBollo(BigDecimal impostaBollo) {
         this.impostaBollo = impostaBollo;
     }
 
-    public Double getRendimentoNettoBollo() {
+    public BigDecimal getRendimentoNettoBollo() {
         return rendimentoNettoBollo;
     }
 
-    public void setRendimentoNettoBollo(Double rendimentoNettoBollo) {
+    public void setRendimentoNettoBollo(BigDecimal rendimentoNettoBollo) {
         this.rendimentoNettoBollo = rendimentoNettoBollo;
     }
 
-    public Double getPlusMinusValenza() {
+    public BigDecimal getPlusMinusValenza() {
         return plusMinusValenza;
     }
 
-    public void setPlusMinusValenza(Double plusMinusValenza) {
+    public void setPlusMinusValenza(BigDecimal plusMinusValenza) {
         this.plusMinusValenza = plusMinusValenza;
     }
 
