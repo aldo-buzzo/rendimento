@@ -1,12 +1,12 @@
 package com.example.rendimento.mapper;
 
-import com.example.rendimento.dto.TitoloDTO;
-import com.example.rendimento.model.Titolo;
-import java.math.BigDecimal;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Component;
+
+import com.example.rendimento.dto.TitoloDTO;
+import com.example.rendimento.model.Titolo;
 
 /**
  * Classe di utilità per la conversione tra l'entità Titolo e il DTO TitoloDTO.
@@ -32,7 +32,9 @@ public class TitoloMapper {
                 entity.getDataScadenza(),
                 entity.getTassoNominale(),
                 entity.getPeriodicitaCedole(),
-                entity.getPeriodicitaBollo()
+                entity.getPeriodicitaBollo(),
+                entity.getTipoTitolo(),
+                null  // Il corso non è memorizzato nell'entità, viene recuperato in tempo reale
         );
     }
 
@@ -55,6 +57,7 @@ public class TitoloMapper {
         entity.setTassoNominale(dto.getTassoNominale());
         entity.setPeriodicitaCedole(dto.getPeriodicitaCedole());
         entity.setPeriodicitaBollo(dto.getPeriodicitaBollo());
+        entity.setTipoTitolo(dto.getTipoTitolo());
         
         return entity;
     }
@@ -94,6 +97,7 @@ public class TitoloMapper {
         entity.setTassoNominale(dto.getTassoNominale());
         entity.setPeriodicitaCedole(dto.getPeriodicitaCedole());
         entity.setPeriodicitaBollo(dto.getPeriodicitaBollo());
+        entity.setTipoTitolo(dto.getTipoTitolo());
         
         return entity;
     }

@@ -6,6 +6,7 @@ import java.time.LocalDate;
 
 /**
  * Classe entità JPA che rappresenta la tabella Simulazione nel database.
+ * Implementa il controllo ottimistico della concorrenza tramite il campo version.
  */
 @Entity
 @Table(name = "simulazione")
@@ -46,6 +47,10 @@ public class Simulazione {
 
     @Column(name = "plus_minus_valenza", nullable = false, precision = 10, scale = 4)
     private BigDecimal plusMinusValenza;
+    
+    @Version
+    @Column(name = "version")
+    private Long version;
 
     /**
      * Costruttore predefinito richiesto da JPA.
@@ -172,6 +177,14 @@ public class Simulazione {
     public void setPlusMinusValenza(BigDecimal plusMinusValenza) {
         this.plusMinusValenza = plusMinusValenza;
     }
+    
+    public Long getVersion() {
+        return version;
+    }
+    
+    public void setVersion(Long version) {
+        this.version = version;
+    }
 
     @Override
     public String toString() {
@@ -187,6 +200,7 @@ public class Simulazione {
                 ", impostaBollo=" + impostaBollo +
                 ", rendimentoNettoBollo=" + rendimentoNettoBollo +
                 ", plusMinusValenza=" + plusMinusValenza +
+                ", version=" + version +
                 '}';
     }
 }

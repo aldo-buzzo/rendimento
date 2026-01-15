@@ -2,7 +2,10 @@ package com.example.rendimento.repository;
 
 import com.example.rendimento.model.Simulazione;
 import com.example.rendimento.model.Titolo;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -48,4 +51,22 @@ public interface SimulazioneRepository extends JpaRepository<Simulazione, Intege
      * @return lista di simulazioni con rendimento netto superiore al valore specificato
      */
     List<Simulazione> findByRendimentoNettoBolloGreaterThanEqual(BigDecimal rendimentoMinimo);
+    
+    /**
+     * Trova tutti gli ID dei titoli distinti presenti nelle simulazioni.
+     * 
+     * @return lista degli ID dei titoli distinti
+     */
+    @Query("SELECT DISTINCT s.titolo.idTitolo FROM Simulazione s")
+    List<Integer> findDistinctTitoloIds();
+    
+    /**
+     * Trova le simulazioni per un titolo specifico, ordinate per data di acquisto in ordine decrescente.
+     * 
+     * @param titoloId l'ID del titolo
+     * @param pageable oggetto per la paginazione e l'ordinamento
+     * @return lista di simulazioni ordinate per data di acquisto
+     */
+    @Query("SELECT s FROM Simulazione s WHERE s.titolo.idTitolo = :titoloId ORDER BY s.dataAcquisto DESC")
+    List<Simulazione> findByTitoloIdOrderByDataAcquistoDesc(@Param("titoloId") Integer titoloId, Pageable pageable);
 }

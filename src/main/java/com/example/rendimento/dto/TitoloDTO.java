@@ -1,5 +1,6 @@
 package com.example.rendimento.dto;
 
+import com.example.rendimento.enums.TipoTitolo;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -16,6 +17,8 @@ public class TitoloDTO {
     private BigDecimal tassoNominale;
     private String periodicitaCedole;
     private String periodicitaBollo;
+    private TipoTitolo tipoTitolo;
+    private BigDecimal corso;
 
     /**
      * Costruttore predefinito.
@@ -35,7 +38,8 @@ public class TitoloDTO {
      * @param periodicitaBollo la frequenza del bollo
      */
     public TitoloDTO(Integer idTitolo, String nome, String codiceIsin, LocalDate dataScadenza,
-                    BigDecimal tassoNominale, String periodicitaCedole, String periodicitaBollo) {
+                    BigDecimal tassoNominale, String periodicitaCedole, String periodicitaBollo,
+                    TipoTitolo tipoTitolo, BigDecimal corso) {
         this.idTitolo = idTitolo;
         this.nome = nome;
         this.codiceIsin = codiceIsin;
@@ -43,6 +47,8 @@ public class TitoloDTO {
         this.tassoNominale = tassoNominale;
         this.periodicitaCedole = periodicitaCedole;
         this.periodicitaBollo = periodicitaBollo;
+        this.tipoTitolo = tipoTitolo;
+        this.corso = corso;
     }
 
     // Getter e Setter
@@ -102,6 +108,22 @@ public class TitoloDTO {
     public void setPeriodicitaBollo(String periodicitaBollo) {
         this.periodicitaBollo = periodicitaBollo;
     }
+    
+    public TipoTitolo getTipoTitolo() {
+        return tipoTitolo;
+    }
+    
+    public void setTipoTitolo(TipoTitolo tipoTitolo) {
+        this.tipoTitolo = tipoTitolo;
+    }
+    
+    public BigDecimal getCorso() {
+        return corso;
+    }
+    
+    public void setCorso(BigDecimal corso) {
+        this.corso = corso;
+    }
 
     @Override
     public String toString() {
@@ -113,6 +135,8 @@ public class TitoloDTO {
                 ", tassoNominale=" + tassoNominale +
                 ", periodicitaCedole='" + periodicitaCedole + '\'' +
                 ", periodicitaBollo='" + periodicitaBollo + '\'' +
+                ", tipoTitolo='" + tipoTitolo + '\'' +
+                ", corso=" + corso +
                 '}';
     }
 }

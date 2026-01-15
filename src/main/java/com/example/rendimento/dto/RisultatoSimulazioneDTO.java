@@ -16,6 +16,7 @@ public class RisultatoSimulazioneDTO {
     private BigDecimal guadagnoNettoBollo;
     private BigDecimal tasso;
     private BigDecimal tassoNettoCommissioni;
+    private BigDecimal tassoNettoBollo;
     private BigDecimal importoScadenza;
     
     /**
@@ -36,12 +37,13 @@ public class RisultatoSimulazioneDTO {
      * @param guadagnoNettoBollo il guadagno al netto del bollo
      * @param tasso il tasso di rendimento
      * @param tassoNettoCommissioni il tasso di rendimento al netto delle commissioni
+     * @param tassoNettoBollo il tasso di rendimento al netto del bollo
      * @param importoScadenza l'importo a scadenza
      */
     public RisultatoSimulazioneDTO(BigDecimal plusvalenzaNetta, BigDecimal interessiNetti, BigDecimal commissioni,
                                   BigDecimal guadagnoTotale, BigDecimal guadagnoNettoCommissioni, BigDecimal impostaBollo,
                                   BigDecimal guadagnoNettoBollo, BigDecimal tasso, BigDecimal tassoNettoCommissioni,
-                                  BigDecimal importoScadenza) {
+                                  BigDecimal tassoNettoBollo, BigDecimal importoScadenza) {
         this.plusvalenzaNetta = plusvalenzaNetta;
         this.interessiNetti = interessiNetti;
         this.commissioni = commissioni;
@@ -51,6 +53,7 @@ public class RisultatoSimulazioneDTO {
         this.guadagnoNettoBollo = guadagnoNettoBollo;
         this.tasso = tasso;
         this.tassoNettoCommissioni = tassoNettoCommissioni;
+        this.tassoNettoBollo = tassoNettoBollo;
         this.importoScadenza = importoScadenza;
     }
     
@@ -128,6 +131,14 @@ public class RisultatoSimulazioneDTO {
         this.tassoNettoCommissioni = tassoNettoCommissioni;
     }
     
+    public BigDecimal getTassoNettoBollo() {
+        return tassoNettoBollo;
+    }
+    
+    public void setTassoNettoBollo(BigDecimal tassoNettoBollo) {
+        this.tassoNettoBollo = tassoNettoBollo;
+    }
+    
     public BigDecimal getImportoScadenza() {
         return importoScadenza;
     }
@@ -148,6 +159,7 @@ public class RisultatoSimulazioneDTO {
                 ", guadagnoNettoBollo=" + guadagnoNettoBollo +
                 ", tasso=" + tasso +
                 ", tassoNettoCommissioni=" + tassoNettoCommissioni +
+                ", tassoNettoBollo=" + tassoNettoBollo +
                 ", importoScadenza=" + importoScadenza +
                 '}';
     }

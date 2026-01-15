@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulazione Rendimento Titoli</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/css/bootstrap-datepicker.min.css">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -25,8 +26,8 @@
                             <table class="table table-striped" id="titoli-table">
                                 <thead>
                                     <tr>
-                                        <th>Nome</th>
                                         <th>Codice ISIN</th>
+                                        <th>Nome</th>
                                         <th>Prezzo</th>
                                         <th>Azioni</th>
                                     </tr>
@@ -36,7 +37,12 @@
                                 </tbody>
                             </table>
                         </div>
-                        <button class="btn btn-primary" id="add-titolo-btn">Aggiungi Titolo</button>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary" id="add-titolo-btn">Aggiungi Titolo</button>
+                            <button class="btn btn-outline-primary" id="lista-btp-btn">Lista BTP</button>
+                            <button class="btn btn-outline-primary" id="lista-bot-btn">Lista BOT</button>
+                            <button class="btn btn-outline-success" id="calcola-rendimenti-btn">Calcola Rendimenti</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -67,24 +73,24 @@
                                         <label for="prezzo-acquisto" class="form-label mb-0">Prezzo Acquisto (€)</label>
                                     </div>
                                     <div class="col-md-4">
-                                        <input type="number" class="form-control" id="prezzo-acquisto" min="0.01" step="0.01" required>
+                                        <input type="text" class="form-control" id="prezzo-acquisto" required>
                                     </div>
                                     <div class="col-md-2">
                                         <label for="importo-nominale" class="form-label mb-0">Importo (€)</label>
                                     </div>
                                     <div class="col-md-4">
-                                        <input type="number" class="form-control" id="importo-nominale" min="1" step="0.01" required>
+                                        <input type="text" class="form-control" id="importo-nominale" required>
                                     </div>
                                 </div>
                             </div>
                             <div class="mb-2">
                                 <div class="row align-items-center">
-                                    <div class="col-md-4">
-                                        <label for="data-acquisto" class="form-label mb-0">Data Acquisto</label>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <input type="date" class="form-control" id="data-acquisto" required>
-                                    </div>
+                            <div class="col-md-4">
+                                <label for="data-acquisto" class="form-label mb-0">Data Acquisto</label>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control datepicker" id="data-acquisto" required placeholder="gg-mm-aaaa">
+                            </div>
                                     <div class="col-md-4">
                                         <div class="input-group">
                                             <span class="input-group-text">Giorni</span>
@@ -95,14 +101,21 @@
                             </div>
                             <div class="mb-2">
                                 <div class="row align-items-center">
-                                    <div class="col-md-2">
+                                    <div class="col-md-4">
+                                        <label for="tasso-interesse" class="form-label mb-0">Tasso d'interesse (%)</label>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <input type="text" class="form-control" id="tasso-interesse" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="row align-items-center">
+                                    <div class="col-md-4">
                                         <label for="commissioni-acquisto" class="form-label mb-0">Commissioni Acquisto (%)</label>
                                     </div>
-                                    <div class="col-md-4">
-                                        <input type="number" class="form-control" id="commissioni-acquisto" min="0" step="0.01" value="0.09" required>
-                                    </div>
-                                    <div class="col-md-6 d-flex align-items-center">
-                                        <button type="submit" class="btn btn-success ms-3">Calcola Rendimento</button>
+                                    <div class="col-md-8">
+                                        <input type="text" class="form-control" id="commissioni-acquisto" value="0,09" required>
                                     </div>
                                 </div>
                             </div>
@@ -120,6 +133,14 @@
                                             <input class="form-check-input" type="radio" name="modalita-bollo" id="modalita-bollo-mensile" value="MENSILE">
                                             <label class="form-check-label" for="modalita-bollo-mensile">Mensile</label>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="row align-items-center">
+                                    <div class="col-md-12 d-flex justify-content-center">
+                                        <button type="button" class="btn btn-info me-2" id="prezzo-corrente-btn">Prezzo Corrente</button>
+                                        <button type="submit" class="btn btn-success">Calcola Rendimento</button>
                                     </div>
                                 </div>
                             </div>
@@ -183,11 +204,17 @@
                             </div>
                         </div>
                         <div class="row mb-2">
-                            <div class="col-md-4">
-                                <label class="form-label mb-0">Guadagno al Netto Bollo</label>
+                            <div class="col-md-2">
+                                <label class="form-label mb-0">G. Netto Bollo</label>
                             </div>
-                            <div class="col-md-8">
+                            <div class="col-md-4">
                                 <input type="text" class="form-control" id="guadagno-netto-bollo" readonly>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label mb-0">Tasso N. Bollo</label>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="tasso-netto-bollo" readonly>
                             </div>
                         </div>
                         <div class="row mb-2">
@@ -218,11 +245,14 @@
                                 <thead>
                                     <tr>
                                         <th>Titolo</th>
-                                        <th>Importo Nominale</th>
-                                        <th>Data Acquisto</th>
-                                        <th>Data Scadenza</th>
-                                        <th>Rendimento Netto</th>
-                                        <th>Valore Finale</th>
+                                        <th>Importo</th>
+                                        <th>Prezzo</th>
+                                        <th>Data Acq.</th>
+                                        <th>Data Scad.</th>
+                                        <th>Comm.</th>
+                                        <th>Bollo</th>
+                                        <th>Rend. Netto</th>
+                                        <th>Val. Finale</th>
                                     </tr>
                                 </thead>
                                 <tbody id="simulazioni-list">
@@ -247,48 +277,74 @@
                 <div class="modal-body">
                     <form id="titolo-form">
                         <input type="hidden" id="titolo-id">
-                        <div class="mb-3">
-                            <label for="nome-titolo" class="form-label">Nome</label>
-                            <input type="text" class="form-control" id="nome-titolo" required>
+                        <div class="mb-2">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="codice-isin-search" class="form-label">ISIN</label>
+                                    <input type="text" class="form-control" id="codice-isin-search" maxlength="20">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="tipo-titolo-search" class="form-label">Tipo</label>
+                                    <select class="form-select" id="tipo-titolo-search">
+                                        <option value="">Seleziona</option>
+                                        <option value="BTP">BTP</option>
+                                        <option value="BOT">BOT</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="button" class="btn btn-primary w-100" id="cerca-titolo-btn">Cerca</button>
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="codice-isin" class="form-label">Codice ISIN</label>
-                            <input type="text" class="form-control" id="codice-isin" maxlength="20" required>
-                            <div class="form-text">Codice identificativo univoco del titolo</div>
+                        <div class="mb-2">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <label for="nome-titolo" class="form-label">Nome</label>
+                                    <input type="text" class="form-control" id="nome-titolo" required>
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="data-scadenza" class="form-label">Data Scadenza</label>
-                            <input type="date" class="form-control" id="data-scadenza" required>
+                        <div class="mb-2">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <input type="hidden" id="codice-isin">
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="tasso-nominale" class="form-label">Tasso Nominale (%)</label>
-                            <input type="number" class="form-control" id="tasso-nominale" min="0" step="0.01" required>
-                            <div class="form-text">Tasso di interesse nominale annuo</div>
+                        <div class="mb-2">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="data-scadenza" class="form-label">Data Scadenza</label>
+                                    <input type="text" class="form-control datepicker" id="data-scadenza" required placeholder="gg-mm-aaaa">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="tasso-nominale" class="form-label">Tasso Nominale (%)</label>
+                                    <input type="text" class="form-control" id="tasso-nominale" required>
+                                    <div class="form-text">Tasso di interesse nominale annuo</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="periodicita-cedole" class="form-label">Periodicità Cedole</label>
-                            <select class="form-select" id="periodicita-cedole" required>
-                                <option value="">Seleziona</option>
-                                <option value="ANNUALE">Annuale</option>
-                                <option value="SEMESTRALE">Semestrale</option>
-                                <option value="TRIMESTRALE">Trimestrale</option>
-                                <option value="MENSILE">Mensile</option>
-                            </select>
+                        <div class="mb-2">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="periodicita-cedole" class="form-label">Periodicità Cedole</label>
+                                    <select class="form-select" id="periodicita-cedole" required>
+                                        <option value="">Seleziona</option>
+                                        <option value="ANNUALE">Annuale</option>
+                                        <option value="SEMESTRALE">Semestrale</option>
+                                        <option value="TRIMESTRALE">Trimestrale</option>
+                                        <option value="MENSILE">Mensile</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="prezzo-titolo" class="form-label">Prezzo Attuale (€)</label>
+                                    <input type="text" class="form-control" id="prezzo-titolo" required>
+                                    <div class="form-text">Prezzo di mercato attuale</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="periodicita-bollo" class="form-label">Periodicità Bollo</label>
-                            <select class="form-select" id="periodicita-bollo" required>
-                                <option value="">Seleziona</option>
-                                <option value="ANNUALE">Annuale</option>
-                                <option value="SEMESTRALE">Semestrale</option>
-                                <option value="TRIMESTRALE">Trimestrale</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="prezzo-titolo" class="form-label">Prezzo Attuale (€)</label>
-                            <input type="text" class="form-control" id="prezzo-titolo" required>
-                            <div class="form-text">Prezzo di mercato attuale per unità nominale</div>
-                        </div>
+                        <input type="hidden" id="periodicita-bollo" value="ANNUALE">
+                        <input type="hidden" id="tipo-titolo">
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -299,7 +355,71 @@
         </div>
     </div>
 
+    <!-- Modal per visualizzare la lista dei titoli da Borsa Italiana -->
+    <div class="modal fade" id="lista-titoli-modal" tabindex="-1" aria-labelledby="lista-titoli-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="lista-titoli-modal-label">Lista Titoli</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div>
+                            <span id="lista-titoli-tipo" class="fw-bold"></span>
+                            <span id="lista-titoli-count" class="ms-2 text-muted"></span>
+                        </div>
+                        <div class="spinner-border text-primary" role="status" id="lista-titoli-loading">
+                            <span class="visually-hidden">Caricamento...</span>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="lista-titoli-table">
+                            <thead>
+                                    <tr>
+                                        <th>ISIN</th>
+                                        <th>Nome</th>
+                                        <th>Scadenza</th>
+                                        <th>Tasso</th>
+                                        <th>Prezzo</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                            </thead>
+                            <tbody id="lista-titoli-body">
+                                <!-- I titoli verranno caricati dinamicamente qui -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="lista-titoli-error" class="alert alert-danger d-none">
+                        Si è verificato un errore durante il caricamento dei titoli.
+                    </div>
+                    
+                    <!-- Controlli di paginazione -->
+                    <div class="d-flex justify-content-between align-items-center mt-3" id="pagination-controls">
+                        <div>
+                            <span>Pagina <span id="current-page">1</span> di <span id="total-pages">1</span></span>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-outline-primary btn-sm me-2" id="prev-page-btn" disabled>
+                                <i class="bi bi-chevron-left"></i> Precedente
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="next-page-btn" disabled>
+                                Successiva <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/locales/bootstrap-datepicker.it.min.js"></script>
     <script src="js/main.js"></script>
     
     <footer class="mt-5 py-3 text-center border-top">

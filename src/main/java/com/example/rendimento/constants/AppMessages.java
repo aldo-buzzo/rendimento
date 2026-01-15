@@ -6,6 +6,7 @@ package com.example.rendimento.constants;
 public class AppMessages {
     // Messaggi di successo
     public static final String TITOLO_SALVATO = "Titolo salvato con successo";
+    public static final String TITOLO_AGGIORNATO = "Titolo aggiornato con successo";
     public static final String TITOLO_ELIMINATO = "Titolo eliminato con successo";
     
     // Messaggi di errore

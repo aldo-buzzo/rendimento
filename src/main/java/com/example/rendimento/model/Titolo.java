@@ -1,11 +1,13 @@
 package com.example.rendimento.model;
 
+import com.example.rendimento.enums.TipoTitolo;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
  * Classe entità JPA che rappresenta la tabella Titolo nel database.
+ * Implementa il controllo ottimistico della concorrenza tramite il campo version.
  */
 @Entity
 @Table(name = "titolo")
@@ -33,6 +35,14 @@ public class Titolo {
 
     @Column(name = "periodicita_bollo", nullable = false, length = 20)
     private String periodicitaBollo;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_titolo", length = 50)
+    private TipoTitolo tipoTitolo;
+    
+    @Version
+    @Column(name = "version")
+    private Long version;
 
     /**
      * Costruttore predefinito richiesto da JPA.
@@ -51,13 +61,15 @@ public class Titolo {
      * @param periodicitaBollo la frequenza del bollo
      */
     public Titolo(String nome, String codiceIsin, LocalDate dataScadenza, 
-                 BigDecimal tassoNominale, String periodicitaCedole, String periodicitaBollo) {
+                 BigDecimal tassoNominale, String periodicitaCedole, String periodicitaBollo,
+                 TipoTitolo tipoTitolo) {
         this.nome = nome;
         this.codiceIsin = codiceIsin;
         this.dataScadenza = dataScadenza;
         this.tassoNominale = tassoNominale;
         this.periodicitaCedole = periodicitaCedole;
         this.periodicitaBollo = periodicitaBollo;
+        this.tipoTitolo = tipoTitolo;
     }
 
     // Getter e Setter
@@ -117,6 +129,22 @@ public class Titolo {
     public void setPeriodicitaBollo(String periodicitaBollo) {
         this.periodicitaBollo = periodicitaBollo;
     }
+    
+    public TipoTitolo getTipoTitolo() {
+        return tipoTitolo;
+    }
+    
+    public void setTipoTitolo(TipoTitolo tipoTitolo) {
+        this.tipoTitolo = tipoTitolo;
+    }
+    
+    public Long getVersion() {
+        return version;
+    }
+    
+    public void setVersion(Long version) {
+        this.version = version;
+    }
 
     @Override
     public String toString() {
@@ -128,6 +156,8 @@ public class Titolo {
                 ", tassoNominale=" + tassoNominale +
                 ", periodicitaCedole='" + periodicitaCedole + '\'' +
                 ", periodicitaBollo='" + periodicitaBollo + '\'' +
+                ", tipoTitolo='" + tipoTitolo + '\'' +
+                ", version=" + version +
                 '}';
     }
 }

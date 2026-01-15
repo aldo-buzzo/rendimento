@@ -3,6 +3,7 @@ package com.example.rendimento.service.impl;
 import com.example.rendimento.dto.RisultatoSimulazioneDTO;
 import com.example.rendimento.dto.SimulazioneDTO;
 import com.example.rendimento.enums.ModalitaCalcoloBollo;
+import com.example.rendimento.exception.ConflittoModificaException;
 import com.example.rendimento.mapper.SimulazioneMapper;
 import com.example.rendimento.model.Simulazione;
 import com.example.rendimento.model.Titolo;
@@ -11,14 +12,18 @@ import com.example.rendimento.repository.TitoloRepository;
 import com.example.rendimento.service.SimulazioneService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.PageRequest;
 
 /**
  * Implementazione del servizio che gestisce le operazioni sulle simulazioni.
@@ -134,6 +139,13 @@ public class SimulazioneServiceImpl implements SimulazioneService {
                                          .divide(new BigDecimal(giorniAllaScadenza), 8, RoundingMode.HALF_UP)
                                          .multiply(new BigDecimal("100"))
                                          .setScale(4, RoundingMode.HALF_UP);
+        
+        // Calcolo tasso netto bollo ((guadagno netto bollo / importo pagato) * 360/giorni * 100)
+        BigDecimal tassoNettoBollo = guadagnoNettoBollo.divide(importoPagato, 8, RoundingMode.HALF_UP)
+                                   .multiply(new BigDecimal("360"))
+                                   .divide(new BigDecimal(giorniAllaScadenza), 8, RoundingMode.HALF_UP)
+                                   .multiply(new BigDecimal("100"))
+                                   .setScale(4, RoundingMode.HALF_UP);
 
         // Calcolo importo a scadenza
         BigDecimal importoScadenza = importo.add(guadagnoNettoBollo)
@@ -150,15 +162,58 @@ public class SimulazioneServiceImpl implements SimulazioneService {
             guadagnoNettoBollo,
             tasso,
             tassoNettoCommissioni,
+            tassoNettoBollo,
             importoScadenza
         );
     }
 
     @Override
+    @Transactional
     public SimulazioneDTO salvaSimulazione(SimulazioneDTO simulazioneDTO) {
-        Simulazione simulazione = simulazioneMapper.toEntity(simulazioneDTO);
-        Simulazione savedSimulazione = simulazioneRepository.save(simulazione);
-        return simulazioneMapper.toDTO(savedSimulazione);
+        try {
+            Simulazione simulazione = simulazioneMapper.toEntity(simulazioneDTO);
+            Simulazione savedSimulazione = simulazioneRepository.save(simulazione);
+            return simulazioneMapper.toDTO(savedSimulazione);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            // Gestione dell'eccezione di concorrenza ottimistica
+            throw new ConflittoModificaException(
+                "La simulazione è stata modificata da un altro utente. Ricarica e riprova.", e);
+        }
+    }
+    
+    @Override
+    @Transactional
+    public SimulazioneDTO calcolaESalvaSimulazione(Integer idTitolo, BigDecimal prezzoAcquisto, 
+                                                BigDecimal importo, LocalDate dataAcquisto,
+                                                ModalitaCalcoloBollo modalitaBollo, BigDecimal commissioniAcquisto) {
+        // Calcola il rendimento
+        RisultatoSimulazioneDTO risultato = calcolaRendimento(idTitolo, prezzoAcquisto, importo, modalitaBollo);
+        
+        // Recupera il titolo
+        Titolo titolo = titoloRepository.findById(idTitolo)
+            .orElseThrow(() -> new EntityNotFoundException("Titolo non trovato con ID: " + idTitolo));
+        
+        // Crea l'oggetto SimulazioneDTO con i risultati del calcolo
+        SimulazioneDTO simulazioneDTO = new SimulazioneDTO();
+        simulazioneDTO.setIdTitolo(idTitolo);
+        simulazioneDTO.setDataAcquisto(dataAcquisto);
+        simulazioneDTO.setPrezzoAcquisto(prezzoAcquisto);
+        simulazioneDTO.setCommissioniAcquisto(commissioniAcquisto);
+        
+        // Imposta i valori calcolati
+        simulazioneDTO.setRendimentoLordo(risultato.getTasso().divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
+        simulazioneDTO.setRendimentoTassato(risultato.getTasso().multiply(new BigDecimal("0.875"))
+                                          .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
+        simulazioneDTO.setRendimentoNettoCedole(risultato.getTassoNettoCommissioni()
+                                              .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
+        simulazioneDTO.setImpostaBollo(risultato.getImpostaBollo());
+        simulazioneDTO.setRendimentoNettoBollo(risultato.getGuadagnoNettoBollo()
+                                             .divide(importo, 4, RoundingMode.HALF_UP)
+                                             .multiply(new BigDecimal("100")));
+        simulazioneDTO.setPlusMinusValenza(risultato.getPlusvalenzaNetta());
+        
+        // Salva la simulazione
+        return salvaSimulazione(simulazioneDTO);
     }
 
     @Override
@@ -182,5 +237,31 @@ public class SimulazioneServiceImpl implements SimulazioneService {
             throw new EntityNotFoundException("Simulazione non trovata con ID: " + id);
         }
         simulazioneRepository.deleteById(id);
+    }
+    
+    @Override
+    public List<SimulazioneDTO> getLatestSimulazioneForEachTitolo() {
+        List<Integer> titoloIds = simulazioneRepository.findDistinctTitoloIds();
+        List<Simulazione> latestSimulazioni = new ArrayList<>();
+        
+        for (Integer titoloId : titoloIds) {
+            List<Simulazione> simulazioni = simulazioneRepository.findByTitoloIdOrderByDataAcquistoDesc(
+                titoloId, PageRequest.of(0, 1));
+            if (!simulazioni.isEmpty()) {
+                latestSimulazioni.add(simulazioni.get(0));
+            }
+        }
+        
+        return latestSimulazioni.stream()
+                .map(simulazioneMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<SimulazioneDTO> findByTitoloId(Integer idTitolo) {
+        List<Simulazione> simulazioni = simulazioneRepository.findByTitolo_IdTitolo(idTitolo);
+        return simulazioni.stream()
+                .map(simulazioneMapper::toDTO)
+                .collect(Collectors.toList());
     }
 }

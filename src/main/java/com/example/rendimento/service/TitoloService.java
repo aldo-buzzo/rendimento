@@ -9,6 +9,16 @@ import java.util.List;
 public interface TitoloService {
     
     /**
+     * Importa un titolo da Borsa Italiana dato il codice ISIN e il tipo.
+     * Recupera i dati del titolo e lo salva nel database.
+     * 
+     * @param codiceIsin il codice ISIN del titolo
+     * @param tipoTitolo il tipo del titolo (BTP, BOT, ecc.)
+     * @return il titolo importato e salvato
+     */
+    TitoloDTO importaTitoloDaBorsaItaliana(String codiceIsin, String tipoTitolo);
+    
+    /**
      * Recupera tutti i titoli.
      * 
      * @return lista di tutti i titoli

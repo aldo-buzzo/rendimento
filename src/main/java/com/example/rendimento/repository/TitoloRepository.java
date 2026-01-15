@@ -3,6 +3,7 @@ package com.example.rendimento.repository;
 import com.example.rendimento.model.Titolo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.time.LocalDate;
 
 /**
  * Repository per l'entità Titolo.
@@ -34,4 +35,12 @@ public interface TitoloRepository extends JpaRepository<Titolo, Integer> {
      * @return lista di titoli che corrispondono al criterio di ricerca
      */
     java.util.List<Titolo> findByNomeContainingIgnoreCase(String nome);
+    
+    /**
+     * Trova titoli con data di scadenza successiva alla data specificata.
+     * 
+     * @param data la data di riferimento
+     * @return lista di titoli con data di scadenza successiva alla data specificata
+     */
+    java.util.List<Titolo> findByDataScadenzaAfter(LocalDate data);
 }

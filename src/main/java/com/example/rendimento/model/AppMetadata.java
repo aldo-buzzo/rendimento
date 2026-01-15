@@ -7,6 +7,7 @@ import java.time.ZonedDateTime;
 
 /**
  * Classe entità JPA che rappresenta la tabella app_metadata nel database.
+ * Implementa il controllo ottimistico della concorrenza tramite il campo version.
  */
 @Entity
 @Table(name = "app_metadata")
@@ -25,6 +26,10 @@ public class AppMetadata {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private ZonedDateTime createdAt;
+    
+    @Version
+    @Column(name = "version")
+    private Long version;
 
     /**
      * Costruttore predefinito richiesto da JPA.
@@ -76,6 +81,14 @@ public class AppMetadata {
     public void setCreatedAt(ZonedDateTime createdAt) {
         this.createdAt = createdAt;
     }
+    
+    public Long getVersion() {
+        return version;
+    }
+    
+    public void setVersion(Long version) {
+        this.version = version;
+    }
 
     @Override
     public String toString() {
@@ -84,6 +97,7 @@ public class AppMetadata {
                 ", appName='" + appName + '\'' +
                 ", appVersion='" + appVersion + '\'' +
                 ", createdAt=" + createdAt +
+                ", version=" + version +
                 '}';
     }
 }
