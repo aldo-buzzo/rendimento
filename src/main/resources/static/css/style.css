@@ -98,6 +98,16 @@ h2 {
     font-weight: bold;
 }
 
+/* Stile per le righe cliccabili nella tabella delle simulazioni */
+.simulazione-row {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.simulazione-row:hover {
+    background-color: #f0f8ff;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .card {

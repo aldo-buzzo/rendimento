@@ -48,6 +48,7 @@ public class SimulazioneMapper {
         dto.setImpostaBollo(simulazione.getImpostaBollo());
         dto.setRendimentoNettoBollo(simulazione.getRendimentoNettoBollo());
         dto.setPlusMinusValenza(simulazione.getPlusMinusValenza());
+        dto.setVersion(simulazione.getVersion());
 
         return dto;
     }
@@ -81,6 +82,7 @@ public class SimulazioneMapper {
         simulazione.setImpostaBollo(dto.getImpostaBollo());
         simulazione.setRendimentoNettoBollo(dto.getRendimentoNettoBollo());
         simulazione.setPlusMinusValenza(dto.getPlusMinusValenza());
+        simulazione.setVersion(dto.getVersion());
 
         return simulazione;
     }

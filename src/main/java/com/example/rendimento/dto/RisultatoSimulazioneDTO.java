@@ -18,6 +18,7 @@ public class RisultatoSimulazioneDTO {
     private BigDecimal tassoNettoCommissioni;
     private BigDecimal tassoNettoBollo;
     private BigDecimal importoScadenza;
+    private BigDecimal rendimentoNettoBollo; // Rendimento netto bollo non annualizzato
     
     /**
      * Costruttore predefinito.
@@ -39,11 +40,12 @@ public class RisultatoSimulazioneDTO {
      * @param tassoNettoCommissioni il tasso di rendimento al netto delle commissioni
      * @param tassoNettoBollo il tasso di rendimento al netto del bollo
      * @param importoScadenza l'importo a scadenza
+     * @param rendimentoNettoBollo il rendimento netto bollo non annualizzato
      */
     public RisultatoSimulazioneDTO(BigDecimal plusvalenzaNetta, BigDecimal interessiNetti, BigDecimal commissioni,
                                   BigDecimal guadagnoTotale, BigDecimal guadagnoNettoCommissioni, BigDecimal impostaBollo,
                                   BigDecimal guadagnoNettoBollo, BigDecimal tasso, BigDecimal tassoNettoCommissioni,
-                                  BigDecimal tassoNettoBollo, BigDecimal importoScadenza) {
+                                  BigDecimal tassoNettoBollo, BigDecimal importoScadenza, BigDecimal rendimentoNettoBollo) {
         this.plusvalenzaNetta = plusvalenzaNetta;
         this.interessiNetti = interessiNetti;
         this.commissioni = commissioni;
@@ -55,6 +57,7 @@ public class RisultatoSimulazioneDTO {
         this.tassoNettoCommissioni = tassoNettoCommissioni;
         this.tassoNettoBollo = tassoNettoBollo;
         this.importoScadenza = importoScadenza;
+        this.rendimentoNettoBollo = rendimentoNettoBollo;
     }
     
     // Getter e Setter
@@ -147,6 +150,14 @@ public class RisultatoSimulazioneDTO {
         this.importoScadenza = importoScadenza;
     }
     
+    public BigDecimal getRendimentoNettoBollo() {
+        return rendimentoNettoBollo;
+    }
+    
+    public void setRendimentoNettoBollo(BigDecimal rendimentoNettoBollo) {
+        this.rendimentoNettoBollo = rendimentoNettoBollo;
+    }
+    
     @Override
     public String toString() {
         return "RisultatoSimulazioneDTO{" +
@@ -161,6 +172,7 @@ public class RisultatoSimulazioneDTO {
                 ", tassoNettoCommissioni=" + tassoNettoCommissioni +
                 ", tassoNettoBollo=" + tassoNettoBollo +
                 ", importoScadenza=" + importoScadenza +
+                ", rendimentoNettoBollo=" + rendimentoNettoBollo +
                 '}';
     }
 }

@@ -12,15 +12,23 @@ import com.example.rendimento.enums.TipoTitolo;
 import com.example.rendimento.service.AppMetadataService;
 import com.example.rendimento.service.SimulazioneService;
 import com.example.rendimento.service.TitoloService;
+import com.example.rendimento.service.BorsaItalianaService;
+import com.example.rendimento.service.factory.BorsaItalianaServiceFactory;
+import com.example.rendimento.model.Titolo;
+import com.example.rendimento.repository.TitoloRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Controller REST che fornisce API per il frontend dell'applicazione.
@@ -39,6 +47,12 @@ public class FrontendApiController {
     
     @Autowired
     private SimulazioneService simulazioneService;
+    
+    @Autowired
+    private TitoloRepository titoloRepository;
+    
+    @Autowired
+    private BorsaItalianaServiceFactory borsaItalianaServiceFactory;
 
     /**
      * Restituisce le informazioni sull'applicazione.
@@ -139,8 +153,7 @@ public class FrontendApiController {
      * Importa un titolo da Borsa Italiana dato il codice ISIN e il tipo.
      * 
      * @param codiceIsin il codice ISIN del titolo
-     * @param tipoTitolo il tipo del titolo (BTP, BOT, ecc.)
-     * @return il titolo importato e salvato o un messaggio di errore
+i
      */
     @PostMapping("/titolo/importa")
     public ResponseEntity<?> importaTitoloDaBorsaItaliana(

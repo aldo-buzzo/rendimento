@@ -69,4 +69,14 @@ public interface SimulazioneRepository extends JpaRepository<Simulazione, Intege
      */
     @Query("SELECT s FROM Simulazione s WHERE s.titolo.idTitolo = :titoloId ORDER BY s.dataAcquisto DESC")
     List<Simulazione> findByTitoloIdOrderByDataAcquistoDesc(@Param("titoloId") Integer titoloId, Pageable pageable);
+    
+    /**
+     * Trova le simulazioni per un titolo specifico e una data di acquisto specifica.
+     * Questo metodo è utile per verificare se esiste già una simulazione per lo stesso titolo nella stessa giornata.
+     * 
+     * @param idTitolo l'ID del titolo
+     * @param dataAcquisto la data di acquisto
+     * @return lista di simulazioni per il titolo e la data specificati
+     */
+    List<Simulazione> findByTitolo_IdTitoloAndDataAcquisto(Integer idTitolo, LocalDate dataAcquisto);
 }

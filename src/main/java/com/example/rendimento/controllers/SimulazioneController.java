@@ -11,6 +11,7 @@ import com.example.rendimento.repository.TitoloRepository;
 import com.example.rendimento.service.SimulazioneService;
 import com.example.rendimento.service.factory.BorsaItalianaServiceFactory;
 import com.example.rendimento.service.BorsaItalianaService;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -124,14 +125,25 @@ public class SimulazioneController {
 
     /**
      * Endpoint per il recupero di tutte le simulazioni.
+     * Se il parametro 'latest' è true, restituisce solo le simulazioni più recenti per ogni titolo.
      *
-     * @return lista di tutte le simulazioni
+     * @param latest se true, restituisce solo le simulazioni più recenti per ogni titolo
+     * @return lista di simulazioni
      */
     @GetMapping
-    public ResponseEntity<List<SimulazioneDTO>> getAllSimulazioni() {
-        log.info("Ricevuta richiesta GET /api/simulazioni");
-        List<SimulazioneDTO> simulazioni = simulazioneService.getAllSimulazioni();
-        log.info("Risposta per GET /api/simulazioni: {} simulazioni trovate", simulazioni.size());
+    public ResponseEntity<List<SimulazioneDTO>> getAllSimulazioni(
+            @RequestParam(required = false, defaultValue = "true") boolean latest) {
+        log.info("Ricevuta richiesta GET /api/simulazioni con parametro latest: {}", latest);
+        
+        List<SimulazioneDTO> simulazioni;
+        if (latest) {
+            simulazioni = simulazioneService.getLatestSimulazioneForEachTitolo();
+            log.info("Risposta per GET /api/simulazioni con latest=true: {} simulazioni più recenti trovate", simulazioni.size());
+        } else {
+            simulazioni = simulazioneService.getAllSimulazioni();
+            log.info("Risposta per GET /api/simulazioni con latest=false: {} simulazioni trovate", simulazioni.size());
+        }
+        
         return ResponseEntity.ok(simulazioni);
     }
 
@@ -161,6 +173,82 @@ public class SimulazioneController {
         simulazioneService.deleteSimulazione(id);
         log.info("Risposta per DELETE /api/simulazioni/{}: Simulazione eliminata con successo", id);
         return ResponseEntity.noContent().build();
+    }
+    
+    /**
+     * Endpoint per il recupero dei dettagli di simulazione per un titolo specifico.
+     * Restituisce la simulazione più recente per il titolo specificato, con i dettagli del titolo inclusi.
+     *
+     * @param idTitolo l'ID del titolo per cui recuperare i dettagli di simulazione
+     * @return la simulazione più recente per il titolo specificato, con i dettagli del titolo inclusi
+     */
+    @GetMapping("/titolo/{idTitolo}")
+    public ResponseEntity<SimulazioneDTO> getSimulazioneByTitoloId(@PathVariable Integer idTitolo) {
+        log.info("Ricevuta richiesta GET /api/simulazioni/titolo/{} con idTitolo: {}", "idTitolo", idTitolo);
+        
+        // Ottieni la simulazione più recente per il titolo specificato
+        SimulazioneDTO simulazione = simulazioneService.getLatestSimulazioneByTitoloId(idTitolo);
+        
+        // Ottieni i dettagli del titolo
+        Titolo titolo = titoloRepository.findById(idTitolo)
+            .orElseThrow(() -> new EntityNotFoundException("Titolo non trovato con ID: " + idTitolo));
+        
+        // Converti il titolo in DTO
+        TitoloDTO titoloDTO = new TitoloDTO();
+        titoloDTO.setIdTitolo(titolo.getIdTitolo());
+        titoloDTO.setNome(titolo.getNome());
+        titoloDTO.setCodiceIsin(titolo.getCodiceIsin());
+        titoloDTO.setDataScadenza(titolo.getDataScadenza());
+        titoloDTO.setTassoNominale(titolo.getTassoNominale());
+        titoloDTO.setPeriodicitaCedole(titolo.getPeriodicitaCedole().toString());
+        titoloDTO.setPeriodicitaBollo(titolo.getPeriodicitaBollo().toString());
+        titoloDTO.setTipoTitolo(titolo.getTipoTitolo());
+        
+        // Imposta il titolo nella simulazione
+        simulazione.setTitolo(titoloDTO);
+        
+        log.info("Risposta per GET /api/simulazioni/titolo/{}: {}", idTitolo, simulazione);
+        return ResponseEntity.ok(simulazione);
+    }
+    
+    /**
+     * Endpoint per il recupero di tutte le simulazioni per un titolo specifico.
+     * Restituisce tutte le simulazioni per il titolo specificato, ordinate per data di acquisto decrescente.
+     *
+     * @param idTitolo l'ID del titolo per cui recuperare le simulazioni
+     * @return lista di tutte le simulazioni per il titolo specificato
+     */
+    @GetMapping("/titolo/{idTitolo}/all")
+    public ResponseEntity<List<SimulazioneDTO>> getAllSimulazioniByTitoloId(@PathVariable Integer idTitolo) {
+        log.info("Ricevuta richiesta GET /api/simulazioni/titolo/{}/all con idTitolo: {}", "idTitolo", idTitolo);
+        
+        // Ottieni tutte le simulazioni per il titolo specificato
+        List<SimulazioneDTO> simulazioni = simulazioneService.findByTitoloId(idTitolo);
+        
+        log.info("Risposta per GET /api/simulazioni/titolo/{}/all: {} simulazioni trovate", idTitolo, simulazioni.size());
+        return ResponseEntity.ok(simulazioni);
+    }
+    
+    /**
+     * Endpoint per il recupero dei dettagli di una simulazione con i valori ricalcolati.
+     * Questo endpoint è utile per visualizzare i dettagli di una simulazione esistente
+     * con i valori ricalcolati in base ai parametri attuali.
+     *
+     * @param id l'ID della simulazione da ricalcolare
+     * @return i risultati del calcolo del rendimento
+     */
+    @GetMapping("/{id}/ricalcola")
+    public ResponseEntity<RisultatoSimulazioneDTO> ricalcolaSimulazione(@PathVariable Integer id) {
+        log.info("Ricevuta richiesta GET /api/simulazioni/{}/ricalcola con id: {}", "id", id);
+        
+        // Ottieni la simulazione per ID
+        SimulazioneDTO simulazione = simulazioneService.findById(id);
+        
+        // Ricalcola i valori della simulazione
+        RisultatoSimulazioneDTO risultato = simulazioneService.ricalcolaValoriSimulazione(simulazione);
+        
+        log.info("Risposta per GET /api/simulazioni/{}/ricalcola: {}", id, risultato);
+        return ResponseEntity.ok(risultato);
     }
     
     /**
@@ -205,14 +293,15 @@ public class SimulazioneController {
                     log.error("Errore nel recupero del prezzo per il titolo {}: {}", titolo.getCodiceIsin(), e.getMessage());
                 }
                 
-                // Verifica se esiste già una simulazione per questo titolo
-                List<SimulazioneDTO> simulazioniEsistenti = simulazioneService.findByTitoloId(titolo.getIdTitolo());
+                // Verifica se esiste già una simulazione per questo titolo nella stessa giornata
+                LocalDate oggi = LocalDate.now();
+                List<SimulazioneDTO> simulazioniOggi = simulazioneService.findByTitoloIdAndDataAcquisto(titolo.getIdTitolo(), oggi);
                 SimulazioneDTO simulazione;
                 
-                if (!simulazioniEsistenti.isEmpty()) {
-                    // Aggiorna la simulazione esistente
-                    SimulazioneDTO simulazioneEsistente = simulazioniEsistenti.get(0);
-                    log.info("Trovata simulazione esistente per il titolo ID: {}, ISIN: {}, aggiornamento in corso", 
+                if (!simulazioniOggi.isEmpty()) {
+                    // Aggiorna la simulazione esistente della giornata corrente
+                    SimulazioneDTO simulazioneEsistente = simulazioniOggi.get(0);
+                    log.info("Trovata simulazione esistente per il titolo ID: {}, ISIN: {} nella data odierna, aggiornamento in corso", 
                             titolo.getIdTitolo(), titolo.getCodiceIsin());
                     
                     // Calcola i nuovi valori
@@ -233,9 +322,7 @@ public class SimulazioneController {
                     simulazioneEsistente.setRendimentoNettoCedole(risultato.getTassoNettoCommissioni()
                                                       .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
                     simulazioneEsistente.setImpostaBollo(risultato.getImpostaBollo());
-                    simulazioneEsistente.setRendimentoNettoBollo(risultato.getGuadagnoNettoBollo()
-                                                     .divide(importoFisso, 4, RoundingMode.HALF_UP)
-                                                     .multiply(new BigDecimal("100")));
+                    simulazioneEsistente.setRendimentoNettoBollo(risultato.getTassoNettoBollo());
                     simulazioneEsistente.setPlusMinusValenza(risultato.getPlusvalenzaNetta());
                     
                     // Salva la simulazione aggiornata

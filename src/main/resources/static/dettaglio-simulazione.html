@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dettaglio Simulazione - Rendimento Titoli</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <header class="mb-4">
+            <h1 class="text-center">Simulazione Rendimento Titoli</h1>
+            <p class="text-center lead">Dettaglio simulazione</p>
+        </header>
+
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h2>Dettaglio Simulazione</h2>
+                            <div>
+                                <button id="btn-ricalcola" class="btn btn-success me-2">Ricalcola</button>
+                                <a href="index.html" class="btn btn-outline-primary">Torna alla lista</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Colonna sinistra: Dati del titolo -->
+                            <div class="col-md-6 border-end">
+                                <h5 class="mb-3">Dati del Titolo</h5>
+                                <!-- Titolo (occupa tutta la larghezza) -->
+                                <div class="mb-2">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <label class="form-label mb-0">Titolo</label>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <input type="text" class="form-control" id="titolo-nome" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Prezzo Acquisto e Importo (affiancati) -->
+                                <div class="mb-2">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">Prezzo (€)</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="prezzo-acquisto" readonly>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">Importo (€)</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="importo-nominale" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Data Acquisto e Giorni (affiancati) -->
+                                <div class="mb-2">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">Data Acquisto</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="data-acquisto" readonly>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">Giorni</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="giorni-alla-scadenza" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Tasso d'interesse e Commissioni Acquisto (affiancati) -->
+                                <div class="mb-2">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">Tasso (%)</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="tasso-interesse" readonly>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">Comm. (%)</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="commissioni-acquisto" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Campo nascosto per Modalità Calcolo Bollo -->
+                                <input type="hidden" id="modalita-bollo">
+                            </div>
+                            
+                            <!-- Colonna destra: Risultati del calcolo -->
+                            <div class="col-md-6">
+                                <h5 class="mb-3">Risultati Calcolo</h5>
+                                
+                                <!-- Plusvalenza e Interessi (affiancati) -->
+                                <div class="mb-2">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">Plusvalenza</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="plusvalenza-netta" readonly>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">Interessi</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="interessi-netti" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Commissioni e Imposta bollo (affiancati) -->
+                                <div class="mb-2">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">Comm.</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="commissioni" readonly>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">Bollo</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="imposta-bollo" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Guadagno Tot. e G. Netto Comm. (affiancati) -->
+                                <div class="mb-2">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">Guadagno Tot.</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="guadagno-totale" readonly>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">G. Netto Comm.</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="guadagno-netto-commissioni" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- G. Netto Bollo e Importo a scadenza (affiancati) -->
+                                <div class="mb-2">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">G. Netto Bollo</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="guadagno-netto-bollo" readonly>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">Importo scadenza</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="importo-scadenza" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Tasso e Tasso Netto (affiancati) -->
+                                <div class="mb-2">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">Tasso</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="tasso" readonly>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">Tasso Netto</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="tasso-netto-commissioni" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Tasso N. Bollo (occupa metà riga) -->
+                                <div class="mb-2">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-0">Tasso N. Bollo</label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control" id="tasso-netto-bollo" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sezione per la lista di tutte le simulazioni dello stesso titolo -->
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-10">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Storico Simulazioni</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Data Acquisto</th>
+                                        <th>Prezzo Acquisto</th>
+                                        <th>Importo</th>
+                                        <th>Rendimento Lordo</th>
+                                        <th>Rendimento Netto</th>
+                                        <th>Rendimento Netto Bollo</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="simulazioni-list">
+                                    <!-- Le simulazioni verranno caricate dinamicamente qui -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="no-simulazioni" class="alert alert-info d-none">
+                            Nessuna simulazione trovata per questo titolo.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/dettaglio-simulazione.js"></script>
+    
+    <footer class="mt-5 py-3 text-center border-top">
+        <div class="container">
+            <p class="text-muted mb-0">
+                <span id="app-name"></span> - Versione <span id="app-version"></span>
+            </p>
+        </div>
+    </footer>
+</body>
+</html>

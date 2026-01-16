@@ -14,6 +14,15 @@ import java.util.List;
 public interface SimulazioneService {
     
     /**
+     * Ricalcola tutti i valori di una simulazione esistente.
+     * Utile per il dettaglio simulazione e altre visualizzazioni.
+     * 
+     * @param simulazione la simulazione di cui ricalcolare i valori
+     * @return il risultato del calcolo del rendimento
+     */
+    RisultatoSimulazioneDTO ricalcolaValoriSimulazione(SimulazioneDTO simulazione);
+    
+    /**
      * Calcola il rendimento di un titolo in base ai parametri forniti.
      * 
      * @param idTitolo ID del titolo
@@ -88,4 +97,23 @@ public interface SimulazioneService {
      * @return lista di simulazioni associate al titolo
      */
     List<SimulazioneDTO> findByTitoloId(Integer idTitolo);
+    
+    /**
+     * Trova la simulazione più recente per un titolo specifico tramite il suo ID.
+     * 
+     * @param idTitolo l'ID del titolo per cui cercare la simulazione più recente
+     * @return la simulazione più recente per il titolo specificato
+     * @throws jakarta.persistence.EntityNotFoundException se non esiste alcuna simulazione per il titolo
+     */
+    SimulazioneDTO getLatestSimulazioneByTitoloId(Integer idTitolo);
+    
+    /**
+     * Trova tutte le simulazioni per un titolo specifico e una data di acquisto specifica.
+     * Questo metodo è utile per verificare se esiste già una simulazione per lo stesso titolo nella stessa giornata.
+     * 
+     * @param idTitolo l'ID del titolo
+     * @param dataAcquisto la data di acquisto
+     * @return lista di simulazioni per il titolo e la data specificati
+     */
+    List<SimulazioneDTO> findByTitoloIdAndDataAcquisto(Integer idTitolo, LocalDate dataAcquisto);
 }

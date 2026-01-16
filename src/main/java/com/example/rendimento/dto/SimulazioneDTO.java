@@ -21,6 +21,7 @@ public class SimulazioneDTO {
     private BigDecimal impostaBollo;
     private BigDecimal rendimentoNettoBollo;
     private BigDecimal plusMinusValenza;
+    private Long version;
 
     /**
      * Costruttore predefinito.
@@ -191,6 +192,14 @@ public class SimulazioneDTO {
     public void setPlusMinusValenza(BigDecimal plusMinusValenza) {
         this.plusMinusValenza = plusMinusValenza;
     }
+    
+    public Long getVersion() {
+        return version;
+    }
+    
+    public void setVersion(Long version) {
+        this.version = version;
+    }
 
     @Override
     public String toString() {
@@ -206,6 +215,7 @@ public class SimulazioneDTO {
                 ", impostaBollo=" + impostaBollo +
                 ", rendimentoNettoBollo=" + rendimentoNettoBollo +
                 ", plusMinusValenza=" + plusMinusValenza +
+                ", version=" + version +
                 '}';
     }
 }

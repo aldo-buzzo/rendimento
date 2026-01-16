@@ -51,25 +51,30 @@ public class SimulazioneServiceImpl implements SimulazioneService {
         this.simulazioneMapper = simulazioneMapper;
     }
 
-    @Override
-    public RisultatoSimulazioneDTO calcolaRendimento(Integer idTitolo, BigDecimal prezzoAcquisto, 
-                                                   BigDecimal importo, ModalitaCalcoloBollo modalitaBollo) {
-        // Validazione input
-        if (idTitolo == null || prezzoAcquisto == null || importo == null || modalitaBollo == null) {
-            throw new IllegalArgumentException("Tutti i parametri devono essere valorizzati");
-        }
-
-        // Recupero titolo
-        Titolo titolo = titoloRepository.findById(idTitolo)
-            .orElseThrow(() -> new EntityNotFoundException("Titolo non trovato con ID: " + idTitolo));
-
+    /**
+     * Metodo privato che implementa la logica di calcolo del rendimento.
+     * Questo metodo è utilizzato sia da calcolaRendimento che da calcolaESalvaSimulazione.
+     *
+     * @param titolo il titolo per cui calcolare il rendimento
+     * @param prezzoAcquisto il prezzo di acquisto
+     * @param importo l'importo nominale
+     * @param dataAcquisto la data di acquisto
+     * @param modalitaBollo la modalità di calcolo del bollo
+     * @return il risultato del calcolo del rendimento
+     */
+    private RisultatoSimulazioneDTO calcolaRendimentoInternal(
+            Titolo titolo, 
+            BigDecimal prezzoAcquisto, 
+            BigDecimal importo, 
+            LocalDate dataAcquisto,
+            ModalitaCalcoloBollo modalitaBollo) {
+        
         // Calcolo giorni alla scadenza
-        LocalDate oggi = LocalDate.now();
         LocalDate dataScadenza = titolo.getDataScadenza();
-        long giorniAllaScadenza = ChronoUnit.DAYS.between(oggi, dataScadenza);
+        long giorniAllaScadenza = ChronoUnit.DAYS.between(dataAcquisto, dataScadenza);
         
         if (giorniAllaScadenza <= 0) {
-            throw new IllegalArgumentException("La data di scadenza deve essere successiva alla data odierna");
+            throw new IllegalArgumentException("La data di scadenza deve essere successiva alla data di acquisto");
         }
 
         // Calcolo importo pagato (importo * prezzoAcquisto / 100)
@@ -90,8 +95,8 @@ public class SimulazioneServiceImpl implements SimulazioneService {
                                   .multiply(new BigDecimal(giorniAllaScadenza))
                                   .divide(new BigDecimal("360"), 4, RoundingMode.HALF_UP);
 
-        // Calcolo commissioni (importo * 0,9/1000)
-        BigDecimal commissioni = importo.multiply(new BigDecimal("0.0009"))
+        // Calcolo commissioni (importoPagato * 0,9/1000)
+        BigDecimal commissioni = importoPagato.multiply(new BigDecimal("0.0009"))
                                .setScale(4, RoundingMode.HALF_UP);
 
         // Calcolo guadagno totale (plusvalenza + interessi)
@@ -107,14 +112,14 @@ public class SimulazioneServiceImpl implements SimulazioneService {
 
         if (modalitaBollo == ModalitaCalcoloBollo.ANNUALE) {
             // Verifica se la scadenza è successiva al 31 dicembre dell'anno corrente
-            LocalDate fineDellAnno = LocalDate.of(oggi.getYear(), 12, 31);
+            LocalDate fineDellAnno = LocalDate.of(dataAcquisto.getYear(), 12, 31);
             if (dataScadenza.isAfter(fineDellAnno)) {
                 impostaBollo = importo.multiply(new BigDecimal("0.002"))
                              .setScale(4, RoundingMode.HALF_UP);
             }
         } else { // MENSILE
             // Calcolo proporzionale per ogni mese mancante alla scadenza
-            long mesiAllaScadenza = ChronoUnit.MONTHS.between(oggi, dataScadenza);
+            long mesiAllaScadenza = ChronoUnit.MONTHS.between(dataAcquisto, dataScadenza);
             if (mesiAllaScadenza > 0) {
                 impostaBollo = importo.multiply(new BigDecimal("0.002"))
                              .multiply(new BigDecimal(mesiAllaScadenza))
@@ -147,6 +152,11 @@ public class SimulazioneServiceImpl implements SimulazioneService {
                                    .multiply(new BigDecimal("100"))
                                    .setScale(4, RoundingMode.HALF_UP);
 
+        // Calcolo rendimento netto bollo non annualizzato (guadagno netto bollo / importo * 100)
+        BigDecimal rendimentoNettoBollo = guadagnoNettoBollo.divide(importo, 4, RoundingMode.HALF_UP)
+                                        .multiply(new BigDecimal("100"))
+                                        .setScale(4, RoundingMode.HALF_UP);
+
         // Calcolo importo a scadenza
         BigDecimal importoScadenza = importo.add(guadagnoNettoBollo)
                                    .setScale(4, RoundingMode.HALF_UP);
@@ -163,8 +173,25 @@ public class SimulazioneServiceImpl implements SimulazioneService {
             tasso,
             tassoNettoCommissioni,
             tassoNettoBollo,
-            importoScadenza
+            importoScadenza,
+            rendimentoNettoBollo
         );
+    }
+
+    @Override
+    public RisultatoSimulazioneDTO calcolaRendimento(Integer idTitolo, BigDecimal prezzoAcquisto, 
+                                                   BigDecimal importo, ModalitaCalcoloBollo modalitaBollo) {
+        // Validazione input
+        if (idTitolo == null || prezzoAcquisto == null || importo == null || modalitaBollo == null) {
+            throw new IllegalArgumentException("Tutti i parametri devono essere valorizzati");
+        }
+
+        // Recupero titolo
+        Titolo titolo = titoloRepository.findById(idTitolo)
+            .orElseThrow(() -> new EntityNotFoundException("Titolo non trovato con ID: " + idTitolo));
+
+        // Usa il metodo interno per calcolare il rendimento
+        return calcolaRendimentoInternal(titolo, prezzoAcquisto, importo, LocalDate.now(), modalitaBollo);
     }
 
     @Override
@@ -186,12 +213,13 @@ public class SimulazioneServiceImpl implements SimulazioneService {
     public SimulazioneDTO calcolaESalvaSimulazione(Integer idTitolo, BigDecimal prezzoAcquisto, 
                                                 BigDecimal importo, LocalDate dataAcquisto,
                                                 ModalitaCalcoloBollo modalitaBollo, BigDecimal commissioniAcquisto) {
-        // Calcola il rendimento
-        RisultatoSimulazioneDTO risultato = calcolaRendimento(idTitolo, prezzoAcquisto, importo, modalitaBollo);
-        
         // Recupera il titolo
         Titolo titolo = titoloRepository.findById(idTitolo)
             .orElseThrow(() -> new EntityNotFoundException("Titolo non trovato con ID: " + idTitolo));
+        
+        // Usa il metodo interno per calcolare il rendimento
+        RisultatoSimulazioneDTO risultato = calcolaRendimentoInternal(
+            titolo, prezzoAcquisto, importo, dataAcquisto, modalitaBollo);
         
         // Crea l'oggetto SimulazioneDTO con i risultati del calcolo
         SimulazioneDTO simulazioneDTO = new SimulazioneDTO();
@@ -263,5 +291,54 @@ public class SimulazioneServiceImpl implements SimulazioneService {
         return simulazioni.stream()
                 .map(simulazioneMapper::toDTO)
                 .collect(Collectors.toList());
+    }
+    
+    @Override
+    public SimulazioneDTO getLatestSimulazioneByTitoloId(Integer idTitolo) {
+        // Verifica se il titolo esiste
+        if (!titoloRepository.existsById(idTitolo)) {
+            throw new EntityNotFoundException("Titolo non trovato con ID: " + idTitolo);
+        }
+        
+        // Recupera la simulazione più recente per il titolo specificato
+        List<Simulazione> simulazioni = simulazioneRepository.findByTitoloIdOrderByDataAcquistoDesc(
+            idTitolo, PageRequest.of(0, 1));
+            
+        if (simulazioni.isEmpty()) {
+            throw new EntityNotFoundException("Nessuna simulazione trovata per il titolo con ID: " + idTitolo);
+        }
+        
+        // Restituisce la simulazione più recente
+        return simulazioneMapper.toDTO(simulazioni.get(0));
+    }
+    
+    @Override
+    public List<SimulazioneDTO> findByTitoloIdAndDataAcquisto(Integer idTitolo, LocalDate dataAcquisto) {
+        // Recupera tutte le simulazioni per il titolo e la data specificati
+        List<Simulazione> simulazioni = simulazioneRepository.findByTitolo_IdTitoloAndDataAcquisto(idTitolo, dataAcquisto);
+        
+        // Converte le entità in DTO e restituisce la lista
+        return simulazioni.stream()
+                .map(simulazioneMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public RisultatoSimulazioneDTO ricalcolaValoriSimulazione(SimulazioneDTO simulazione) {
+        // Recupera il titolo
+        Titolo titolo = titoloRepository.findById(simulazione.getIdTitolo())
+            .orElseThrow(() -> new EntityNotFoundException("Titolo non trovato con ID: " + simulazione.getIdTitolo()));
+        
+        // Usa la modalità di calcolo del bollo predefinita (ANNUALE)
+        ModalitaCalcoloBollo modalitaBollo = ModalitaCalcoloBollo.ANNUALE;
+        
+        // Usa il metodo interno per ricalcolare tutti i valori
+        return calcolaRendimentoInternal(
+            titolo, 
+            simulazione.getPrezzoAcquisto(), 
+            new BigDecimal("10000"), // Importo fisso di 10.000 euro
+            simulazione.getDataAcquisto(), 
+            modalitaBollo
+        );
     }
 }

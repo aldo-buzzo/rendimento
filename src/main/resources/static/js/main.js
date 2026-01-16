@@ -54,6 +54,24 @@ function formatDecimal(value) {
     }).format(num);
 }
 
+// Formatta una data in formato italiano (gg-mm-aaaa)
+function formatDate(dateString) {
+    if (!dateString) return '';
+    
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '';
+        
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
+    } catch (e) {
+        console.error("Errore nella formattazione della data:", e);
+        return '';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Imposta le opzioni globali per il datepicker
     $.fn.datepicker.defaults.format = 'dd-mm-yyyy';
@@ -89,6 +107,21 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('simulazione-form').addEventListener('submit', function(e) {
         e.preventDefault();
         createSimulazione();
+    });
+    
+    // Event listeners per i pulsanti di paginazione
+    document.getElementById('prev-page-btn').addEventListener('click', function() {
+        if (currentPage > 0) {
+            currentPage--;
+            loadTitoliPage();
+        }
+    });
+    
+    document.getElementById('next-page-btn').addEventListener('click', function() {
+        if (currentPage < totalPages - 1) {
+            currentPage++;
+            loadTitoliPage();
+        }
     });
     
     // Event listener per il calcolo dei giorni alla scadenza
@@ -207,7 +240,7 @@ function loadTitoliFromServer() {
 
 // Carica le simulazioni dal server
 function loadSimulazioniFromServer() {
-    fetch('/api/frontend/simulazioni/latest')
+    fetch('/api/simulazioni?latest=true')
         .then(response => {
             if (!response.ok) {
                 throw new Error('Errore nel caricamento delle simulazioni');
@@ -448,6 +481,12 @@ function updateSimulazioniTable() {
         
         const row = document.createElement('tr');
         
+        // Aggiungi attributo data-titolo-id per il doppio click
+        row.setAttribute('data-titolo-id', simulazione.titoloId);
+        
+        // Aggiungi classe per indicare che la riga è cliccabile
+        row.classList.add('simulazione-row');
+        
         // Determina la classe CSS in base al rendimento netto
         const rendimentoClass = simulazione.rendimentoNettoBollo >= 0 ? 'rendimento-positivo' : 'rendimento-negativo';
         
@@ -462,9 +501,20 @@ function updateSimulazioniTable() {
             <td>${formatDate(titolo.dataScadenza)}</td>
             <td>${simulazione.commissioniAcquisto.toFixed(2)}%</td>
             <td>${simulazione.impostaBollo.toFixed(2)} €</td>
+            <td>${simulazione.rendimentoLordo.toFixed(2)}%</td>
+            <td>${simulazione.rendimentoNettoCedole.toFixed(2)}%</td>
             <td class="${rendimentoClass}">${simulazione.rendimentoNettoBollo.toFixed(2)}%</td>
             <td>${valoreFinaleTeorico.toFixed(2)} €</td>
         `;
+        
+        // Aggiungi event listener per il doppio click
+        row.addEventListener('dblclick', function() {
+            const titoloId = this.getAttribute('data-titolo-id');
+            if (titoloId) {
+                window.location.href = `dettaglio-simulazione.html?titoloId=${titoloId}`;
+            }
+        });
+        
         tbody.appendChild(row);
     });
 }
@@ -553,471 +603,20 @@ function showTitoloModal(titoloId = null) {
     modal.show();
 }
 
-// Salva un titolo (nuovo)
-function saveTitolo() {
-    const nome = document.getElementById('nome-titolo').value;
-    const codiceIsin = document.getElementById('codice-isin').value;
-    const dataScadenza = document.getElementById('data-scadenza').getAttribute('data-iso-date');
-    const tassoNominaleStr = document.getElementById('tasso-nominale').value;
-    const periodicitaCedole = document.getElementById('periodicita-cedole').value;
-    const periodicitaBollo = document.getElementById('periodicita-bollo').value;
-    const tipoTitolo = document.getElementById('tipo-titolo').value;
-    
-    // Gestione del prezzo come testo liberamente digitabile
-    const prezzoText = document.getElementById('prezzo-titolo').value;
-    
-    // Commentiamo la validazione rigorosa del formato del prezzo
-    /*if (!isValidNumber(prezzoText)) {
-        alert('Il prezzo deve essere un valore numerico valido (usa la virgola come separatore decimale).');
-        return;
-    }*/
-    
-    const prezzo = parseNumericValue(prezzoText);
-    
-    // Verifica quali campi sono vuoti e mostra un messaggio specifico
-    let campiMancanti = [];
-    if (!nome) campiMancanti.push('Nome titolo');
-    if (!codiceIsin) campiMancanti.push('Codice ISIN');
-    if (!dataScadenza) campiMancanti.push('Data scadenza');
-    if (!tassoNominaleStr) campiMancanti.push('Tasso nominale');
-    if (!periodicitaCedole) campiMancanti.push('Periodicità cedole');
-    if (!periodicitaBollo) campiMancanti.push('Periodicità bollo');
-    
-    if (campiMancanti.length > 0) {
-        alert('Compila tutti i campi correttamente. Campi mancanti: ' + campiMancanti.join(', '));
-        return;
-    }
-    
-    // Converti i valori nei tipi corretti - commentiamo la validazione rigorosa
-    /*if (!isValidNumber(tassoNominaleStr)) {
-        alert('Il tasso nominale deve essere un valore numerico valido (usa la virgola come separatore decimale).');
-        return;
-    }*/
-    
-    const tassoNominale = parseNumericValue(tassoNominaleStr);
-    
-    // Crea l'oggetto DTO da inviare al server
-    const titoloDTO = {
-        nome: nome,
-        codiceIsin: codiceIsin,
-        dataScadenza: dataScadenza,
-        tassoNominale: tassoNominale,
-        periodicitaCedole: periodicitaCedole,
-        periodicitaBollo: periodicitaBollo,
-        tipoTitolo: tipoTitolo
-    };
-    
-    // Mostra un indicatore di caricamento
-    const saveButton = document.getElementById('save-titolo-btn');
-    const originalText = saveButton.textContent;
-    saveButton.disabled = true;
-    saveButton.textContent = 'Salvataggio in corso...';
-    
-    // Chiamata API per salvare il titolo
-    fetch('/api/frontend/titolo', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(titoloDTO)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Errore durante il salvataggio del titolo');
-        }
-        return response.json();
-    })
-    .then(data => {
-        // Verifica se abbiamo ricevuto un messaggio (caso di aggiornamento)
-        if (data.message && data.titolo) {
-            // È un aggiornamento di un titolo esistente
-            const titoloAggiornato = data.titolo;
-            
-            // Trova l'indice del titolo esistente
-            const index = titoli.findIndex(t => t.codiceIsin === titoloAggiornato.codiceIsin);
-            
-            if (index !== -1) {
-                // Aggiorna il titolo esistente
-                titoli[index] = {
-                    id: titoloAggiornato.idTitolo,
-                    nome: titoloAggiornato.nome,
-                    codiceIsin: titoloAggiornato.codiceIsin,
-                    dataScadenza: titoloAggiornato.dataScadenza,
-                    tassoNominale: titoloAggiornato.tassoNominale,
-                    periodicitaCedole: titoloAggiornato.periodicitaCedole,
-                    periodicitaBollo: titoloAggiornato.periodicitaBollo,
-                    tipoTitolo: titoloAggiornato.tipoTitolo,
-                    prezzo: prezzo // Manteniamo il prezzo inserito dall'utente
-                };
-            } else {
-                // Nel caso improbabile in cui non troviamo il titolo, lo aggiungiamo
-                titoli.push({
-                    id: titoloAggiornato.idTitolo,
-                    nome: titoloAggiornato.nome,
-                    codiceIsin: titoloAggiornato.codiceIsin,
-                    dataScadenza: titoloAggiornato.dataScadenza,
-                    tassoNominale: titoloAggiornato.tassoNominale,
-                    periodicitaCedole: titoloAggiornato.periodicitaCedole,
-                    periodicitaBollo: titoloAggiornato.periodicitaBollo,
-                    tipoTitolo: titoloAggiornato.tipoTitolo,
-                    prezzo: prezzo // Manteniamo il prezzo inserito dall'utente
-                });
-            }
-            
-            // Mostra un messaggio di successo per l'aggiornamento
-            alert(data.message);
-        } else if (data && data.idTitolo) { // Verifica che data sia un oggetto valido con idTitolo
-            // È un nuovo titolo
-            const savedTitolo = data;
-            
-            // Aggiungi il nuovo titolo alla lista locale
-            titoli.push({
-                id: savedTitolo.idTitolo,
-                nome: savedTitolo.nome || '',
-                codiceIsin: savedTitolo.codiceIsin || '',
-                dataScadenza: savedTitolo.dataScadenza || null,
-                tassoNominale: savedTitolo.tassoNominale || 0,
-                periodicitaCedole: savedTitolo.periodicitaCedole || '',
-                periodicitaBollo: savedTitolo.periodicitaBollo || '',
-                tipoTitolo: savedTitolo.tipoTitolo || '',
-                prezzo: prezzo // Manteniamo il prezzo inserito dall'utente
-            });
-            
-            // Mostra un messaggio di successo per il nuovo titolo
-            alert('Titolo salvato con successo!');
-        } else {
-            // Caso imprevisto: risposta non valida dal server
-            console.error('Risposta non valida dal server:', data);
-            alert('Errore durante il salvataggio del titolo: risposta non valida dal server');
-            return; // Esci dalla funzione senza aggiornare le viste
-        }
-        
-        // Aggiorna le viste
-        updateTitoliTable();
-        updateTitoliSelect();
-        
-        // Chiudi il modal
-        bootstrap.Modal.getInstance(document.getElementById('titolo-modal')).hide();
-    })
-    .catch(error => {
-        console.error('Errore:', error);
-        alert(error.message || 'Si è verificato un errore durante il salvataggio del titolo.');
-    })
-    .finally(() => {
-        // Ripristina il pulsante
-        saveButton.disabled = false;
-        saveButton.textContent = originalText;
-    });
-}
-
-// Modifica un titolo
-function editTitolo(titoloId) {
-    showTitoloModal(titoloId);
-}
-
-// Elimina un titolo
-function deleteTitolo(titoloId) {
-    if (confirm('Sei sicuro di voler eliminare questo titolo?')) {
-        // Rimuovi il titolo
-        titoli = titoli.filter(t => t.id !== titoloId);
-        
-        // Rimuovi anche le simulazioni associate
-        simulazioni = simulazioni.filter(s => s.titoloId !== titoloId);
-        
-        // Aggiorna le viste
-        updateTitoliTable();
-        updateTitoliSelect();
-        updateSimulazioniTable();
-    }
-}
-
-// Calcola il rendimento di un titolo
-function createSimulazione() {
-    const titoloId = parseInt(document.getElementById('titolo-select').value);
-    const prezzoAcquistoText = document.getElementById('prezzo-acquisto').value;
-    
-    // Commentiamo la validazione rigorosa del formato del prezzo
-    /*if (!isValidNumber(prezzoAcquistoText)) {
-        alert('Il prezzo di acquisto deve essere un valore numerico valido (usa la virgola come separatore decimale).');
-        return;
-    }*/
-    
-    const prezzoAcquisto = parseNumericValue(prezzoAcquistoText);
-    let importoText = document.getElementById('importo-nominale').value;
-    
-    // Commentiamo la validazione rigorosa del formato dell'importo
-    /*if (importoText && !isValidNumber(importoText)) {
-        alert('L\'importo nominale deve essere un valore numerico valido (usa la virgola come separatore decimale).');
-        return;
-    }*/
-    
-    let importo = importoText ? parseNumericValue(importoText) : 1000; // Valore di default se non specificato
-    const tassoInteresseText = document.getElementById('tasso-interesse').value;
-    
-    if (tassoInteresseText && !isValidNumber(tassoInteresseText)) {
-        alert('Il tasso d\'interesse deve essere un valore numerico valido (usa la virgola come separatore decimale).');
-        return;
-    }
-    
-    const tassoInteresse = tassoInteresseText ? parseNumericValue(tassoInteresseText) : 0;
-    const modalitaBollo = document.querySelector('input[name="modalita-bollo"]:checked').value;
-    
-    // Se l'importo non è stato inserito, usa il valore di default di 1000 euro
-    if (isNaN(importo)) {
-        importo = 1000;
-    }
-    
-    // Verifica quali campi specifici sono mancanti
-    let campiMancanti = [];
-    if (!titoloId) campiMancanti.push('Titolo');
-    if (isNaN(prezzoAcquisto)) campiMancanti.push('Prezzo di acquisto');
-    
-    if (campiMancanti.length > 0) {
-        alert('Compila tutti i campi correttamente. Campi mancanti: ' + campiMancanti.join(', '));
-        return;
-    }
-    
-    // Mostra un indicatore di caricamento
-    const submitButton = document.querySelector('#simulazione-form button[type="submit"]');
-    const originalText = submitButton.textContent;
-    submitButton.disabled = true;
-    submitButton.textContent = 'Calcolo in corso...';
-    
-    // Chiamata API per calcolare il rendimento
-    fetch(`/api/simulazioni/calcola-rendimento?idTitolo=${titoloId}&prezzoAcquisto=${prezzoAcquisto}&importo=${importo}&modalitaBollo=${modalitaBollo}&tassoInteresse=${tassoInteresse}`, {
-        method: 'POST'
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Errore nel calcolo del rendimento');
-        }
-        return response.json();
-    })
-    .then(data => {
-        // Memorizza il risultato per il salvataggio
-        ultimoRisultatoCalcolo = data;
-        
-        // Se l'importo non era stato inserito, mostra il valore di default nel campo
-        if (isNaN(parseFloat(document.getElementById('importo-nominale').value))) {
-            document.getElementById('importo-nominale').value = importo;
-        }
-        
-        // Aggiornamento dei campi di risultato
-        document.getElementById('plusvalenza-netta').value = formatCurrency(data.plusvalenzaNetta);
-        document.getElementById('interessi-netti').value = formatCurrency(data.interessiNetti);
-        document.getElementById('commissioni').value = formatCurrency(data.commissioni);
-        document.getElementById('guadagno-totale').value = formatCurrency(data.guadagnoTotale);
-        document.getElementById('guadagno-netto-commissioni').value = formatCurrency(data.guadagnoNettoCommissioni);
-        document.getElementById('imposta-bollo').value = formatCurrency(data.impostaBollo);
-        document.getElementById('guadagno-netto-bollo').value = formatCurrency(data.guadagnoNettoBollo);
-        document.getElementById('tasso').value = formatPercentage(data.tasso);
-        document.getElementById('tasso-netto-commissioni').value = formatPercentage(data.tassoNettoCommissioni);
-        document.getElementById('tasso-netto-bollo').value = formatPercentage(data.tassoNettoBollo);
-        document.getElementById('importo-scadenza').value = formatCurrency(data.importoScadenza);
-        
-        // Abilita il pulsante di salvataggio
-        document.getElementById('salva-simulazione-btn').disabled = false;
-    })
-    .catch(error => {
-        console.error('Errore:', error);
-        alert('Si è verificato un errore durante il calcolo del rendimento');
-    })
-    .finally(() => {
-        // Ripristina il pulsante
-        submitButton.disabled = false;
-        submitButton.textContent = originalText;
-    });
-}
-
-// Salva una simulazione
-function salvaSimulazione() {
-    if (!document.getElementById('titolo-select').value) {
-        alert('Devi selezionare un titolo');
-        return;
-    }
-    
-    const titoloId = parseInt(document.getElementById('titolo-select').value);
-    const prezzoAcquistoText = document.getElementById('prezzo-acquisto').value;
-    
-    // Commentiamo la validazione rigorosa del formato del prezzo
-    /*if (!isValidNumber(prezzoAcquistoText)) {
-        alert('Il prezzo di acquisto deve essere un valore numerico valido (usa la virgola come separatore decimale).');
-        return;
-    }*/
-    
-    const prezzoAcquisto = parseNumericValue(prezzoAcquistoText);
-    
-    // Usa il valore ISO della data per l'invio al server
-    const dataAcquisto = document.getElementById('data-acquisto').getAttribute('data-iso-date');
-    
-    const importoText = document.getElementById('importo-nominale').value;
-    
-    // Commentiamo la validazione rigorosa del formato dell'importo
-    /*if (!isValidNumber(importoText)) {
-        alert('L\'importo nominale deve essere un valore numerico valido (usa la virgola come separatore decimale).');
-        return;
-    }*/
-    
-    const importo = parseNumericValue(importoText);
-    
-    const tassoInteresseText = document.getElementById('tasso-interesse').value;
-    
-    if (tassoInteresseText && !isValidNumber(tassoInteresseText)) {
-        alert('Il tasso d\'interesse deve essere un valore numerico valido (usa la virgola come separatore decimale).');
-        return;
-    }
-    
-    const tassoInteresse = tassoInteresseText ? parseNumericValue(tassoInteresseText) : 0;
-    
-    const commissioniAcquistoText = document.getElementById('commissioni-acquisto').value;
-    
-    if (!isValidNumber(commissioniAcquistoText)) {
-        alert('Le commissioni di acquisto devono essere un valore numerico valido (usa la virgola come separatore decimale).');
-        return;
-    }
-    
-    const commissioniAcquisto = parseNumericValue(commissioniAcquistoText); // Mantieni come percentuale
-    const modalitaBollo = document.querySelector('input[name="modalita-bollo"]:checked').value;
-    
-    // Verifica quali campi specifici sono mancanti
-    let campiMancanti = [];
-    if (!titoloId) campiMancanti.push('Titolo');
-    if (isNaN(prezzoAcquisto)) campiMancanti.push('Prezzo di acquisto');
-    if (!dataAcquisto) campiMancanti.push('Data di acquisto');
-    if (isNaN(importo)) campiMancanti.push('Importo nominale');
-    if (isNaN(commissioniAcquisto)) campiMancanti.push('Commissioni di acquisto');
-    
-    if (campiMancanti.length > 0) {
-        alert('Compila tutti i campi correttamente. Campi mancanti: ' + campiMancanti.join(', '));
-        return;
-    }
-    
-    // Mostra un indicatore di caricamento
-    const saveButton = document.getElementById('salva-simulazione-btn');
-    const originalText = saveButton.textContent;
-    saveButton.disabled = true;
-    saveButton.textContent = 'Salvataggio in corso...';
-    
-    // Chiamata API per calcolare e salvare la simulazione in un'unica operazione
-    fetch(`/api/simulazioni/calcola-e-salva?idTitolo=${titoloId}&prezzoAcquisto=${prezzoAcquisto}&importo=${importo}&dataAcquisto=${dataAcquisto}&modalitaBollo=${modalitaBollo}&commissioniAcquisto=${commissioniAcquisto}&tassoInteresse=${tassoInteresse}`, {
-        method: 'POST'
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Errore durante il salvataggio della simulazione');
-        }
-        return response.json();
-    })
-    .then(savedSimulazione => {
-        // Aggiorna anche il risultato del calcolo per mostrare i valori corretti
-        fetch(`/api/simulazioni/calcola-rendimento?idTitolo=${titoloId}&prezzoAcquisto=${prezzoAcquisto}&importo=${importo}&modalitaBollo=${modalitaBollo}&tassoInteresse=${tassoInteresse}`, {
-            method: 'POST'
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Aggiorna il risultato del calcolo
-            ultimoRisultatoCalcolo = data;
-            
-            // Aggiorna i campi di risultato
-            document.getElementById('plusvalenza-netta').value = formatCurrency(data.plusvalenzaNetta);
-            document.getElementById('interessi-netti').value = formatCurrency(data.interessiNetti);
-            document.getElementById('commissioni').value = formatCurrency(data.commissioni);
-            document.getElementById('guadagno-totale').value = formatCurrency(data.guadagnoTotale);
-            document.getElementById('guadagno-netto-commissioni').value = formatCurrency(data.guadagnoNettoCommissioni);
-            document.getElementById('imposta-bollo').value = formatCurrency(data.impostaBollo);
-            document.getElementById('guadagno-netto-bollo').value = formatCurrency(data.guadagnoNettoBollo);
-            document.getElementById('tasso').value = formatPercentage(data.tasso);
-            document.getElementById('tasso-netto-commissioni').value = formatPercentage(data.tassoNettoCommissioni);
-            document.getElementById('tasso-netto-bollo').value = formatPercentage(data.tassoNettoBollo);
-            document.getElementById('importo-scadenza').value = formatCurrency(data.importoScadenza);
-        });
-        
-        // Aggiungi la nuova simulazione alla lista locale
-        simulazioni.push({
-            id: savedSimulazione.idSimulazione,
-            titoloId: savedSimulazione.idTitolo,
-            prezzoAcquisto: savedSimulazione.prezzoAcquisto,
-            dataAcquisto: savedSimulazione.dataAcquisto,
-            importoNominale: importo,
-            commissioniAcquisto: savedSimulazione.commissioniAcquisto,
-            rendimentoLordo: savedSimulazione.rendimentoLordo,
-            rendimentoTassato: savedSimulazione.rendimentoTassato,
-            rendimentoNettoCedole: savedSimulazione.rendimentoNettoCedole,
-            impostaBollo: savedSimulazione.impostaBollo,
-            rendimentoNettoBollo: savedSimulazione.rendimentoNettoBollo,
-            plusMinusValenza: savedSimulazione.plusMinusValenza
-        });
-        
-        // Aggiorna la vista
-        updateSimulazioniTable();
-        
-        // Mostra un messaggio di successo
-        alert('Simulazione salvata con successo!');
-        
-        // Disabilita il pulsante di salvataggio per evitare salvataggi duplicati
-        document.getElementById('salva-simulazione-btn').disabled = true;
-    })
-    .catch(error => {
-        console.error('Errore:', error);
-        alert('Si è verificato un errore durante il salvataggio della simulazione');
-    })
-    .finally(() => {
-        // Ripristina il pulsante
-        saveButton.disabled = false;
-        saveButton.textContent = originalText;
-    });
-}
-
-// Formatta una data in formato italiano (gg-mm-aaaa)
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
-}
-
-// Formatta un valore monetario
-function formatCurrency(value) {
-    return new Intl.NumberFormat('it-IT', { 
-        style: 'currency', 
-        currency: 'EUR',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }).format(value);
-}
-
-// Formatta un valore percentuale
-function formatPercentage(value) {
-    // Assicurati che il valore sia un numero
-    const numValue = parseFloat(value);
-    
-    // Usa Intl.NumberFormat per formattare il valore come percentuale con esattamente 2 decimali
-    return new Intl.NumberFormat('it-IT', { 
-        style: 'percent', 
-        minimumFractionDigits: 2, 
-        maximumFractionDigits: 2 
-    }).format(numValue / 100);
-}
-
-// Cerca un titolo tramite ISIN e tipo
+// Cerca un titolo per codice ISIN
 function cercaTitoloByIsin() {
-    const isin = document.getElementById('codice-isin-search').value.trim();
-    const tipo = document.getElementById('tipo-titolo-search').value.trim();
+    const isin = document.getElementById('cerca-isin').value;
     
-    if (!isin || !tipo) {
-        alert('Inserisci sia il codice ISIN che il tipo di titolo');
+    if (!isin) {
+        alert('Inserisci un codice ISIN valido');
         return;
     }
     
     // Mostra un indicatore di caricamento
-    const cercaButton = document.getElementById('cerca-titolo-btn');
-    const originalText = cercaButton.textContent;
-    cercaButton.disabled = true;
-    cercaButton.textContent = 'Ricerca...';
+    document.body.classList.add('loading');
     
-    // Chiamata API per recuperare le informazioni del titolo
-    fetch(`/api/borsa-italiana/${tipo.toLowerCase()}/${isin}`)
+    // Chiamata API per cercare il titolo per ISIN
+    fetch(`/api/frontend/titolo/isin/${isin}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Titolo non trovato');
@@ -1025,369 +624,312 @@ function cercaTitoloByIsin() {
             return response.json();
         })
         .then(titolo => {
-            // Popola i campi del form con i dati ricevuti
-            document.getElementById('nome-titolo').value = titolo.nome || `${tipo} ${isin}`;
-            document.getElementById('codice-isin').value = titolo.codiceIsin || isin;
-            document.getElementById('tipo-titolo').value = tipo;
+            console.log("Titolo trovato:", titolo);
             
-            if (titolo.dataScadenza) {
-                // Formatta la data di scadenza nel formato italiano (gg-mm-aaaa)
-                const dataScadenzaInput = document.getElementById('data-scadenza');
-                const formattedDate = formatDate(titolo.dataScadenza);
-                
-                // Imposta il valore visualizzato nel formato italiano
-                dataScadenzaInput.value = formattedDate;
-                
-                // Memorizza la data ISO come attributo personalizzato per l'invio al server
-                dataScadenzaInput.setAttribute('data-iso-date', titolo.dataScadenza);
-                
-                // Aggiorna il datepicker per riflettere la nuova data
-                $(dataScadenzaInput).datepicker('update');
-            }
-            
-        if (titolo.tassoNominale) {
-            document.getElementById('tasso-nominale').value = formatDecimal(titolo.tassoNominale);
-        }
-        
-        if (titolo.periodicitaCedole) {
-            document.getElementById('periodicita-cedole').value = titolo.periodicitaCedole;
-        }
-        
-        // Imposta sempre il campo periodicità bollo nascosto ad ANNUALE o al valore ricevuto
-        document.getElementById('periodicita-bollo').value = titolo.periodicitaBollo || 'ANNUALE';
-        
-        if (titolo.corso) {
-            document.getElementById('prezzo-titolo').value = formatDecimal(titolo.corso);
-        }
-            
-            // Aggiungi un pulsante per importare direttamente il titolo
-            const importaBtn = document.createElement('button');
-            importaBtn.className = 'btn btn-success mt-3';
-            importaBtn.textContent = 'Importa Titolo';
-            importaBtn.onclick = function() {
-                // Mostra un indicatore di caricamento
-                importaBtn.disabled = true;
-                importaBtn.textContent = 'Importazione...';
-                
-                // Chiamata API per importare il titolo da Borsa Italiana
-                fetch(`/api/frontend/titolo/importa?codiceIsin=${isin}&tipoTitolo=${tipo}`, {
-                    method: 'POST'
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Errore durante l\'importazione del titolo');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // Verifica se abbiamo ricevuto un messaggio (caso di aggiornamento)
-                    if (data.message && data.titolo) {
-                        // È un aggiornamento di un titolo esistente
-                        alert(data.message);
-                    } else if (data && data.idTitolo) {
-                        // È un nuovo titolo
-                        alert('Titolo importato con successo!');
-                    } else {
-                        // Caso imprevisto: risposta non valida dal server
-                        console.error('Risposta non valida dal server:', data);
-                        alert('Errore durante l\'importazione del titolo: risposta non valida dal server');
-                        return;
-                    }
-                    
-                    // Chiudi il modal
-                    bootstrap.Modal.getInstance(document.getElementById('titolo-modal')).hide();
-                    
-                    // Ricarica i titoli dal server
-                    loadTitoliFromServer();
-                })
-                .catch(error => {
-                    console.error('Errore:', error);
-                    alert(error.message || 'Si è verificato un errore durante l\'importazione del titolo.');
-                    
-                    // Ripristina il pulsante
-                    importaBtn.disabled = false;
-                    importaBtn.textContent = 'Importa Titolo';
-                });
+            // Aggiorna il titolo nella lista locale o aggiungilo se è nuovo
+            const titoloTrovato = {
+                id: titolo.idTitolo,
+                nome: titolo.nome,
+                codiceIsin: titolo.codiceIsin,
+                dataScadenza: titolo.dataScadenza,
+                tassoNominale: titolo.tassoNominale,
+                periodicitaCedole: titolo.periodicitaCedole,
+                periodicitaBollo: titolo.periodicitaBollo,
+                tipoTitolo: titolo.tipoTitolo,
+                prezzo: titolo.corso || 100.00
             };
             
-            // Aggiungi il pulsante al form
-            const formFooter = document.querySelector('#titolo-modal .modal-footer');
-            // Rimuovi il pulsante se già presente
-            const existingBtn = formFooter.querySelector('.btn-success');
-            if (existingBtn) {
-                formFooter.removeChild(existingBtn);
+            const index = titoli.findIndex(t => t.id === titoloTrovato.id);
+            if (index !== -1) {
+                titoli[index] = titoloTrovato;
+            } else {
+                titoli.push(titoloTrovato);
             }
-            formFooter.insertBefore(importaBtn, formFooter.querySelector('.btn-primary'));
+            
+            // Aggiorna le viste
+            updateTitoliTable();
+            updateTitoliSelect();
+            
+            // Nascondi l'indicatore di caricamento
+            document.body.classList.remove('loading');
             
             // Mostra un messaggio di successo
-            alert('Titolo trovato! I campi sono stati compilati automaticamente.');
+            alert('Titolo trovato e aggiunto alla lista!');
         })
         .catch(error => {
             console.error('Errore:', error);
-            alert('Titolo non trovato o errore nella ricerca. Verifica ISIN e tipo titolo.');
-        })
-        .finally(() => {
-            // Ripristina il pulsante
-            cercaButton.disabled = false;
-            cercaButton.textContent = originalText;
+            alert('Titolo non trovato. Verifica il codice ISIN e riprova.');
+            
+            // Nascondi l'indicatore di caricamento
+            document.body.classList.remove('loading');
         });
 }
 
-// Mostra la lista dei titoli da Borsa Italiana con paginazione
-function showListaTitoli(tipoTitolo) {
-    // Aggiorna il titolo del modal
-    document.getElementById('lista-titoli-modal-label').textContent = `Lista ${tipoTitolo}`;
-    document.getElementById('lista-titoli-tipo').textContent = `Titoli ${tipoTitolo}`;
+// Ottiene il prezzo corrente di un titolo
+function getPrezzoCorrente() {
+    const titoloId = document.getElementById('titolo-select').value;
     
-    // Resetta la paginazione
-    currentPage = 0;
-    currentTipoTitolo = tipoTitolo;
+    if (!titoloId) {
+        alert('Seleziona un titolo');
+        return;
+    }
     
-    // Mostra il modal
-    const modal = new bootstrap.Modal(document.getElementById('lista-titoli-modal'));
-    modal.show();
+    const titolo = titoli.find(t => t.id == titoloId);
+    if (!titolo) {
+        alert('Titolo non trovato');
+        return;
+    }
     
-    // Carica la prima pagina
-    loadTitoliPage(tipoTitolo, currentPage);
+    // Mostra un indicatore di caricamento
+    document.body.classList.add('loading');
     
-    // Aggiungi event listener ai pulsanti di navigazione
-    document.getElementById('prev-page-btn').addEventListener('click', function() {
-        if (currentPage > 0) {
-            currentPage--;
-            loadTitoliPage(currentTipoTitolo, currentPage);
-        }
-    });
+    // Ottieni il codice ISIN e il tipo di titolo
+    const codiceIsin = titolo.codiceIsin;
+    const tipoTitolo = titolo.tipoTitolo;
     
-    document.getElementById('next-page-btn').addEventListener('click', function() {
-        if (currentPage < totalPages - 1) {
-            currentPage++;
-            loadTitoliPage(currentTipoTitolo, currentPage);
-        }
-    });
-}
-
-// Carica una pagina di titoli
-function loadTitoliPage(tipoTitolo, page) {
-    // Mostra l'indicatore di caricamento
-    document.getElementById('lista-titoli-loading').style.display = 'inline-block';
-    document.getElementById('lista-titoli-error').classList.add('d-none');
-    document.getElementById('lista-titoli-body').innerHTML = '';
-    document.getElementById('lista-titoli-count').textContent = '';
+    if (!codiceIsin || !tipoTitolo) {
+        alert('Informazioni sul titolo incomplete');
+        document.body.classList.remove('loading');
+        return;
+    }
     
-    // Disabilita i pulsanti di navigazione durante il caricamento
-    document.getElementById('prev-page-btn').disabled = true;
-    document.getElementById('next-page-btn').disabled = true;
-    
-    // Chiamata API per recuperare la lista paginata dei titoli
-    fetch(`/api/borsa-italiana/lista-paginata/${tipoTitolo}?page=${page}&size=${pageSize}`)
+    // Chiamata API per ottenere il prezzo corrente
+    fetch(`/api/borsa-italiana/corso/${tipoTitolo.toLowerCase()}/${codiceIsin}`)
         .then(response => {
             if (!response.ok) {
-                throw new Error('Errore nel recupero della lista dei titoli');
+                throw new Error('Errore nel recupero del prezzo');
             }
             return response.json();
         })
-        .then(data => {
+        .then(prezzo => {
+            console.log("Prezzo corrente:", prezzo);
+            
+            // Aggiorna il prezzo nel campo
+            document.getElementById('prezzo-acquisto').value = formatDecimal(prezzo);
+            
             // Nascondi l'indicatore di caricamento
-            document.getElementById('lista-titoli-loading').style.display = 'none';
-            
-            // Aggiorna le variabili di paginazione
-            currentPage = data.pageNumber;
-            totalPages = data.totalPages;
-            totalElements = data.totalElements;
-            
-            // Aggiorna l'interfaccia di paginazione
-            document.getElementById('current-page').textContent = currentPage + 1;
-            document.getElementById('total-pages').textContent = totalPages;
-            document.getElementById('prev-page-btn').disabled = data.first;
-            document.getElementById('next-page-btn').disabled = data.last;
-            
-            // Aggiorna il contatore
-            document.getElementById('lista-titoli-count').textContent = `(${totalElements} titoli)`;
-            
-            // Popola la tabella con i titoli
-            const tbody = document.getElementById('lista-titoli-body');
-            tbody.innerHTML = '';
-            
-            const titoli = data.content;
-            
-            if (titoli.length === 0) {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td colspan="6" class="text-center">Nessun titolo trovato</td>`;
-                tbody.appendChild(row);
-                return;
-            }
-            
-            titoli.forEach(titolo => {
-                const row = document.createElement('tr');
-                
-                // Formatta la data di scadenza
-                const dataScadenza = titolo.dataScadenza ? formatDate(titolo.dataScadenza) : 'N/A';
-                
-                // Formatta il tasso
-                const tasso = titolo.tassoNominale ? `${formatDecimal(titolo.tassoNominale)}%` : 'N/A';
-                
-                // Formatta il prezzo
-                const prezzo = titolo.corso ? `${formatDecimal(titolo.corso)} €` : 'N/A';
-                
-                row.innerHTML = `
-                    <td>${titolo.codiceIsin || 'N/A'}</td>
-                    <td>${titolo.nome || 'N/A'}</td>
-                    <td>${dataScadenza}</td>
-                    <td>${tasso}</td>
-                    <td>${prezzo}</td>
-                    <td>
-                        <button class="btn btn-sm btn-primary aggiungi-titolo-btn" 
-                                data-nome="${titolo.nome || ''}"
-                                data-isin="${titolo.codiceIsin || ''}"
-                                data-scadenza="${titolo.dataScadenza || ''}"
-                                data-tasso="${titolo.tassoNominale || ''}"
-                                data-periodicita="${titolo.periodicitaCedole || ''}"
-                                data-tipo="${tipoTitolo}"
-                                data-prezzo="${titolo.corso || ''}">
-                            Aggiungi
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-                
-                // Aggiungi event listener al pulsante "Aggiungi"
-                const aggiungiBtn = row.querySelector('.aggiungi-titolo-btn');
-                aggiungiBtn.addEventListener('click', function() {
-                    aggiungiTitoloDaLista(this);
-                });
-            });
+            document.body.classList.remove('loading');
         })
         .catch(error => {
             console.error('Errore:', error);
-            document.getElementById('lista-titoli-loading').style.display = 'none';
-            document.getElementById('lista-titoli-error').classList.remove('d-none');
+            alert('Si è verificato un errore nel recupero del prezzo corrente.');
             
-            // Resetta l'interfaccia di paginazione in caso di errore
-            document.getElementById('current-page').textContent = '1';
-            document.getElementById('total-pages').textContent = '1';
-            document.getElementById('prev-page-btn').disabled = true;
-            document.getElementById('next-page-btn').disabled = true;
+            // Nascondi l'indicatore di caricamento
+            document.body.classList.remove('loading');
         });
 }
 
-// Aggiunge un titolo dalla lista di Borsa Italiana
-function aggiungiTitoloDaLista(button) {
-    // Recupera i dati dal pulsante
-    const nome = button.getAttribute('data-nome');
-    const codiceIsin = button.getAttribute('data-isin');
-    const dataScadenza = button.getAttribute('data-scadenza');
-    const tassoNominale = button.getAttribute('data-tasso');
-    const periodicitaCedole = button.getAttribute('data-periodicita') || 'SEMESTRALE';
-    const tipoTitolo = button.getAttribute('data-tipo');
-    const prezzo = button.getAttribute('data-prezzo');
+// Mostra la lista dei titoli filtrata per tipo, recuperandoli da Borsa Italiana in un modal
+function showListaTitoli(tipo) {
+    console.log(`Recuperando titoli di tipo ${tipo} da Borsa Italiana...`);
     
-    // Mostra un indicatore di caricamento
-    button.disabled = true;
-    const originalText = button.textContent;
-    button.textContent = 'Importazione...';
+    // Prepara il modal
+    const modal = new bootstrap.Modal(document.getElementById('lista-titoli-modal'));
+    const modalTitle = document.getElementById('lista-titoli-modal-label');
+    const tipoSpan = document.getElementById('lista-titoli-tipo');
+    const countSpan = document.getElementById('lista-titoli-count');
+    const loadingSpinner = document.getElementById('lista-titoli-loading');
+    const errorAlert = document.getElementById('lista-titoli-error');
+    const tbody = document.getElementById('lista-titoli-body');
     
-    // Chiamata API per importare il titolo da Borsa Italiana
-    fetch(`/api/frontend/titolo/importa?codiceIsin=${codiceIsin}&tipoTitolo=${tipoTitolo}`, {
-        method: 'POST'
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Errore durante il salvataggio del titolo');
-        }
-        return response.json();
-    })
-    .then(data => {
-        // Verifica se abbiamo ricevuto un messaggio (caso di aggiornamento)
-        if (data.message && data.titolo) {
-            // È un aggiornamento di un titolo esistente
-            const titoloAggiornato = data.titolo;
-            
-            // Trova l'indice del titolo esistente
-            const index = titoli.findIndex(t => t.codiceIsin === titoloAggiornato.codiceIsin);
-            
-            if (index !== -1) {
-                // Aggiorna il titolo esistente
-                titoli[index] = {
-                    id: titoloAggiornato.idTitolo,
-                    nome: titoloAggiornato.nome,
-                    codiceIsin: titoloAggiornato.codiceIsin,
-                    dataScadenza: titoloAggiornato.dataScadenza,
-                    tassoNominale: titoloAggiornato.tassoNominale,
-                    periodicitaCedole: titoloAggiornato.periodicitaCedole,
-                    periodicitaBollo: titoloAggiornato.periodicitaBollo,
-                    tipoTitolo: titoloAggiornato.tipoTitolo,
-                    prezzo: parseFloat(prezzo) || 0
-                };
-            } else {
-                // Nel caso improbabile in cui non troviamo il titolo, lo aggiungiamo
-                titoli.push({
-                    id: titoloAggiornato.idTitolo,
-                    nome: titoloAggiornato.nome,
-                    codiceIsin: titoloAggiornato.codiceIsin,
-                    dataScadenza: titoloAggiornato.dataScadenza,
-                    tassoNominale: titoloAggiornato.tassoNominale,
-                    periodicitaCedole: titoloAggiornato.periodicitaCedole,
-                    periodicitaBollo: titoloAggiornato.periodicitaBollo,
-                    tipoTitolo: titoloAggiornato.tipoTitolo,
-                    prezzo: parseFloat(prezzo) || 0
-                });
-            }
-            
-            // Mostra un messaggio di successo per l'aggiornamento
-            alert(data.message);
-        } else if (data && data.idTitolo) {
-            // È un nuovo titolo
-            const savedTitolo = data;
-            
-            // Aggiungi il nuovo titolo alla lista locale
-            titoli.push({
-                id: savedTitolo.idTitolo,
-                nome: savedTitolo.nome || '',
-                codiceIsin: savedTitolo.codiceIsin || '',
-                dataScadenza: savedTitolo.dataScadenza || null,
-                tassoNominale: savedTitolo.tassoNominale || 0,
-                periodicitaCedole: savedTitolo.periodicitaCedole || '',
-                periodicitaBollo: savedTitolo.periodicitaBollo || '',
-                tipoTitolo: savedTitolo.tipoTitolo || '',
-                prezzo: parseFloat(prezzo) || 0
-            });
-            
-            // Mostra un messaggio di successo per il nuovo titolo
-            alert('Titolo aggiunto con successo!');
-        } else {
-            // Caso imprevisto: risposta non valida dal server
-            console.error('Risposta non valida dal server:', data);
-            alert('Errore durante il salvataggio del titolo: risposta non valida dal server');
-            return;
-        }
-        
-        // Aggiorna le viste
-        updateTitoliTable();
-        updateTitoliSelect();
-        
-        // Disabilita il pulsante per evitare aggiunte multiple
-        button.disabled = true;
-        button.textContent = 'Aggiunto';
-        button.classList.remove('btn-primary');
-        button.classList.add('btn-success');
-    })
-    .catch(error => {
-        console.error('Errore:', error);
-        alert(error.message || 'Si è verificato un errore durante il salvataggio del titolo.');
-        
-        // Ripristina il pulsante
-        button.disabled = false;
-        button.textContent = originalText;
-    });
+    // Imposta il titolo del modal
+    modalTitle.textContent = `Lista Titoli ${tipo}`;
+    tipoSpan.textContent = `Titoli ${tipo}`;
+    countSpan.textContent = '';
+    
+    // Mostra il modal e l'indicatore di caricamento
+    modal.show();
+    loadingSpinner.classList.remove('d-none');
+    errorAlert.classList.add('d-none');
+    tbody.innerHTML = '';
+    
+    // Imposta il tipo di titolo corrente
+    currentTipoTitolo = tipo;
+    
+    // Resetta la pagina corrente
+    currentPage = 0;
+    
+    // Carica la prima pagina
+    loadTitoliPage();
 }
 
-// Calcola i rendimenti di tutti i titoli con scadenza futura
+// Carica una pagina di titoli
+function loadTitoliPage() {
+    const loadingSpinner = document.getElementById('lista-titoli-loading');
+    const errorAlert = document.getElementById('lista-titoli-error');
+    const tbody = document.getElementById('lista-titoli-body');
+    const countSpan = document.getElementById('lista-titoli-count');
+    
+    // Mostra l'indicatore di caricamento
+    loadingSpinner.classList.remove('d-none');
+    errorAlert.classList.add('d-none');
+    tbody.innerHTML = '';
+    
+    // Chiamata API per recuperare i titoli paginati da Borsa Italiana
+    fetch(`/api/borsa-italiana/lista-paginata/${currentTipoTitolo}?page=${currentPage}&size=${pageSize}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Errore nel recupero dei titoli ${currentTipoTitolo}`);
+            }
+            return response.json();
+        })
+        .then(paginatedResponse => {
+            console.log(`Titoli ${currentTipoTitolo} recuperati da Borsa Italiana:`, paginatedResponse);
+            
+            // Nascondi l'indicatore di caricamento
+            loadingSpinner.classList.add('d-none');
+            
+            // Aggiorna le variabili di paginazione
+            totalPages = paginatedResponse.totalPages;
+            totalElements = paginatedResponse.totalElements;
+            
+            // Aggiorna il conteggio dei titoli
+            countSpan.textContent = `(${totalElements} titoli trovati)`;
+            
+            // Aggiorna i controlli di paginazione
+            updatePaginationControls();
+            
+            const titoliFromServer = paginatedResponse.content;
+            
+            if (!titoliFromServer || titoliFromServer.length === 0) {
+                console.log(`Nessun titolo ${currentTipoTitolo} trovato in Borsa Italiana`);
+                
+                // Aggiungi una riga che indica che non ci sono titoli
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="6" class="text-center">Nessun titolo ${currentTipoTitolo} trovato in Borsa Italiana</td>
+                `;
+                tbody.appendChild(row);
+            } else {
+                // Popola la tabella con i titoli recuperati
+                titoliFromServer.forEach(titoloDTO => {
+                    // Verifica se il titolo esiste già nella lista locale
+                    const existingIndex = titoli.findIndex(t => t.codiceIsin === titoloDTO.codiceIsin);
+                    const isInList = existingIndex !== -1;
+                    
+                    // Crea la riga per la tabella
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${titoloDTO.codiceIsin || ''}</td>
+                        <td>${titoloDTO.nome || ''}</td>
+                        <td>${titoloDTO.dataScadenza ? formatDate(titoloDTO.dataScadenza) : ''}</td>
+                        <td>${titoloDTO.tassoNominale ? formatDecimal(titoloDTO.tassoNominale) + '%' : ''}</td>
+                        <td>${titoloDTO.corso ? formatDecimal(titoloDTO.corso) + ' €' : ''}</td>
+                        <td>
+                            <button class="btn btn-sm ${isInList ? 'btn-success' : 'btn-primary'}" 
+                                    onclick="aggiungiTitoloAllaLista('${titoloDTO.codiceIsin}', '${currentTipoTitolo}')">
+                                ${isInList ? 'Già in lista' : 'Aggiungi alla lista'}
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+                console.log(`Tabella modal aggiornata con ${titoliFromServer.length} titoli di tipo ${currentTipoTitolo}`);
+            }
+        })
+        .catch(error => {
+            console.error(`Errore nel recupero dei titoli ${currentTipoTitolo}:`, error);
+            
+            // Nascondi l'indicatore di caricamento e mostra l'errore
+            loadingSpinner.classList.add('d-none');
+            errorAlert.classList.remove('d-none');
+            errorAlert.textContent = `Si è verificato un errore durante il caricamento dei titoli ${currentTipoTitolo}: ${error.message}`;
+        });
+}
+
+// Aggiorna i controlli di paginazione
+function updatePaginationControls() {
+    const currentPageSpan = document.getElementById('current-page');
+    const totalPagesSpan = document.getElementById('total-pages');
+    const prevPageBtn = document.getElementById('prev-page-btn');
+    const nextPageBtn = document.getElementById('next-page-btn');
+    
+    // Aggiorna i numeri di pagina
+    currentPageSpan.textContent = (currentPage + 1).toString();
+    totalPagesSpan.textContent = totalPages.toString();
+    
+    // Abilita/disabilita i pulsanti di navigazione
+    prevPageBtn.disabled = currentPage === 0;
+    nextPageBtn.disabled = currentPage >= totalPages - 1;
+}
+
+// Funzione per aggiungere un titolo alla lista locale
+function aggiungiTitoloAllaLista(isin, tipo) {
+    console.log(`Aggiungendo titolo con ISIN ${isin} alla lista...`);
+    
+    // Mostra un indicatore di caricamento
+    document.body.classList.add('loading');
+    
+    // Chiamata API per ottenere i dettagli del titolo
+    fetch(`/api/borsa-italiana/${tipo}/${isin}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Errore nel recupero dei dettagli del titolo ${isin}`);
+            }
+            return response.json();
+        })
+        .then(titoloDTO => {
+            console.log(`Dettagli titolo ${isin} recuperati:`, titoloDTO);
+            
+            // Crea l'oggetto titolo per il frontend
+            const titoloObj = {
+                id: titoloDTO.idTitolo || null,
+                nome: titoloDTO.nome,
+                codiceIsin: titoloDTO.codiceIsin,
+                dataScadenza: titoloDTO.dataScadenza,
+                tassoNominale: titoloDTO.tassoNominale,
+                periodicitaCedole: titoloDTO.periodicitaCedole || 'SEMESTRALE',
+                periodicitaBollo: titoloDTO.periodicitaBollo || 'ANNUALE',
+                tipoTitolo: tipo,
+                prezzo: titoloDTO.corso || 100.00
+            };
+            
+            // Verifica se il titolo esiste già nella lista locale
+            const existingIndex = titoli.findIndex(t => t.codiceIsin === titoloDTO.codiceIsin);
+            
+            // Aggiorna o aggiungi il titolo alla lista locale
+            if (existingIndex !== -1) {
+                titoli[existingIndex] = titoloObj;
+                console.log(`Titolo ${isin} aggiornato nella lista locale`);
+            } else {
+                titoli.push(titoloObj);
+                console.log(`Titolo ${isin} aggiunto alla lista locale`);
+            }
+            
+            // Aggiorna le viste
+            updateTitoliTable();
+            updateTitoliSelect();
+            
+            // Nascondi l'indicatore di caricamento
+            document.body.classList.remove('loading');
+            
+            // Aggiorna il pulsante nella tabella del modal
+            const buttons = document.querySelectorAll(`button[onclick="aggiungiTitoloAllaLista('${isin}', '${tipo}')"]`);
+            buttons.forEach(button => {
+                button.classList.remove('btn-primary');
+                button.classList.add('btn-success');
+                button.textContent = 'Già in lista';
+            });
+            
+            // Mostra un messaggio di successo
+            alert(`Titolo ${titoloDTO.nome} (${isin}) aggiunto alla lista con successo!`);
+        })
+        .catch(error => {
+            console.error(`Errore nell'aggiunta del titolo ${isin} alla lista:`, error);
+            
+            // Nascondi l'indicatore di caricamento
+            document.body.classList.remove('loading');
+            
+            // Mostra un messaggio di errore
+            alert(`Si è verificato un errore nell'aggiunta del titolo alla lista: ${error.message}`);
+        });
+}
+
+// Calcola i rendimenti di tutti i titoli
 function calcolaRendimentiTuttiTitoli() {
     // Mostra un indicatore di caricamento
-    const button = document.getElementById('calcola-rendimenti-btn');
-    const originalText = button.textContent;
-    button.disabled = true;
-    button.textContent = 'Calcolo in corso...';
+    document.body.classList.add('loading');
     
     // Chiamata API per calcolare i rendimenti di tutti i titoli
     fetch('/api/simulazioni/calcola-rendimenti-tutti-titoli', {
@@ -1400,100 +942,328 @@ function calcolaRendimentiTuttiTitoli() {
         return response.json();
     })
     .then(data => {
-        // Aggiorna la lista delle simulazioni con i risultati
-        simulazioni = data.map(dto => ({
-            id: dto.idSimulazione,
-            titoloId: dto.idTitolo,
-            prezzoAcquisto: dto.prezzoAcquisto,
-            dataAcquisto: dto.dataAcquisto,
-            importoNominale: 10000, // Valore fisso di 10.000 euro
-            commissioniAcquisto: dto.commissioniAcquisto,
-            rendimentoLordo: dto.rendimentoLordo * 100, // Converti da decimale a percentuale
-            rendimentoTassato: dto.rendimentoTassato * 100,
-            rendimentoNettoCedole: dto.rendimentoNettoCedole * 100,
-            impostaBollo: dto.impostaBollo,
-            rendimentoNettoBollo: dto.rendimentoNettoBollo,
-            plusMinusValenza: dto.plusMinusValenza
-        }));
+        console.log("Rendimenti calcolati:", data);
         
-        // Aggiorna la tabella delle simulazioni
-        updateSimulazioniTable();
+        // Ricarica le simulazioni dal server
+        loadSimulazioniFromServer();
+        
+        // Nascondi l'indicatore di caricamento
+        document.body.classList.remove('loading');
         
         // Mostra un messaggio di successo
-        alert(`Rendimenti calcolati con successo per ${data.length} titoli!`);
+        alert('Rendimenti calcolati con successo!');
     })
     .catch(error => {
         console.error('Errore:', error);
-        alert('Si è verificato un errore durante il calcolo dei rendimenti');
-    })
-    .finally(() => {
-        // Ripristina il pulsante
-        button.disabled = false;
-        button.textContent = originalText;
+        alert('Si è verificato un errore nel calcolo dei rendimenti.');
+        
+        // Nascondi l'indicatore di caricamento
+        document.body.classList.remove('loading');
     });
 }
 
-// Ottiene il prezzo corrente del titolo selezionato
-function getPrezzoCorrente() {
+// Crea una nuova simulazione
+function createSimulazione() {
     const titoloId = document.getElementById('titolo-select').value;
+    const prezzoAcquistoText = document.getElementById('prezzo-acquisto').value;
+    const importoText = document.getElementById('importo-nominale').value;
+    const dataAcquistoInput = document.getElementById('data-acquisto');
+    const commissioniAcquistoText = document.getElementById('commissioni-acquisto').value;
+    const modalitaBollo = document.querySelector('input[name="modalita-bollo"]:checked').value;
     
-    if (!titoloId) {
-        alert('Seleziona prima un titolo');
+    // Verifica che tutti i campi siano valorizzati
+    if (!titoloId || !prezzoAcquistoText || !importoText || !dataAcquistoInput.value || !commissioniAcquistoText || !modalitaBollo) {
+        alert('Compila tutti i campi');
         return;
     }
     
-    // Trova il titolo selezionato
-    const titolo = titoli.find(t => t.id == titoloId);
+    // Converti i valori
+    const prezzoAcquisto = parseNumericValue(prezzoAcquistoText);
+    const importo = parseNumericValue(importoText);
+    const dataAcquistoISO = dataAcquistoInput.getAttribute('data-iso-date');
+    const commissioniAcquisto = parseNumericValue(commissioniAcquistoText);
+    
+    // Verifica che i valori siano validi
+    if (prezzoAcquisto <= 0 || importo <= 0 || commissioniAcquisto < 0) {
+        alert('I valori devono essere positivi');
+        return;
+    }
+    
+    // Mostra un indicatore di caricamento
+    document.body.classList.add('loading');
+    
+    // Chiamata API per calcolare il rendimento (senza salvare)
+    fetch(`/api/simulazioni/calcola-rendimento?idTitolo=${titoloId}&prezzoAcquisto=${prezzoAcquisto}&importo=${importo}&modalitaBollo=${modalitaBollo}`, {
+        method: 'POST'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Errore nel calcolo del rendimento');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Rendimento calcolato:", data);
+        
+        // Memorizza l'ultimo risultato del calcolo
+        ultimoRisultatoCalcolo = data;
+        
+        // Visualizza i risultati nei campi appropriati
+        document.getElementById('plusvalenza-netta').value = formatDecimal(data.plusvalenzaNetta);
+        document.getElementById('interessi-netti').value = formatDecimal(data.interessiNetti);
+        document.getElementById('commissioni').value = formatDecimal(data.commissioni);
+        document.getElementById('imposta-bollo').value = formatDecimal(data.impostaBollo);
+        document.getElementById('guadagno-totale').value = formatDecimal(data.guadagnoTotale);
+        document.getElementById('guadagno-netto-commissioni').value = formatDecimal(data.guadagnoNettoCommissioni);
+        document.getElementById('tasso').value = formatDecimal(data.tasso) + '%';
+        document.getElementById('tasso-netto-commissioni').value = formatDecimal(data.tassoNettoCommissioni) + '%';
+        document.getElementById('guadagno-netto-bollo').value = formatDecimal(data.guadagnoNettoBollo);
+        document.getElementById('tasso-netto-bollo').value = formatDecimal(data.tassoNettoBollo) + '%';
+        document.getElementById('importo-scadenza').value = formatDecimal(data.importoScadenza);
+        
+        // Abilita il pulsante "Salva Simulazione"
+        document.getElementById('salva-simulazione-btn').disabled = false;
+        
+        // Nascondi l'indicatore di caricamento
+        document.body.classList.remove('loading');
+        
+        // Mostra un messaggio di successo
+        alert('Rendimento calcolato con successo!');
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        alert('Si è verificato un errore nel calcolo del rendimento.');
+        
+        // Nascondi l'indicatore di caricamento
+        document.body.classList.remove('loading');
+    });
+}
+
+// Salva una simulazione
+function salvaSimulazione() {
+    // Verifica che ci sia un risultato di calcolo
+    if (!ultimoRisultatoCalcolo) {
+        alert('Calcola prima il rendimento');
+        return;
+    }
+    
+    const titoloId = document.getElementById('titolo-select').value;
+    const prezzoAcquistoText = document.getElementById('prezzo-acquisto').value;
+    const importoText = document.getElementById('importo-nominale').value;
+    const dataAcquistoInput = document.getElementById('data-acquisto');
+    const commissioniAcquistoText = document.getElementById('commissioni-acquisto').value;
+    
+    // Verifica che tutti i campi siano valorizzati
+    if (!titoloId || !prezzoAcquistoText || !importoText || !dataAcquistoInput.value || !commissioniAcquistoText) {
+        alert('Compila tutti i campi');
+        return;
+    }
+    
+    // Converti i valori
+    const prezzoAcquisto = parseNumericValue(prezzoAcquistoText);
+    const importo = parseNumericValue(importoText);
+    const dataAcquistoISO = dataAcquistoInput.getAttribute('data-iso-date');
+    const commissioniAcquisto = parseNumericValue(commissioniAcquistoText) / 100; // Converti da percentuale a decimale
+    
+    // Crea l'oggetto simulazione
+    const simulazioneDTO = {
+        idTitolo: parseInt(titoloId),
+        prezzoAcquisto: prezzoAcquisto,
+        dataAcquisto: dataAcquistoISO,
+        commissioniAcquisto: commissioniAcquisto,
+        rendimentoLordo: ultimoRisultatoCalcolo.tasso / 100, // Converti da percentuale a decimale
+        rendimentoTassato: ultimoRisultatoCalcolo.tasso * 0.875 / 100, // Converti da percentuale a decimale
+        rendimentoNettoCedole: ultimoRisultatoCalcolo.tassoNettoCommissioni / 100, // Converti da percentuale a decimale
+        impostaBollo: ultimoRisultatoCalcolo.impostaBollo,
+        rendimentoNettoBollo: ultimoRisultatoCalcolo.tassoNettoBollo / 100, // Converti da percentuale a decimale
+        plusMinusValenza: ultimoRisultatoCalcolo.plusvalenzaNetta
+    };
+    
+    // Mostra un indicatore di caricamento
+    document.body.classList.add('loading');
+    
+    // Chiamata API per salvare la simulazione
+    fetch('/api/simulazioni', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(simulazioneDTO)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Errore nel salvataggio della simulazione');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Simulazione salvata:", data);
+        
+        // Ricarica le simulazioni dal server
+        loadSimulazioniFromServer();
+        
+        // Nascondi l'indicatore di caricamento
+        document.body.classList.remove('loading');
+        
+        // Mostra un messaggio di successo
+        alert('Simulazione salvata con successo!');
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        alert('Si è verificato un errore nel salvataggio della simulazione.');
+        
+        // Nascondi l'indicatore di caricamento
+        document.body.classList.remove('loading');
+    });
+}
+
+// Modifica un titolo
+function editTitolo(titoloId) {
+    // Trova il titolo nella lista
+    const titolo = titoli.find(t => t.id === titoloId);
     if (!titolo) {
         alert('Titolo non trovato');
         return;
     }
     
-    // Verifica che il titolo abbia un codice ISIN e un tipo
-    if (!titolo.codiceIsin || !titolo.tipoTitolo) {
-        alert('Il titolo selezionato non ha un codice ISIN o un tipo valido');
+    // Mostra il modal per la modifica
+    showTitoloModal(titoloId);
+}
+
+// Elimina un titolo
+function deleteTitolo(titoloId) {
+    // Chiedi conferma
+    if (!confirm('Sei sicuro di voler eliminare questo titolo?')) {
         return;
     }
     
     // Mostra un indicatore di caricamento
-    const prezzoButton = document.getElementById('prezzo-corrente-btn');
-    const originalText = prezzoButton.textContent;
-    prezzoButton.disabled = true;
-    prezzoButton.textContent = 'Ricerca...';
+    document.body.classList.add('loading');
     
-    // Chiamata API per recuperare il prezzo corrente del titolo
-    fetch(`/api/borsa-italiana/${titolo.tipoTitolo.toLowerCase()}/${titolo.codiceIsin}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Prezzo non trovato');
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Valorizza il campo prezzo di acquisto con il prezzo corrente
-            if (data.corso) {
-                // Formatta il prezzo con la virgola come separatore decimale
-                document.getElementById('prezzo-acquisto').value = formatDecimal(data.corso);
-                
-                // Aggiorna anche il tasso d'interesse se disponibile
-                if (data.tassoNominale) {
-                    // Formatta il tasso con la virgola come separatore decimale
-                    document.getElementById('tasso-interesse').value = formatDecimal(data.tassoNominale);
-                }
-                
-                // Mostra un messaggio di successo
-                alert('Prezzo corrente aggiornato con successo!');
-            } else {
-                alert('Prezzo corrente non disponibile per questo titolo');
-            }
-        })
-        .catch(error => {
-            console.error('Errore:', error);
-            alert('Errore nel recupero del prezzo corrente. Verifica che il titolo sia valido.');
-        })
-        .finally(() => {
-            // Ripristina il pulsante
-            prezzoButton.disabled = false;
-            prezzoButton.textContent = originalText;
-        });
+    // Chiamata API per eliminare il titolo
+    fetch(`/api/frontend/titolo/${titoloId}`, {
+        method: 'DELETE'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Errore nell\'eliminazione del titolo');
+        }
+        
+        // Rimuovi il titolo dalla lista locale
+        const index = titoli.findIndex(t => t.id === titoloId);
+        if (index !== -1) {
+            titoli.splice(index, 1);
+        }
+        
+        // Aggiorna le viste
+        updateTitoliTable();
+        updateTitoliSelect();
+        
+        // Nascondi l'indicatore di caricamento
+        document.body.classList.remove('loading');
+        
+        // Mostra un messaggio di successo
+        alert('Titolo eliminato con successo!');
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        alert('Si è verificato un errore nell\'eliminazione del titolo.');
+        
+        // Nascondi l'indicatore di caricamento
+        document.body.classList.remove('loading');
+    });
+}
+
+// Salva un titolo (nuovo o esistente)
+function saveTitolo() {
+    const titoloId = document.getElementById('titolo-id').value;
+    const nome = document.getElementById('nome-titolo').value;
+    const codiceIsin = document.getElementById('codice-isin').value;
+    const dataScadenza = document.getElementById('data-scadenza').getAttribute('data-iso-date');
+    const tassoNominaleStr = document.getElementById('tasso-nominale').value;
+    const periodicitaCedole = document.getElementById('periodicita-cedole').value;
+    const periodicitaBollo = document.getElementById('periodicita-bollo').value;
+    const tipoTitolo = document.getElementById('tipo-titolo').value;
+    const prezzoText = document.getElementById('prezzo-titolo').value;
+    
+    // Verifica quali campi sono vuoti e mostra un messaggio specifico
+    let campiMancanti = [];
+    if (!nome) campiMancanti.push('Nome titolo');
+    if (!codiceIsin) campiMancanti.push('Codice ISIN');
+    if (!dataScadenza) campiMancanti.push('Data scadenza');
+    if (!tassoNominaleStr) campiMancanti.push('Tasso nominale');
+    if (!periodicitaCedole) campiMancanti.push('Periodicità cedole');
+    if (!periodicitaBollo) campiMancanti.push('Periodicità bollo');
+    if (!prezzoText) campiMancanti.push('Prezzo attuale');
+    
+    if (campiMancanti.length > 0) {
+        alert('Compila tutti i campi correttamente. Campi mancanti: ' + campiMancanti.join(', '));
+        return;
+    }
+    
+    const tassoNominale = parseNumericValue(tassoNominaleStr);
+    const prezzo = parseNumericValue(prezzoText);
+    
+    // Crea l'oggetto DTO da inviare al server
+    const titoloDTO = {
+        idTitolo: titoloId ? parseInt(titoloId) : null,
+        nome: nome,
+        codiceIsin: codiceIsin,
+        dataScadenza: dataScadenza,
+        tassoNominale: tassoNominale,
+        periodicitaCedole: periodicitaCedole,
+        periodicitaBollo: periodicitaBollo,
+        tipoTitolo: tipoTitolo
+    };
+    
+    // Invia i dati al server
+    fetch('/api/frontend/titolo', {
+        method: titoloId ? 'PUT' : 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(titoloDTO)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Errore nel salvataggio del titolo');
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Aggiorna il titolo nella lista locale o aggiungilo se è nuovo
+        const titoloSalvato = {
+            id: data.idTitolo,
+            nome: data.nome,
+            codiceIsin: data.codiceIsin,
+            dataScadenza: data.dataScadenza,
+            tassoNominale: data.tassoNominale,
+            periodicitaCedole: data.periodicitaCedole,
+            periodicitaBollo: data.periodicitaBollo,
+            tipoTitolo: data.tipoTitolo,
+            prezzo: prezzo
+        };
+        
+        const index = titoli.findIndex(t => t.id === titoloSalvato.id);
+        if (index !== -1) {
+            titoli[index] = titoloSalvato;
+        } else {
+            titoli.push(titoloSalvato);
+        }
+        
+        // Aggiorna le viste
+        updateTitoliTable();
+        updateTitoliSelect();
+        
+        // Chiudi il modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('titolo-modal'));
+        modal.hide();
+        
+        // Mostra un messaggio di successo
+        alert('Titolo salvato con successo!');
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        alert('Si è verificato un errore nel salvataggio del titolo. Controlla la console per i dettagli.');
+    });
 }
