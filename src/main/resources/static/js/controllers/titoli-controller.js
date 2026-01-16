@@ -1,0 +1,636 @@
+/**
+ * Controller per la gestione dei titoli
+ * Gestisce la visualizzazione e l'interazione con i titoli
+ */
+
+// Namespace per il modulo TitoliController
+window.TitoliController = {
+    /**
+     * Inizializza il controller
+     */
+    init: function() {
+        console.log('Inizializzazione TitoliController');
+        
+        // Carica i titoli dal server
+        this.loadTitoli();
+        
+        // Aggiungi gli event listeners
+        this.setupEventListeners();
+        
+        // Popola i select con i valori degli enum
+        this.populateEnumSelects();
+    },
+    
+    /**
+     * Configura gli event listeners per le azioni sui titoli
+     */
+    setupEventListeners: function() {
+        // Event listener per il pulsante "Aggiungi Titolo"
+        document.getElementById('add-titolo-btn').addEventListener('click', () => this.showTitoloModal());
+        
+        // Event listener per il pulsante "Salva" nel modal
+        document.getElementById('save-titolo-btn').addEventListener('click', () => this.saveTitolo());
+        
+        // Event listener per il pulsante "Cerca Titolo"
+        document.getElementById('cerca-titolo-btn').addEventListener('click', () => this.cercaTitoloByIsin());
+        
+        // Event listeners per i pulsanti "Lista BTP" e "Lista BOT"
+        document.getElementById('lista-btp-btn').addEventListener('click', () => this.showListaTitoli('BTP'));
+        document.getElementById('lista-bot-btn').addEventListener('click', () => this.showListaTitoli('BOT'));
+        
+        // Event listeners per i pulsanti di paginazione
+        document.getElementById('prev-page-btn').addEventListener('click', () => {
+            if (this.currentPage > 0) {
+                this.currentPage--;
+                this.loadTitoliPage();
+            }
+        });
+        
+        document.getElementById('next-page-btn').addEventListener('click', () => {
+            if (this.currentPage < this.totalPages - 1) {
+                this.currentPage++;
+                this.loadTitoliPage();
+            }
+        });
+    },
+    
+    /**
+     * Carica i titoli dal server
+     */
+    loadTitoli: function() {
+        Titolo.load()
+            .then(data => {
+                // Memorizza i titoli
+                window.titoli = data;
+                
+                // Aggiorna le viste
+                this.updateTitoliTable();
+                this.updateTitoliSelect();
+            })
+            .catch(error => {
+                console.error('Errore nel caricamento dei titoli:', error);
+                // In caso di errore, carica i dati di esempio
+                this.loadSampleData();
+                
+                // Aggiorna le viste con i dati di esempio
+                this.updateTitoliTable();
+                this.updateTitoliSelect();
+            });
+    },
+    
+    /**
+     * Carica dati di esempio per i titoli
+     */
+    loadSampleData: function() {
+        // Titoli di esempio
+        const oggi = new Date();
+        const scadenza1 = new Date();
+        scadenza1.setFullYear(oggi.getFullYear() + 5);
+        const scadenza2 = new Date();
+        scadenza2.setFullYear(oggi.getFullYear() + 3);
+        const scadenza3 = new Date();
+        scadenza3.setFullYear(oggi.getFullYear() + 7);
+        
+        window.titoli = [
+            { 
+                id: 1, 
+                nome: 'BTP Italia 2028', 
+                codiceIsin: 'IT0005467482', 
+                dataScadenza: scadenza1.toISOString().split('T')[0], 
+                tassoNominale: 2.50, 
+                periodicitaCedole: 'SEMESTRALE', 
+                periodicitaBollo: 'ANNUALE',
+                tipoTitolo: 'BTP',
+                prezzo: 98.75 
+            },
+            { 
+                id: 2, 
+                nome: 'BOT 2026', 
+                codiceIsin: 'IT0005451361', 
+                dataScadenza: scadenza2.toISOString().split('T')[0], 
+                tassoNominale: 1.85, 
+                periodicitaCedole: 'SEMESTRALE', 
+                periodicitaBollo: 'ANNUALE',
+                tipoTitolo: 'BOT',
+                prezzo: 99.50 
+            },
+            { 
+                id: 3, 
+                nome: 'BTP 2030', 
+                codiceIsin: 'IT0005413171', 
+                dataScadenza: scadenza3.toISOString().split('T')[0], 
+                tassoNominale: 3.10, 
+                periodicitaCedole: 'SEMESTRALE', 
+                periodicitaBollo: 'ANNUALE',
+                tipoTitolo: 'BTP',
+                prezzo: 97.80 
+            }
+        ];
+    },
+    
+    /**
+     * Aggiorna la tabella dei titoli
+     */
+    updateTitoliTable: function() {
+        const tbody = document.getElementById('titoli-list');
+        tbody.innerHTML = '';
+        
+        window.titoli.forEach(titolo => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${titolo.codiceIsin}</td>
+                <td>${titolo.nome}</td>
+                <td>${titolo.prezzo.toFixed(2)} €</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="TitoliController.editTitolo(${titolo.id})">Modifica</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="TitoliController.deleteTitolo(${titolo.id})">Elimina</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    },
+    
+    /**
+     * Aggiorna il select dei titoli
+     */
+    updateTitoliSelect: function() {
+        const select = document.getElementById('titolo-select');
+        
+        // Mantieni solo la prima opzione
+        select.innerHTML = '<option value="">Seleziona un titolo</option>';
+        
+        window.titoli.forEach(titolo => {
+            const option = document.createElement('option');
+            option.value = titolo.id;
+            option.textContent = `${titolo.nome} (${titolo.codiceIsin}) - ${titolo.prezzo.toFixed(2)} €`;
+            select.appendChild(option);
+        });
+    },
+    
+    /**
+     * Popola i select con i valori degli enum
+     */
+    populateEnumSelects: function() {
+        // Popola il select delle periodicità cedole
+        ApiService.getEnumValues('periodicita-cedole')
+            .then(data => {
+                const select = document.getElementById('periodicita-cedole');
+                select.innerHTML = '<option value="">Seleziona</option>';
+                
+                Object.entries(data).forEach(([key, value]) => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = value;
+                    select.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Errore nel caricamento delle periodicità cedole:', error));
+        
+        // Popola il select delle periodicità bollo
+        ApiService.getEnumValues('periodicita-bollo')
+            .then(data => {
+                const select = document.getElementById('periodicita-bollo');
+                select.innerHTML = '<option value="">Seleziona</option>';
+                
+                Object.entries(data).forEach(([key, value]) => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = value;
+                    select.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Errore nel caricamento delle periodicità bollo:', error));
+        
+        // Popola il select dei tipi titolo
+        ApiService.getEnumValues('tipo-titolo')
+            .then(data => {
+                const select = document.getElementById('tipo-titolo');
+                select.innerHTML = '<option value="">Seleziona</option>';
+                
+                Object.entries(data).forEach(([key, value]) => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = value;
+                    select.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Errore nel caricamento dei tipi titolo:', error));
+    },
+    
+    /**
+     * Mostra il modal per aggiungere/modificare un titolo
+     * @param {number} titoloId - L'ID del titolo da modificare (opzionale)
+     */
+    showTitoloModal: function(titoloId = null) {
+        // Reset del form
+        document.getElementById('titolo-form').reset();
+        document.getElementById('titolo-id').value = '';
+        document.getElementById('titolo-modal-label').textContent = 'Aggiungi Titolo';
+        
+        // Se è una modifica, popola il form con i dati del titolo
+        if (titoloId) {
+            const titolo = window.titoli.find(t => t.id === titoloId);
+            if (titolo) {
+                document.getElementById('titolo-id').value = titolo.id;
+                document.getElementById('nome-titolo').value = titolo.nome;
+                document.getElementById('codice-isin').value = titolo.codiceIsin || '';
+                document.getElementById('data-scadenza').value = titolo.dataScadenza || '';
+                document.getElementById('tasso-nominale').value = titolo.tassoNominale ? Formatters.formatDecimal(titolo.tassoNominale) : '';
+                document.getElementById('periodicita-cedole').value = titolo.periodicitaCedole || '';
+                document.getElementById('periodicita-bollo').value = titolo.periodicitaBollo || '';
+                document.getElementById('tipo-titolo').value = titolo.tipoTitolo || '';
+                document.getElementById('prezzo-titolo').value = titolo.prezzo ? Formatters.formatDecimal(titolo.prezzo) : '';
+                document.getElementById('titolo-modal-label').textContent = 'Modifica Titolo';
+            }
+        }
+        
+        // Mostra il modal
+        const modal = new bootstrap.Modal(document.getElementById('titolo-modal'));
+        modal.show();
+    },
+    
+    /**
+     * Salva un titolo (nuovo o esistente)
+     */
+    saveTitolo: function() {
+        const titoloId = document.getElementById('titolo-id').value;
+        const nome = document.getElementById('nome-titolo').value;
+        const codiceIsin = document.getElementById('codice-isin').value;
+        const dataScadenza = document.getElementById('data-scadenza').getAttribute('data-iso-date');
+        const tassoNominaleStr = document.getElementById('tasso-nominale').value;
+        const periodicitaCedole = document.getElementById('periodicita-cedole').value;
+        const periodicitaBollo = document.getElementById('periodicita-bollo').value;
+        const tipoTitolo = document.getElementById('tipo-titolo').value;
+        const prezzoText = document.getElementById('prezzo-titolo').value;
+        
+        // Verifica quali campi sono vuoti e mostra un messaggio specifico
+        let campiMancanti = [];
+        if (!nome) campiMancanti.push('Nome titolo');
+        if (!codiceIsin) campiMancanti.push('Codice ISIN');
+        if (!dataScadenza) campiMancanti.push('Data scadenza');
+        if (!tassoNominaleStr) campiMancanti.push('Tasso nominale');
+        if (!periodicitaCedole) campiMancanti.push('Periodicità cedole');
+        if (!periodicitaBollo) campiMancanti.push('Periodicità bollo');
+        if (!prezzoText) campiMancanti.push('Prezzo attuale');
+        
+        if (campiMancanti.length > 0) {
+            DomUtils.showAlert('Compila tutti i campi correttamente. Campi mancanti: ' + campiMancanti.join(', '), 'warning');
+            return;
+        }
+        
+        const tassoNominale = Validators.parseNumericValue(tassoNominaleStr);
+        const prezzo = Validators.parseNumericValue(prezzoText);
+        
+        // Crea l'oggetto titolo
+        const titolo = {
+            id: titoloId ? parseInt(titoloId) : null,
+            nome: nome,
+            codiceIsin: codiceIsin,
+            dataScadenza: dataScadenza,
+            tassoNominale: tassoNominale,
+            periodicitaCedole: periodicitaCedole,
+            periodicitaBollo: periodicitaBollo,
+            tipoTitolo: tipoTitolo,
+            prezzo: prezzo
+        };
+        
+        // Mostra un indicatore di caricamento
+        DomUtils.toggleLoading(true);
+        
+        Titolo.save(titolo, prezzo)
+            .then(titoloSalvato => {
+                // Aggiorna il titolo nella lista locale o aggiungilo se è nuovo
+                const index = window.titoli.findIndex(t => t.id === titoloSalvato.id);
+                if (index !== -1) {
+                    window.titoli[index] = titoloSalvato;
+                } else {
+                    window.titoli.push(titoloSalvato);
+                }
+                
+                // Aggiorna le viste
+                this.updateTitoliTable();
+                this.updateTitoliSelect();
+                
+                // Chiudi il modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('titolo-modal'));
+                modal.hide();
+                
+                // Nascondi l'indicatore di caricamento
+                DomUtils.toggleLoading(false);
+                
+                // Mostra un messaggio di successo
+                DomUtils.showAlert('Titolo salvato con successo!', 'success');
+            })
+            .catch(error => {
+                console.error('Errore:', error);
+                DomUtils.showAlert('Si è verificato un errore nel salvataggio del titolo.', 'danger');
+                
+                // Nascondi l'indicatore di caricamento
+                DomUtils.toggleLoading(false);
+            });
+    },
+    
+    /**
+     * Modifica un titolo
+     * @param {number} titoloId - L'ID del titolo da modificare
+     */
+    editTitolo: function(titoloId) {
+        // Trova il titolo nella lista
+        const titolo = window.titoli.find(t => t.id === titoloId);
+        if (!titolo) {
+            alert('Titolo non trovato');
+            return;
+        }
+        
+        // Mostra il modal per la modifica
+        this.showTitoloModal(titoloId);
+    },
+    
+    /**
+     * Elimina un titolo
+     * @param {number} titoloId - L'ID del titolo da eliminare
+     */
+    deleteTitolo: function(titoloId) {
+        // Chiedi conferma
+        if (!confirm('Sei sicuro di voler eliminare questo titolo?')) {
+            return;
+        }
+        
+        // Mostra un indicatore di caricamento
+        DomUtils.toggleLoading(true);
+        
+        Titolo.delete(titoloId)
+            .then(() => {
+                // Rimuovi il titolo dalla lista locale
+                const index = window.titoli.findIndex(t => t.id === titoloId);
+                if (index !== -1) {
+                    window.titoli.splice(index, 1);
+                }
+                
+                // Aggiorna le viste
+                this.updateTitoliTable();
+                this.updateTitoliSelect();
+                
+                // Nascondi l'indicatore di caricamento
+                DomUtils.toggleLoading(false);
+                
+                // Mostra un messaggio di successo
+                DomUtils.showAlert('Titolo eliminato con successo!', 'success');
+            })
+            .catch(error => {
+                console.error('Errore:', error);
+                DomUtils.showAlert('Si è verificato un errore nell\'eliminazione del titolo.', 'danger');
+                
+                // Nascondi l'indicatore di caricamento
+                DomUtils.toggleLoading(false);
+            });
+    },
+    
+    /**
+     * Cerca un titolo per codice ISIN
+     */
+    cercaTitoloByIsin: function() {
+        const isin = document.getElementById('cerca-isin').value;
+        
+        if (!isin) {
+            alert('Inserisci un codice ISIN valido');
+            return;
+        }
+        
+        Titolo.loadByIsin(isin)
+            .then(titoloTrovato => {
+                console.log("Titolo trovato:", titoloTrovato);
+                
+                // Aggiorna il titolo nella lista locale o aggiungilo se è nuovo
+                const index = window.titoli.findIndex(t => t.id === titoloTrovato.id);
+                if (index !== -1) {
+                    window.titoli[index] = titoloTrovato;
+                } else {
+                    window.titoli.push(titoloTrovato);
+                }
+                
+                // Aggiorna le viste
+                this.updateTitoliTable();
+                this.updateTitoliSelect();
+                
+                // Mostra un messaggio di successo
+                alert('Titolo trovato e aggiunto alla lista!');
+            })
+            .catch(error => {
+                console.error('Errore:', error);
+                alert('Titolo non trovato. Verifica il codice ISIN e riprova.');
+            });
+    },
+    
+    // Variabili per la paginazione
+    currentPage: 0,
+    pageSize: 10,
+    totalPages: 1,
+    totalElements: 0,
+    currentTipoTitolo: '',
+    
+    /**
+     * Mostra la lista dei titoli filtrata per tipo, recuperandoli da Borsa Italiana in un modal
+     * @param {string} tipo - Il tipo di titolo (BTP o BOT)
+     */
+    showListaTitoli: function(tipo) {
+        console.log(`Recuperando titoli di tipo ${tipo} da Borsa Italiana...`);
+        
+        // Prepara il modal
+        const modal = new bootstrap.Modal(document.getElementById('lista-titoli-modal'));
+        const modalTitle = document.getElementById('lista-titoli-modal-label');
+        const tipoSpan = document.getElementById('lista-titoli-tipo');
+        const countSpan = document.getElementById('lista-titoli-count');
+        const loadingSpinner = document.getElementById('lista-titoli-loading');
+        const errorAlert = document.getElementById('lista-titoli-error');
+        const tbody = document.getElementById('lista-titoli-body');
+        
+        // Imposta il titolo del modal
+        modalTitle.textContent = `Lista Titoli ${tipo}`;
+        tipoSpan.textContent = `Titoli ${tipo}`;
+        countSpan.textContent = '';
+        
+        // Mostra il modal e l'indicatore di caricamento
+        modal.show();
+        loadingSpinner.classList.remove('d-none');
+        errorAlert.classList.add('d-none');
+        tbody.innerHTML = '';
+        
+        // Imposta il tipo di titolo corrente
+        this.currentTipoTitolo = tipo;
+        
+        // Resetta la pagina corrente
+        this.currentPage = 0;
+        
+        // Carica la prima pagina
+        this.loadTitoliPage();
+    },
+    
+    /**
+     * Carica una pagina di titoli
+     */
+    loadTitoliPage: function() {
+        const loadingSpinner = document.getElementById('lista-titoli-loading');
+        const errorAlert = document.getElementById('lista-titoli-error');
+        const tbody = document.getElementById('lista-titoli-body');
+        const countSpan = document.getElementById('lista-titoli-count');
+        
+        // Mostra l'indicatore di caricamento
+        loadingSpinner.classList.remove('d-none');
+        errorAlert.classList.add('d-none');
+        tbody.innerHTML = '';
+        
+        Titolo.loadTitoliPaginati(this.currentTipoTitolo, this.currentPage, this.pageSize)
+            .then(paginatedResponse => {
+                console.log(`Titoli ${this.currentTipoTitolo} recuperati da Borsa Italiana:`, paginatedResponse);
+                
+                // Nascondi l'indicatore di caricamento
+                loadingSpinner.classList.add('d-none');
+                
+                // Aggiorna le variabili di paginazione
+                this.totalPages = paginatedResponse.totalPages;
+                this.totalElements = paginatedResponse.totalElements;
+                
+                // Aggiorna il conteggio dei titoli
+                countSpan.textContent = `(${this.totalElements} titoli trovati)`;
+                
+                // Aggiorna i controlli di paginazione
+                this.updatePaginationControls();
+                
+                const titoliFromServer = paginatedResponse.content;
+                
+                if (!titoliFromServer || titoliFromServer.length === 0) {
+                    console.log(`Nessun titolo ${this.currentTipoTitolo} trovato in Borsa Italiana`);
+                    
+                    // Aggiungi una riga che indica che non ci sono titoli
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td colspan="6" class="text-center">Nessun titolo ${this.currentTipoTitolo} trovato in Borsa Italiana</td>
+                    `;
+                    tbody.appendChild(row);
+                } else {
+                    // Popola la tabella con i titoli recuperati
+                    titoliFromServer.forEach(titoloDTO => {
+                        // Verifica se il titolo esiste già nella lista locale
+                        const existingIndex = window.titoli.findIndex(t => t.codiceIsin === titoloDTO.codiceIsin);
+                        const isInList = existingIndex !== -1;
+                        
+                        // Crea la riga per la tabella
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${titoloDTO.codiceIsin || ''}</td>
+                            <td>${titoloDTO.nome || ''}</td>
+                            <td>${titoloDTO.dataScadenza ? Formatters.formatDate(titoloDTO.dataScadenza) : ''}</td>
+                            <td>${titoloDTO.tassoNominale ? Formatters.formatDecimal(titoloDTO.tassoNominale) + '%' : ''}</td>
+                            <td>${titoloDTO.corso ? Formatters.formatDecimal(titoloDTO.corso) + ' €' : ''}</td>
+                            <td>
+                                <button class="btn btn-sm ${isInList ? 'btn-success' : 'btn-primary'}" 
+                                        onclick="TitoliController.aggiungiTitoloAllaLista('${titoloDTO.codiceIsin}', '${this.currentTipoTitolo}')">
+                                    ${isInList ? 'Già in lista' : 'Aggiungi alla lista'}
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                    
+                    console.log(`Tabella modal aggiornata con ${titoliFromServer.length} titoli di tipo ${this.currentTipoTitolo}`);
+                }
+            })
+            .catch(error => {
+                console.error(`Errore nel recupero dei titoli ${this.currentTipoTitolo}:`, error);
+                
+                // Nascondi l'indicatore di caricamento e mostra l'errore
+                loadingSpinner.classList.add('d-none');
+                errorAlert.classList.remove('d-none');
+                errorAlert.textContent = `Si è verificato un errore durante il caricamento dei titoli ${this.currentTipoTitolo}: ${error.message}`;
+            });
+    },
+    
+    /**
+     * Aggiorna i controlli di paginazione
+     */
+    updatePaginationControls: function() {
+        DomUtils.updatePaginationControls(this.currentPage, this.totalPages);
+    },
+    
+    /**
+     * Aggiunge un titolo alla lista locale
+     * @param {string} isin - Il codice ISIN del titolo
+     * @param {string} tipo - Il tipo di titolo (BTP o BOT)
+     */
+    aggiungiTitoloAllaLista: function(isin, tipo) {
+        console.log(`Aggiungendo titolo con ISIN ${isin} alla lista...`);
+        
+        Titolo.loadTitoloDettaglio(tipo, isin)
+            .then(titoloObj => {
+                console.log(`Dettagli titolo ${isin} recuperati:`, titoloObj);
+                
+                // Assicurati che il tipo di titolo sia impostato correttamente
+                titoloObj.tipoTitolo = tipo;
+                
+                // Verifica se il titolo esiste già nella lista locale
+                const existingIndex = window.titoli.findIndex(t => t.codiceIsin === titoloObj.codiceIsin);
+                
+                // Aggiorna o aggiungi il titolo alla lista locale
+                if (existingIndex !== -1) {
+                    window.titoli[existingIndex] = titoloObj;
+                    console.log(`Titolo ${isin} aggiornato nella lista locale`);
+                } else {
+                    window.titoli.push(titoloObj);
+                    console.log(`Titolo ${isin} aggiunto alla lista locale`);
+                }
+                
+                // Aggiorna le viste
+                this.updateTitoliTable();
+                this.updateTitoliSelect();
+                
+                // Aggiorna il pulsante nella tabella del modal
+                const buttons = document.querySelectorAll(`button[onclick="TitoliController.aggiungiTitoloAllaLista('${isin}', '${tipo}')"]`);
+                buttons.forEach(button => {
+                    button.classList.remove('btn-primary');
+                    button.classList.add('btn-success');
+                    button.textContent = 'Già in lista';
+                });
+                
+                // Mostra un messaggio di successo
+                alert(`Titolo ${titoloObj.nome} (${isin}) aggiunto alla lista con successo!`);
+            })
+            .catch(error => {
+                console.error(`Errore nell'aggiunta del titolo ${isin} alla lista:`, error);
+                
+                // Mostra un messaggio di errore
+                alert(`Si è verificato un errore nell'aggiunta del titolo alla lista: ${error.message}`);
+            });
+    }
+};
+
+// Inizializza il controller quando il DOM è pronto e le librerie sono caricate
+document.addEventListener('DOMContentLoaded', function() {
+    // Funzione per verificare se jQuery e datepicker sono disponibili
+    function checkJQueryAndDatepicker() {
+        return window.jQuery && $.fn && $.fn.datepicker;
+    }
+    
+    // Funzione per inizializzare il controller
+    function initController() {
+        if (checkJQueryAndDatepicker()) {
+            // Inizializza il controller
+            TitoliController.init();
+            console.log('Controller titoli inizializzato con successo');
+        } else {
+            console.warn('jQuery o datepicker non disponibili. Inizializzazione controller rimandata.');
+            // Riprova dopo un breve ritardo
+            setTimeout(function() {
+                if (checkJQueryAndDatepicker()) {
+                    TitoliController.init();
+                    console.log('Controller titoli inizializzato con successo (ritardato)');
+                } else {
+                    console.error('Impossibile inizializzare il controller: jQuery o datepicker non disponibili.');
+                }
+            }, 500);
+        }
+    }
+    
+    // Avvia l'inizializzazione
+    initController();
+});

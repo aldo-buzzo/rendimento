@@ -9,6 +9,14 @@ import java.util.List;
 public interface TitoloService {
     
     /**
+     * Trova un titolo per ID.
+     * 
+     * @param id l'ID del titolo da cercare
+     * @return il titolo trovato o null se non esiste
+     */
+    TitoloDTO findById(Integer id);
+    
+    /**
      * Importa un titolo da Borsa Italiana dato il codice ISIN e il tipo.
      * Recupera i dati del titolo e lo salva nel database.
      * 

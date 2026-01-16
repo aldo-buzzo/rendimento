@@ -59,6 +59,13 @@ public class TitoloServiceImpl implements TitoloService {
     }
 
     @Override
+    public TitoloDTO findById(Integer id) {
+        return titoloRepository.findById(id)
+                .map(titoloMapper::toDto)
+                .orElse(null);
+    }
+    
+    @Override
     public TitoloDTO findByCodiceIsin(String codiceIsin) {
         Titolo titolo = titoloRepository.findByCodiceIsin(codiceIsin);
         return titoloMapper.toDto(titolo);
