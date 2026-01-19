@@ -32,8 +32,9 @@ window.DomUtils = {
      * Inizializza un datepicker con le opzioni italiane
      * @param {HTMLElement|string} element - L'elemento o il selettore dell'elemento
      * @param {Object} options - Opzioni aggiuntive per il datepicker
+     * @param {boolean} validateFutureDate - Se true, valida che la data sia nel futuro
      */
-    initDatepicker: function(element, options = {}) {
+    initDatepicker: function(element, options = {}, validateFutureDate = false) {
         // Se element è una stringa, lo consideriamo un selettore
         const el = typeof element === 'string' ? document.querySelector(element) : element;
         
@@ -50,7 +51,8 @@ window.DomUtils = {
                     format: 'dd-mm-yyyy',
                     language: 'it',
                     autoclose: true,
-                    todayHighlight: true
+                    todayHighlight: true,
+                    startDate: validateFutureDate ? new Date() : undefined // Se richiesto, imposta la data minima a oggi
                 };
                 
                 // Unisci le opzioni di default con quelle fornite
@@ -65,6 +67,73 @@ window.DomUtils = {
                     if (selectedDate) {
                         const isoDate = selectedDate.toISOString().split('T')[0];
                         el.setAttribute('data-iso-date', isoDate);
+                        
+                        // Validazione aggiuntiva per data futura se richiesto
+                        if (validateFutureDate) {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            
+                            if (selectedDate < today) {
+                                console.warn('La data selezionata è nel passato');
+                                el.classList.add('is-invalid');
+                                // Aggiungi un messaggio di errore se non esiste già
+                                if (!el.nextElementSibling || !el.nextElementSibling.classList.contains('invalid-feedback')) {
+                                    const feedbackDiv = document.createElement('div');
+                                    feedbackDiv.className = 'invalid-feedback';
+                                    feedbackDiv.textContent = 'La data deve essere nel futuro';
+                                    el.parentNode.insertBefore(feedbackDiv, el.nextSibling);
+                                }
+                            } else {
+                                el.classList.remove('is-invalid');
+                                // Rimuovi il messaggio di errore se esiste
+                                if (el.nextElementSibling && el.nextElementSibling.classList.contains('invalid-feedback')) {
+                                    el.nextElementSibling.remove();
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // Aggiungi anche un event listener per l'input manuale
+                el.addEventListener('change', function() {
+                    if (el.value) {
+                        // Converti la data dal formato dd-mm-yyyy a un oggetto Date
+                        const parts = el.value.split('-');
+                        if (parts.length === 3) {
+                            const day = parseInt(parts[0], 10);
+                            const month = parseInt(parts[1], 10) - 1; // I mesi in JavaScript sono 0-based
+                            const year = parseInt(parts[2], 10);
+                            
+                            if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                                const date = new Date(year, month, day);
+                                const isoDate = date.toISOString().split('T')[0];
+                                el.setAttribute('data-iso-date', isoDate);
+                                
+                                // Validazione aggiuntiva per data futura se richiesto
+                                if (validateFutureDate) {
+                                    const today = new Date();
+                                    today.setHours(0, 0, 0, 0);
+                                    
+                                    if (date < today) {
+                                        console.warn('La data inserita è nel passato');
+                                        el.classList.add('is-invalid');
+                                        // Aggiungi un messaggio di errore se non esiste già
+                                        if (!el.nextElementSibling || !el.nextElementSibling.classList.contains('invalid-feedback')) {
+                                            const feedbackDiv = document.createElement('div');
+                                            feedbackDiv.className = 'invalid-feedback';
+                                            feedbackDiv.textContent = 'La data deve essere nel futuro';
+                                            el.parentNode.insertBefore(feedbackDiv, el.nextSibling);
+                                        }
+                                    } else {
+                                        el.classList.remove('is-invalid');
+                                        // Rimuovi il messaggio di errore se esiste
+                                        if (el.nextElementSibling && el.nextElementSibling.classList.contains('invalid-feedback')) {
+                                            el.nextElementSibling.remove();
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 });
             } catch (error) {
@@ -74,6 +143,12 @@ window.DomUtils = {
             console.warn('Plugin datepicker non disponibile, inizializzazione standard');
             // Imposta l'input come tipo date per avere un fallback nativo
             el.type = 'date';
+            
+            // Se richiesto, imposta la data minima a oggi
+            if (validateFutureDate) {
+                const today = new Date().toISOString().split('T')[0];
+                el.min = today;
+            }
             
             // Aggiungi un event listener per aggiornare l'attributo data-iso-date quando la data cambia
             el.addEventListener('change', function() {
@@ -88,14 +163,26 @@ window.DomUtils = {
      * Imposta la data corrente su un datepicker
      * @param {HTMLElement|string} element - L'elemento o il selettore dell'elemento
      * @param {Date} date - La data da impostare (default: data corrente)
+     * @param {boolean} validateFutureDate - Se true, valida che la data sia nel futuro
      */
-    setDatepickerDate: function(element, date = new Date()) {
+    setDatepickerDate: function(element, date = new Date(), validateFutureDate = false) {
         // Se element è una stringa, lo consideriamo un selettore
         const el = typeof element === 'string' ? document.querySelector(element) : element;
         
         if (!el) {
             console.error('Elemento non trovato per il datepicker');
             return;
+        }
+        
+        // Se richiesto, valida che la data sia nel futuro
+        if (validateFutureDate) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (date < today) {
+                console.warn('La data impostata è nel passato, utilizzo la data corrente');
+                date = new Date();
+            }
         }
         
         // Verifica che jQuery e il datepicker siano disponibili
@@ -117,6 +204,29 @@ window.DomUtils = {
         // Memorizza il formato ISO per l'invio al server
         const isoDate = date.toISOString().split('T')[0];
         el.setAttribute('data-iso-date', isoDate);
+        
+        // Validazione aggiuntiva per data futura se richiesto
+        if (validateFutureDate) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (date < today) {
+                el.classList.add('is-invalid');
+                // Aggiungi un messaggio di errore se non esiste già
+                if (!el.nextElementSibling || !el.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedbackDiv = document.createElement('div');
+                    feedbackDiv.className = 'invalid-feedback';
+                    feedbackDiv.textContent = 'La data deve essere nel futuro';
+                    el.parentNode.insertBefore(feedbackDiv, el.nextSibling);
+                }
+            } else {
+                el.classList.remove('is-invalid');
+                // Rimuovi il messaggio di errore se esiste
+                if (el.nextElementSibling && el.nextElementSibling.classList.contains('invalid-feedback')) {
+                    el.nextElementSibling.remove();
+                }
+            }
+        }
     },
     
     /**
@@ -157,6 +267,56 @@ window.DomUtils = {
         // Abilita/disabilita i pulsanti di navigazione
         prevPageBtn.disabled = currentPage === 0;
         nextPageBtn.disabled = currentPage >= totalPages - 1;
+    },
+    
+    /**
+     * Valida una data di scadenza
+     * @param {string} dateString - La data in formato ISO (YYYY-MM-DD)
+     * @returns {Object} - Oggetto con proprietà isValid e message
+     */
+    validateExpirationDate: function(dateString) {
+        if (!dateString) {
+            return {
+                isValid: false,
+                message: 'La data di scadenza è obbligatoria'
+            };
+        }
+        
+        // Verifica che la data sia in formato valido
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(dateString)) {
+            return {
+                isValid: false,
+                message: 'Formato data non valido. Utilizzare il formato YYYY-MM-DD'
+            };
+        }
+        
+        // Converti la stringa in un oggetto Date
+        const date = new Date(dateString);
+        
+        // Verifica che la data sia valida
+        if (isNaN(date.getTime())) {
+            return {
+                isValid: false,
+                message: 'Data non valida'
+            };
+        }
+        
+        // Verifica che la data sia nel futuro
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (date < today) {
+            return {
+                isValid: false,
+                message: 'La data di scadenza deve essere nel futuro'
+            };
+        }
+        
+        return {
+            isValid: true,
+            message: 'Data valida'
+        };
     }
 };
 

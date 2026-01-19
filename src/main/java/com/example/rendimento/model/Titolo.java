@@ -40,6 +40,10 @@ public class Titolo {
     @Column(name = "tipo_titolo", length = 50)
     private TipoTitolo tipoTitolo;
     
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_utente", nullable = false)
+    private Utente utente;
+    
     @Version
     @Column(name = "version")
     private Long version;
@@ -59,6 +63,7 @@ public class Titolo {
      * @param tassoNominale il tasso nominale annuale (%)
      * @param periodicitaCedole la frequenza delle cedole
      * @param periodicitaBollo la frequenza del bollo
+     * @param tipoTitolo il tipo di titolo
      */
     public Titolo(String nome, String codiceIsin, LocalDate dataScadenza, 
                  BigDecimal tassoNominale, String periodicitaCedole, String periodicitaBollo,
@@ -70,6 +75,31 @@ public class Titolo {
         this.periodicitaCedole = periodicitaCedole;
         this.periodicitaBollo = periodicitaBollo;
         this.tipoTitolo = tipoTitolo;
+    }
+    
+    /**
+     * Costruttore con parametri incluso l'utente.
+     *
+     * @param nome il nome del titolo
+     * @param codiceIsin il codice ISIN univoco
+     * @param dataScadenza la data di scadenza
+     * @param tassoNominale il tasso nominale annuale (%)
+     * @param periodicitaCedole la frequenza delle cedole
+     * @param periodicitaBollo la frequenza del bollo
+     * @param tipoTitolo il tipo di titolo
+     * @param utente l'utente proprietario del titolo
+     */
+    public Titolo(String nome, String codiceIsin, LocalDate dataScadenza, 
+                 BigDecimal tassoNominale, String periodicitaCedole, String periodicitaBollo,
+                 TipoTitolo tipoTitolo, Utente utente) {
+        this.nome = nome;
+        this.codiceIsin = codiceIsin;
+        this.dataScadenza = dataScadenza;
+        this.tassoNominale = tassoNominale;
+        this.periodicitaCedole = periodicitaCedole;
+        this.periodicitaBollo = periodicitaBollo;
+        this.tipoTitolo = tipoTitolo;
+        this.utente = utente;
     }
 
     // Getter e Setter
@@ -138,6 +168,14 @@ public class Titolo {
         this.tipoTitolo = tipoTitolo;
     }
     
+    public Utente getUtente() {
+        return utente;
+    }
+    
+    public void setUtente(Utente utente) {
+        this.utente = utente;
+    }
+    
     public Long getVersion() {
         return version;
     }
@@ -157,6 +195,7 @@ public class Titolo {
                 ", periodicitaCedole='" + periodicitaCedole + '\'' +
                 ", periodicitaBollo='" + periodicitaBollo + '\'' +
                 ", tipoTitolo='" + tipoTitolo + '\'' +
+                ", utente=" + (utente != null ? utente.getIdUtente() : null) +
                 ", version=" + version +
                 '}';
     }

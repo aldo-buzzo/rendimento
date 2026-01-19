@@ -1,255 +1,192 @@
 /**
- * Modulo per la gestione delle chiamate API
- * Contiene funzioni per interagire con le API del backend
+ * Servizio per le chiamate API al backend
+ * Contiene funzioni per interagire con i vari endpoint REST
  */
 
-// Namespace per il modulo ApiService
+// Namespace per il servizio API
 window.ApiService = {
     /**
-     * URL base per le API
+     * URL base per le chiamate API
      */
-    BASE_URL: '',
+    baseUrl: '/api',
     
     /**
-     * URL per le API frontend
+     * Esegue una richiesta GET
+     * @param {string} url - L'URL della richiesta
+     * @returns {Promise} - Promise che risolve con i dati della risposta
      */
-    FRONTEND_API_URL: '/api/frontend',
-    
-    /**
-     * URL per le API dei titoli
-     */
-    TITOLO_API_URL: '/api/titolo',
-    
-    /**
-     * URL per le API delle simulazioni
-     */
-    SIMULAZIONI_API_URL: '/api/simulazioni',
-    
-    /**
-     * URL per le API di Borsa Italiana
-     */
-    BORSA_ITALIANA_API_URL: '/api/borsa-italiana',
-    
-    /**
-     * Gestisce gli errori delle chiamate API
-     * @param {Response} response - La risposta HTTP
-     * @returns {Promise} - Promise che risolve con i dati o rifiuta con un errore
-     */
-    handleResponse: function(response) {
-        if (!response.ok) {
-            throw new Error(`Errore API: ${response.status} ${response.statusText}`);
-        }
-        return response.json();
-    },
-    
-    /**
-     * Gestisce gli errori delle chiamate API
-     * @param {Error} error - L'errore
-     * @throws {Error} - Rilancia l'errore con un messaggio più descrittivo
-     */
-    handleError: function(error) {
-        console.error('Errore API:', error);
-        throw error;
-    },
-    
-    /**
-     * Mostra/nasconde l'indicatore di caricamento
-     * @param {boolean} show - true per mostrare, false per nascondere
-     */
-    toggleLoading: function(show) {
-        if (typeof DomUtils !== 'undefined' && DomUtils.toggleLoading) {
-            DomUtils.toggleLoading(show);
-        } else {
-            if (show) {
-                document.body.classList.add('loading');
-            } else {
-                document.body.classList.remove('loading');
-            }
-        }
-    },
-    
-    // API per i titoli
-    
-    /**
-     * Recupera tutti i titoli
-     * @returns {Promise} - Promise che risolve con l'array dei titoli
-     */
-    getTitoli: function() {
-        this.toggleLoading(true);
-        
-        return fetch(`${this.FRONTEND_API_URL}/titolo`)
-            .then(this.handleResponse)
-            .then(data => {
-                this.toggleLoading(false);
-                return data;
-            })
-            .catch(error => {
-                this.toggleLoading(false);
-                this.handleError(error);
-            });
-    },
-    
-    /**
-     * Recupera un titolo per ID
-     * @param {number} id - L'ID del titolo
-     * @returns {Promise} - Promise che risolve con il titolo o con un oggetto vuoto in caso di errore
-     */
-    getTitoloById: function(id) {
-        this.toggleLoading(true);
-        
-        // Crea un titolo di fallback con i dati minimi necessari
-        const fallbackTitolo = {
-            idTitolo: id,
-            nome: `Titolo #${id}`,
-            codiceIsin: 'N/A',
-            dataScadenza: new Date().toISOString().split('T')[0], // Data corrente
-            tassoNominale: 0,
-            periodicitaCedole: 'SEMESTRALE',
-            periodicitaBollo: 'ANNUALE',
-            tipoTitolo: 'BTP',
-            corso: 100.00
-        };
-        
-        return fetch(`${this.TITOLO_API_URL}/${id}`)
+    get: function(url) {
+        return fetch(url)
             .then(response => {
                 if (!response.ok) {
-                    console.warn(`Errore nel recupero del titolo con ID ${id}: ${response.status} ${response.statusText}`);
-                    console.warn(`Utilizzando titolo di fallback per ID ${id}`);
-                    this.toggleLoading(false);
-                    return fallbackTitolo;
+                    // Se l'errore è 401 (Unauthorized) o 403 (Forbidden), reindirizza alla pagina di login
+                    if (response.status === 401 || response.status === 403) {
+                        console.log('Sessione scaduta o utente non autorizzato. Reindirizzamento alla pagina di login...');
+                        window.location.href = '/login';
+                        throw new Error('Reindirizzamento alla pagina di login');
+                    }
+                    throw new Error('Errore nella richiesta: ' + response.status);
                 }
                 return response.json();
-            })
-            .then(data => {
-                this.toggleLoading(false);
-                return data;
-            })
-            .catch(error => {
-                this.toggleLoading(false);
-                console.warn('Errore nel recupero del titolo:', error);
-                console.warn(`Utilizzando titolo di fallback per ID ${id}`);
-                return fallbackTitolo;
             });
     },
     
     /**
-     * Recupera un titolo per codice ISIN
-     * @param {string} isin - Il codice ISIN del titolo
-     * @returns {Promise} - Promise che risolve con il titolo
+     * Esegue una richiesta POST
+     * @param {string} url - L'URL della richiesta
+     * @param {Object} data - I dati da inviare nel corpo della richiesta
+     * @returns {Promise} - Promise che risolve con i dati della risposta
      */
-    getTitoloByIsin: function(isin) {
-        this.toggleLoading(true);
-        
-        return fetch(`${this.FRONTEND_API_URL}/titolo/isin/${isin}`)
-            .then(this.handleResponse)
-            .then(data => {
-                this.toggleLoading(false);
-                return data;
-            })
-            .catch(error => {
-                this.toggleLoading(false);
-                this.handleError(error);
-            });
-    },
-    
-    /**
-     * Salva un titolo (crea o aggiorna)
-     * @param {Object} titolo - Il titolo da salvare
-     * @returns {Promise} - Promise che risolve con il titolo salvato
-     */
-    saveTitolo: function(titolo) {
-        this.toggleLoading(true);
-        
-        const method = titolo.idTitolo ? 'PUT' : 'POST';
-        
-        return fetch(`${this.FRONTEND_API_URL}/titolo`, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(titolo)
-        })
-            .then(this.handleResponse)
-            .then(data => {
-                this.toggleLoading(false);
-                return data;
-            })
-            .catch(error => {
-                this.toggleLoading(false);
-                this.handleError(error);
-            });
-    },
-    
-    /**
-     * Elimina un titolo
-     * @param {number} id - L'ID del titolo da eliminare
-     * @returns {Promise} - Promise che risolve con l'esito dell'eliminazione
-     */
-    deleteTitolo: function(id) {
-        this.toggleLoading(true);
-        
-        return fetch(`${this.FRONTEND_API_URL}/titolo/${id}`, {
-            method: 'DELETE'
-        })
-            .then(response => {
-                this.toggleLoading(false);
-                if (!response.ok) {
-                    throw new Error(`Errore nell'eliminazione del titolo: ${response.status} ${response.statusText}`);
-                }
-                return true;
-            })
-            .catch(error => {
-                this.toggleLoading(false);
-                this.handleError(error);
-            });
-    },
-    
-    // API per le simulazioni
-    
-    /**
-     * Recupera tutte le simulazioni
-     * @param {boolean} latest - Se true, recupera solo le ultime simulazioni
-     * @returns {Promise} - Promise che risolve con l'array delle simulazioni
-     */
-    getSimulazioni: function(latest = true) {
-        this.toggleLoading(true);
-        
-        return fetch(`${this.SIMULAZIONI_API_URL}?latest=${latest}`)
-            .then(this.handleResponse)
-            .then(data => {
-                this.toggleLoading(false);
-                return data;
-            })
-            .catch(error => {
-                this.toggleLoading(false);
-                this.handleError(error);
-            });
-    },
-    
-    /**
-     * Salva una simulazione
-     * @param {Object} simulazione - La simulazione da salvare
-     * @returns {Promise} - Promise che risolve con la simulazione salvata
-     */
-    saveSimulazione: function(simulazione) {
-        this.toggleLoading(true);
-        
-        return fetch(`${this.SIMULAZIONI_API_URL}`, {
+    post: function(url, data) {
+        return fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(simulazione)
+            body: JSON.stringify(data)
         })
-            .then(this.handleResponse)
-            .then(data => {
-                this.toggleLoading(false);
-                return data;
-            })
-            .catch(error => {
-                this.toggleLoading(false);
-                this.handleError(error);
-            });
+        .then(response => {
+            if (!response.ok) {
+                // Se l'errore è 401 (Unauthorized) o 403 (Forbidden), reindirizza alla pagina di login
+                if (response.status === 401 || response.status === 403) {
+                    console.log('Sessione scaduta o utente non autorizzato. Reindirizzamento alla pagina di login...');
+                    window.location.href = '/login';
+                    throw new Error('Reindirizzamento alla pagina di login');
+                }
+                throw new Error('Errore nella richiesta: ' + response.status);
+            }
+            return response.json();
+        });
+    },
+    
+    /**
+     * Esegue una richiesta PUT
+     * @param {string} url - L'URL della richiesta
+     * @param {Object} data - I dati da inviare nel corpo della richiesta
+     * @returns {Promise} - Promise che risolve con i dati della risposta
+     */
+    put: function(url, data) {
+        return fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                // Se l'errore è 401 (Unauthorized) o 403 (Forbidden), reindirizza alla pagina di login
+                if (response.status === 401 || response.status === 403) {
+                    console.log('Sessione scaduta o utente non autorizzato. Reindirizzamento alla pagina di login...');
+                    window.location.href = '/login';
+                    throw new Error('Reindirizzamento alla pagina di login');
+                }
+                throw new Error('Errore nella richiesta: ' + response.status);
+            }
+            return response.json();
+        });
+    },
+    
+    /**
+     * Esegue una richiesta DELETE
+     * @param {string} url - L'URL della richiesta
+     * @returns {Promise} - Promise che risolve con i dati della risposta
+     */
+    delete: function(url) {
+        return fetch(url, {
+            method: 'DELETE'
+        })
+        .then(response => {
+            if (!response.ok) {
+                // Se l'errore è 401 (Unauthorized) o 403 (Forbidden), reindirizza alla pagina di login
+                if (response.status === 401 || response.status === 403) {
+                    console.log('Sessione scaduta o utente non autorizzato. Reindirizzamento alla pagina di login...');
+                    window.location.href = '/login';
+                    throw new Error('Reindirizzamento alla pagina di login');
+                }
+                throw new Error('Errore nella richiesta: ' + response.status);
+            }
+            return response.json();
+        });
+    },
+    
+    /**
+     * Recupera tutti i titoli dal server
+     * @returns {Promise} - Promise che risolve con l'array dei titoli
+     */
+    getTitoli: function() {
+        return this.get(`${this.baseUrl}/frontend/titolo`);
+    },
+    
+    /**
+     * Recupera un titolo specifico dal server
+     * @param {number} id - L'ID del titolo da recuperare
+     * @returns {Promise} - Promise che risolve con il titolo richiesto
+     */
+    getTitolo: function(id) {
+        return this.get(`${this.baseUrl}/frontend/titolo/${id}`);
+    },
+    
+    /**
+     * Salva un titolo sul server
+     * @param {Object} titolo - Il titolo da salvare
+     * @returns {Promise} - Promise che risolve con il titolo salvato
+     */
+    saveTitolo: function(titolo) {
+        return this.post(`${this.baseUrl}/titolo`, titolo);
+    },
+    
+    /**
+     * Elimina un titolo dal server
+     * @param {number} id - L'ID del titolo da eliminare
+     * @returns {Promise} - Promise che risolve con l'esito dell'eliminazione
+     */
+    deleteTitolo: function(id) {
+        return this.delete(`${this.baseUrl}/frontend/titolo/${id}`);
+    },
+    
+    /**
+     * Recupera tutte le simulazioni dal server
+     * @param {boolean} latest - Se true, recupera solo le ultime simulazioni
+     * @returns {Promise} - Promise che risolve con l'array delle simulazioni
+     */
+    getSimulazioni: function(latest = true) {
+        if (latest) {
+            return this.get(`${this.baseUrl}/frontend/simulazioni/latest`);
+        } else {
+            return this.get(`${this.baseUrl}/simulazioni`);
+        }
+    },
+    
+    /**
+     * Recupera una simulazione specifica dal server
+     * @param {number} id - L'ID della simulazione da recuperare
+     * @returns {Promise} - Promise che risolve con la simulazione richiesta
+     */
+    getSimulazione: function(id) {
+        return this.get(`${this.baseUrl}/simulazioni/${id}`);
+    },
+    
+    /**
+     * Salva una simulazione sul server
+     * @param {Object} simulazione - La simulazione da salvare
+     * @returns {Promise} - Promise che risolve con la simulazione salvata
+     */
+    saveSimulazione: function(simulazione) {
+        if (simulazione.idSimulazione) {
+            return this.put(`${this.baseUrl}/simulazioni/${simulazione.idSimulazione}`, simulazione);
+        } else {
+            return this.post(`${this.baseUrl}/simulazioni`, simulazione);
+        }
+    },
+    
+    /**
+     * Elimina una simulazione dal server
+     * @param {number} id - L'ID della simulazione da eliminare
+     * @returns {Promise} - Promise che risolve con l'esito dell'eliminazione
+     */
+    deleteSimulazione: function(id) {
+        return this.delete(`${this.baseUrl}/simulazioni/${id}`);
     },
     
     /**
@@ -261,20 +198,7 @@ window.ApiService = {
      * @returns {Promise} - Promise che risolve con il risultato del calcolo
      */
     calcolaRendimento: function(idTitolo, prezzoAcquisto, importo, modalitaBollo = 'ANNUALE') {
-        this.toggleLoading(true);
-        
-        return fetch(`${this.SIMULAZIONI_API_URL}/calcola-rendimento?idTitolo=${idTitolo}&prezzoAcquisto=${prezzoAcquisto}&importo=${importo}&modalitaBollo=${modalitaBollo}`, {
-            method: 'POST'
-        })
-            .then(this.handleResponse)
-            .then(data => {
-                this.toggleLoading(false);
-                return data;
-            })
-            .catch(error => {
-                this.toggleLoading(false);
-                this.handleError(error);
-            });
+        return this.get(`${this.baseUrl}/simulazioni/calcola-rendimento?idTitolo=${idTitolo}&prezzoAcquisto=${prezzoAcquisto}&importo=${importo}&modalitaBollo=${modalitaBollo}`);
     },
     
     /**
@@ -282,108 +206,54 @@ window.ApiService = {
      * @returns {Promise} - Promise che risolve con l'esito del calcolo
      */
     calcolaRendimentiTuttiTitoli: function() {
-        this.toggleLoading(true);
-        
-        return fetch(`${this.SIMULAZIONI_API_URL}/calcola-rendimenti-tutti-titoli`, {
-            method: 'POST'
-        })
-            .then(this.handleResponse)
-            .then(data => {
-                this.toggleLoading(false);
-                return data;
-            })
-            .catch(error => {
-                this.toggleLoading(false);
-                this.handleError(error);
-            });
+        return this.post(`${this.baseUrl}/simulazioni/calcola-rendimenti-tutti-titoli`, {});
     },
-    
-    // API per Borsa Italiana
-    
-    /**
-     * Recupera i titoli paginati da Borsa Italiana
-     * @param {string} tipo - Il tipo di titolo (BTP o BOT)
-     * @param {number} page - Il numero di pagina (0-based)
-     * @param {number} size - La dimensione della pagina
-     * @returns {Promise} - Promise che risolve con la risposta paginata
-     */
-    getTitoliPaginati: function(tipo, page = 0, size = 10) {
-        this.toggleLoading(true);
-        
-        return fetch(`${this.BORSA_ITALIANA_API_URL}/lista-paginata/${tipo}?page=${page}&size=${size}`)
-            .then(this.handleResponse)
-            .then(data => {
-                this.toggleLoading(false);
-                return data;
-            })
-            .catch(error => {
-                this.toggleLoading(false);
-                this.handleError(error);
-            });
-    },
-    
-    /**
-     * Recupera i dettagli di un titolo da Borsa Italiana
-     * @param {string} tipo - Il tipo di titolo (BTP o BOT)
-     * @param {string} isin - Il codice ISIN del titolo
-     * @returns {Promise} - Promise che risolve con i dettagli del titolo
-     */
-    getTitoloDettaglio: function(tipo, isin) {
-        this.toggleLoading(true);
-        
-        return fetch(`${this.BORSA_ITALIANA_API_URL}/${tipo}/${isin}`)
-            .then(this.handleResponse)
-            .then(data => {
-                this.toggleLoading(false);
-                return data;
-            })
-            .catch(error => {
-                this.toggleLoading(false);
-                this.handleError(error);
-            });
-    },
-    
-    /**
-     * Recupera il prezzo corrente di un titolo
-     * @param {string} tipo - Il tipo di titolo (BTP o BOT)
-     * @param {string} isin - Il codice ISIN del titolo
-     * @returns {Promise} - Promise che risolve con il prezzo corrente
-     */
-    getPrezzoCorrente: function(tipo, isin) {
-        this.toggleLoading(true);
-        
-        return fetch(`${this.BORSA_ITALIANA_API_URL}/corso/${tipo.toLowerCase()}/${isin}`)
-            .then(this.handleResponse)
-            .then(data => {
-                this.toggleLoading(false);
-                return data;
-            })
-            .catch(error => {
-                this.toggleLoading(false);
-                this.handleError(error);
-            });
-    },
-    
-    // API per i metadati dell'applicazione
     
     /**
      * Recupera i metadati dell'applicazione
      * @returns {Promise} - Promise che risolve con i metadati
      */
-    getAppMetadata: function() {
-        return fetch(`${this.FRONTEND_API_URL}/app-info`)
-            .then(this.handleResponse)
-            .catch(this.handleError);
+    getMetadata: function() {
+        return this.get(`${this.baseUrl}/frontend/app-info`);
     },
     
     /**
-     * Recupera i valori di un enum
-     * @param {string} enumName - Il nome dell'enum
+     * Recupera i titoli paginati da Borsa Italiana
+     * @param {string} tipo - Il tipo di titolo (BTP o BOT)
+     * @param {number} pagina - Il numero di pagina (0-based)
+     * @param {number} dimensione - Il numero di elementi per pagina
+     * @returns {Promise} - Promise che risolve con l'oggetto paginato contenente i titoli
+     */
+    getTitoliPaginati: function(tipo, pagina, dimensione) {
+        return this.get(`${this.baseUrl}/borsa-italiana/lista-paginata/${tipo}?page=${pagina}&size=${dimensione}`);
+    },
+    
+    /**
+     * Recupera il prezzo corrente di un titolo da Borsa Italiana
+     * @param {string} tipo - Il tipo di titolo (BTP o BOT)
+     * @param {string} isin - Il codice ISIN del titolo
+     * @returns {Promise} - Promise che risolve con il prezzo corrente del titolo
+     */
+    getPrezzoTitolo: function(tipo, isin) {
+        return this.get(`${this.baseUrl}/borsa-italiana/corso/${tipo}/${isin}`);
+    },
+    
+    /**
+     * Recupera i dettagli di un titolo specifico da Borsa Italiana
+     * @param {string} tipo - Il tipo di titolo (BTP o BOT)
+     * @param {string} isin - Il codice ISIN del titolo
+     * @returns {Promise} - Promise che risolve con i dettagli del titolo
+     */
+    getTitoloDettaglio: function(tipo, isin) {
+        return this.get(`${this.baseUrl}/borsa-italiana/${tipo}/${isin}`);
+    },
+    
+    /**
+     * Recupera i valori degli enum dal server
+     * @param {string} enumName - Il nome dell'enum da recuperare
      * @returns {Promise} - Promise che risolve con i valori dell'enum
      */
     getEnumValues: function(enumName) {
-        return fetch(`${this.FRONTEND_API_URL}/enum/${enumName}`)
-            .then(this.handleResponse)
-            .catch(this.handleError);
+        return this.get(`${this.baseUrl}/frontend/enum/${enumName}`);
     }
 };

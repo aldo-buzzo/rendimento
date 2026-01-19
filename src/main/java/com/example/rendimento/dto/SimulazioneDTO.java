@@ -22,6 +22,18 @@ public class SimulazioneDTO {
     private BigDecimal rendimentoNettoBollo;
     private BigDecimal plusMinusValenza;
     private Long version;
+    
+    // Nuovi campi per il calcolo avanzato dei rendimenti
+    private BigDecimal nominale;
+    private BigDecimal prezzoRiferimentoBollo;
+    private BigDecimal capitaleInvestito;
+    private BigDecimal capitaleConCommissioni;
+    private BigDecimal cedoleNetteAnnue;
+    private BigDecimal guadagnoNettoSenzaCosti;
+    private BigDecimal rendimentoSenzaCosti;
+    private BigDecimal rendimentoConCommissioni;
+    private BigDecimal rendimentoConBolloMensile;
+    private BigDecimal bolloTotaleMensile;
 
     /**
      * Costruttore predefinito.
@@ -94,7 +106,7 @@ public class SimulazioneDTO {
         this.plusMinusValenza = plusMinusValenza;
     }
 
-    // Getter e Setter
+    // Getter e Setter per i campi esistenti
 
     public Integer getIdSimulazione() {
         return idSimulazione;
@@ -200,6 +212,88 @@ public class SimulazioneDTO {
     public void setVersion(Long version) {
         this.version = version;
     }
+    
+    // Getter e Setter per i nuovi campi
+    
+    public BigDecimal getNominale() {
+        return nominale;
+    }
+
+    public void setNominale(BigDecimal nominale) {
+        this.nominale = nominale;
+    }
+
+    public BigDecimal getPrezzoRiferimentoBollo() {
+        return prezzoRiferimentoBollo;
+    }
+
+    public void setPrezzoRiferimentoBollo(BigDecimal prezzoRiferimentoBollo) {
+        this.prezzoRiferimentoBollo = prezzoRiferimentoBollo;
+    }
+
+    public BigDecimal getCapitaleInvestito() {
+        return capitaleInvestito;
+    }
+
+    public void setCapitaleInvestito(BigDecimal capitaleInvestito) {
+        this.capitaleInvestito = capitaleInvestito;
+    }
+
+    public BigDecimal getCapitaleConCommissioni() {
+        return capitaleConCommissioni;
+    }
+
+    public void setCapitaleConCommissioni(BigDecimal capitaleConCommissioni) {
+        this.capitaleConCommissioni = capitaleConCommissioni;
+    }
+
+    public BigDecimal getCedoleNetteAnnue() {
+        return cedoleNetteAnnue;
+    }
+
+    public void setCedoleNetteAnnue(BigDecimal cedoleNetteAnnue) {
+        this.cedoleNetteAnnue = cedoleNetteAnnue;
+    }
+
+    public BigDecimal getGuadagnoNettoSenzaCosti() {
+        return guadagnoNettoSenzaCosti;
+    }
+
+    public void setGuadagnoNettoSenzaCosti(BigDecimal guadagnoNettoSenzaCosti) {
+        this.guadagnoNettoSenzaCosti = guadagnoNettoSenzaCosti;
+    }
+
+    public BigDecimal getRendimentoSenzaCosti() {
+        return rendimentoSenzaCosti;
+    }
+
+    public void setRendimentoSenzaCosti(BigDecimal rendimentoSenzaCosti) {
+        this.rendimentoSenzaCosti = rendimentoSenzaCosti;
+    }
+
+    public BigDecimal getRendimentoConCommissioni() {
+        return rendimentoConCommissioni;
+    }
+
+    public void setRendimentoConCommissioni(BigDecimal rendimentoConCommissioni) {
+        this.rendimentoConCommissioni = rendimentoConCommissioni;
+    }
+
+    public BigDecimal getRendimentoConBolloMensile() {
+        return rendimentoConBolloMensile;
+    }
+
+    public void setRendimentoConBolloMensile(BigDecimal rendimentoConBolloMensile) {
+        this.rendimentoConBolloMensile = rendimentoConBolloMensile;
+    }
+
+    public BigDecimal getBolloTotaleMensile() {
+        return bolloTotaleMensile;
+    }
+
+    public void setBolloTotaleMensile(BigDecimal bolloTotaleMensile) {
+        this.bolloTotaleMensile = bolloTotaleMensile;
+    }
 
     @Override
     public String toString() {
@@ -215,6 +309,16 @@ public class SimulazioneDTO {
                 ", impostaBollo=" + impostaBollo +
                 ", rendimentoNettoBollo=" + rendimentoNettoBollo +
                 ", plusMinusValenza=" + plusMinusValenza +
+                ", nominale=" + nominale +
+                ", prezzoRiferimentoBollo=" + prezzoRiferimentoBollo +
+                ", capitaleInvestito=" + capitaleInvestito +
+                ", capitaleConCommissioni=" + capitaleConCommissioni +
+                ", cedoleNetteAnnue=" + cedoleNetteAnnue +
+                ", guadagnoNettoSenzaCosti=" + guadagnoNettoSenzaCosti +
+                ", rendimentoSenzaCosti=" + rendimentoSenzaCosti +
+                ", rendimentoConCommissioni=" + rendimentoConCommissioni +
+                ", rendimentoConBolloMensile=" + rendimentoConBolloMensile +
+                ", bolloTotaleMensile=" + bolloTotaleMensile +
                 ", version=" + version +
                 '}';
     }

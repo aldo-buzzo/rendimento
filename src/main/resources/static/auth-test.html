@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Autenticazione - Rendimento Titoli</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        
+        h1, h2 {
+            color: #007bff;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .button:hover {
+            background-color: #0069d9;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        
+        .error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        
+        .login-form {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Autenticazione</h1>
+        
+        <div class="section">
+            <h2>Verifica Utente Admin</h2>
+            <p>Verifica se l'utente admin esiste nel database e se la password è corretta.</p>
+            <button id="test-admin-btn" class="button">Verifica Utente Admin</button>
+            <div id="test-admin-result" class="result">Clicca il pulsante per eseguire il test...</div>
+        </div>
+        
+        <div class="section">
+            <h2>Crea Utente Admin di Test</h2>
+            <p>Crea un nuovo utente admin di test nel database o aggiorna quello esistente.</p>
+            <button id="create-test-admin-btn" class="button">Crea Utente Admin di Test</button>
+            <div id="create-test-admin-result" class="result">Clicca il pulsante per eseguire il test...</div>
+        </div>
+        
+        <div class="section">
+            <h2>Accedi con Utente Admin di Test</h2>
+            <p>Utilizza questo form per accedere con l'utente admin di test.</p>
+            <div class="login-form">
+                <form id="test-login-form" action="/api/auth/login" method="POST">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" value="test-admin">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" value="test-password">
+                    </div>
+                    
+                    <button type="submit" class="button">Accedi</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Collegamenti Utili</h2>
+            <p>Utilizza questi collegamenti per navigare tra le pagine dell'applicazione.</p>
+            <a href="/" class="button">Home</a>
+            <a href="/login" class="button">Login</a>
+            <a href="/registrazione" class="button">Registrazione</a>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Gestione del pulsante di verifica utente admin
+            document.getElementById('test-admin-btn').addEventListener('click', function() {
+                const resultElement = document.getElementById('test-admin-result');
+                resultElement.textContent = 'Esecuzione del test in corso...';
+                resultElement.className = 'result';
+                
+                fetch('/api/auth/test-admin')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.errore) {
+                            resultElement.textContent = 'Errore: ' + data.errore;
+                            resultElement.className = 'result error';
+                        } else {
+                            resultElement.textContent = JSON.stringify(data, null, 2);
+                            if (data.passwordMatches) {
+                                resultElement.className = 'result success';
+                            } else {
+                                resultElement.className = 'result error';
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        resultElement.textContent = 'Errore durante l\'esecuzione del test: ' + error.message;
+                        resultElement.className = 'result error';
+                    });
+            });
+            
+            // Gestione del pulsante di creazione utente admin di test
+            document.getElementById('create-test-admin-btn').addEventListener('click', function() {
+                const resultElement = document.getElementById('create-test-admin-result');
+                resultElement.textContent = 'Esecuzione del test in corso...';
+                resultElement.className = 'result';
+                
+                fetch('/api/auth/create-test-admin')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.errore) {
+                            resultElement.textContent = 'Errore: ' + data.errore;
+                            resultElement.className = 'result error';
+                        } else {
+                            resultElement.textContent = JSON.stringify(data, null, 2);
+                            resultElement.className = 'result success';
+                        }
+                    })
+                    .catch(error => {
+                        resultElement.textContent = 'Errore durante l\'esecuzione del test: ' + error.message;
+                        resultElement.className = 'result error';
+                    });
+            });
+        });
+    </script>
+</body>
+</html>

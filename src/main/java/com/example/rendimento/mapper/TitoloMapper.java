@@ -1,18 +1,25 @@
 package com.example.rendimento.mapper;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.example.rendimento.dto.TitoloDTO;
 import com.example.rendimento.model.Titolo;
+import com.example.rendimento.model.Utente;
+import com.example.rendimento.repository.UtenteRepository;
 
 /**
  * Classe di utilità per la conversione tra l'entità Titolo e il DTO TitoloDTO.
  */
 @Component
 public class TitoloMapper {
+    
+    @Autowired
+    private UtenteRepository utenteRepository;
 
     /**
      * Converte un'entità Titolo in un DTO TitoloDTO.
@@ -34,7 +41,8 @@ public class TitoloMapper {
                 entity.getPeriodicitaCedole(),
                 entity.getPeriodicitaBollo(),
                 entity.getTipoTitolo(),
-                null  // Il corso non è memorizzato nell'entità, viene recuperato in tempo reale
+                null,  // Il corso non è memorizzato nell'entità, viene recuperato in tempo reale
+                entity.getUtente() != null ? entity.getUtente().getIdUtente() : null
         );
     }
 
@@ -54,10 +62,41 @@ public class TitoloMapper {
         entity.setNome(dto.getNome());
         entity.setCodiceIsin(dto.getCodiceIsin());
         entity.setDataScadenza(dto.getDataScadenza());
-        entity.setTassoNominale(dto.getTassoNominale());
+        
+        // Gestione del tasso nominale: imposta a zero se è null
+        if (dto.getTassoNominale() == null) {
+            entity.setTassoNominale(BigDecimal.ZERO);
+        } else {
+            entity.setTassoNominale(dto.getTassoNominale());
+        }
+        
         entity.setPeriodicitaCedole(dto.getPeriodicitaCedole());
         entity.setPeriodicitaBollo(dto.getPeriodicitaBollo());
         entity.setTipoTitolo(dto.getTipoTitolo());
+        
+        // Imposta l'utente se è specificato l'ID utente
+        if (dto.getUtenteId() != null) {
+            utenteRepository.findById(dto.getUtenteId())
+                .ifPresent(entity::setUtente);
+        }
+        
+        return entity;
+    }
+    
+    /**
+     * Converte un DTO TitoloDTO in un'entità Titolo, specificando direttamente l'utente.
+     *
+     * @param dto il DTO da convertire
+     * @param utente l'utente da associare all'entità
+     * @return l'entità risultante, o null se il DTO è null
+     */
+    public Titolo toEntity(TitoloDTO dto, Utente utente) {
+        if (dto == null) {
+            return null;
+        }
+        
+        Titolo entity = toEntity(dto);
+        entity.setUtente(utente);
         
         return entity;
     }
@@ -94,10 +133,23 @@ public class TitoloMapper {
         entity.setNome(dto.getNome());
         entity.setCodiceIsin(dto.getCodiceIsin());
         entity.setDataScadenza(dto.getDataScadenza());
-        entity.setTassoNominale(dto.getTassoNominale());
+        
+        // Gestione del tasso nominale: imposta a zero se è null
+        if (dto.getTassoNominale() == null) {
+            entity.setTassoNominale(BigDecimal.ZERO);
+        } else {
+            entity.setTassoNominale(dto.getTassoNominale());
+        }
+        
         entity.setPeriodicitaCedole(dto.getPeriodicitaCedole());
         entity.setPeriodicitaBollo(dto.getPeriodicitaBollo());
         entity.setTipoTitolo(dto.getTipoTitolo());
+        
+        // Aggiorna l'utente se è specificato un nuovo ID utente
+        if (dto.getUtenteId() != null && (entity.getUtente() == null || !dto.getUtenteId().equals(entity.getUtente().getIdUtente()))) {
+            utenteRepository.findById(dto.getUtenteId())
+                .ifPresent(entity::setUtente);
+        }
         
         return entity;
     }

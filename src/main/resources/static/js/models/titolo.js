@@ -18,72 +18,48 @@ window.Titolo = {
     },
     
     /**
-     * Carica un titolo per ID
-     * @param {number} id - L'ID del titolo
+     * Carica un titolo specifico dal server
+     * @param {number} id - L'ID del titolo da caricare
      * @returns {Promise} - Promise che risolve con il titolo convertito per il frontend
      */
     loadById: function(id) {
-        return ApiService.getTitoloById(id)
+        return ApiService.getTitolo(id)
             .then(dto => {
-                // ApiService.getTitoloById ora restituisce sempre un oggetto (reale o fallback)
-                // quindi non dovremmo mai arrivare al catch
+                // Converti il DTO in oggetto per il frontend
                 return this.convertFromDTO(dto);
-            })
-            .catch(error => {
-                // Questo catch è solo per sicurezza, nel caso in cui ci siano errori imprevisti
-                console.warn(`Errore imprevisto nel caricamento del titolo con ID ${id}:`, error);
-                
-                // Crea un titolo di fallback con i dati minimi necessari
-                const fallbackTitolo = {
-                    id: id,
-                    nome: `Titolo #${id}`,
-                    codiceIsin: 'N/A',
-                    dataScadenza: new Date().toISOString().split('T')[0], // Data corrente
-                    tassoNominale: 0,
-                    periodicitaCedole: 'SEMESTRALE',
-                    periodicitaBollo: 'ANNUALE',
-                    tipoTitolo: 'BTP',
-                    prezzo: 100.00
-                };
-                
-                console.warn(`Utilizzando titolo di fallback per ID ${id}:`, fallbackTitolo);
-                return fallbackTitolo;
             });
     },
     
     /**
-     * Carica un titolo per codice ISIN
-     * @param {string} isin - Il codice ISIN del titolo
+     * Carica un titolo specifico dal server tramite ISIN
+     * @param {string} isin - Il codice ISIN del titolo da caricare
      * @returns {Promise} - Promise che risolve con il titolo convertito per il frontend
      */
     loadByIsin: function(isin) {
-        return ApiService.getTitoloByIsin(isin)
-            .then(dto => {
-                return this.convertFromDTO(dto);
+        // Prima carica tutti i titoli e poi filtra per ISIN
+        return this.load()
+            .then(titoli => {
+                const titolo = titoli.find(t => t.codiceIsin === isin);
+                if (!titolo) {
+                    throw new Error('Titolo non trovato con ISIN: ' + isin);
+                }
+                return titolo;
             });
     },
     
     /**
-     * Salva un titolo (crea o aggiorna)
+     * Salva un titolo
      * @param {Object} titolo - Il titolo da salvare
-     * @param {number} prezzo - Il prezzo attuale del titolo (opzionale)
      * @returns {Promise} - Promise che risolve con il titolo salvato e convertito per il frontend
      */
-    save: function(titolo, prezzo) {
+    save: function(titolo) {
         // Converti l'oggetto frontend in DTO
         const titoloDTO = this.convertToDTO(titolo);
         
         return ApiService.saveTitolo(titoloDTO)
             .then(dto => {
                 // Converti il DTO restituito in oggetto frontend
-                const titoloSalvato = this.convertFromDTO(dto);
-                
-                // Se è stato fornito un prezzo, aggiornalo
-                if (prezzo !== undefined) {
-                    titoloSalvato.prezzo = prezzo;
-                }
-                
-                return titoloSalvato;
+                return this.convertFromDTO(dto);
             });
     },
     
@@ -97,40 +73,6 @@ window.Titolo = {
     },
     
     /**
-     * Ottiene il prezzo corrente di un titolo
-     * @param {string} tipoTitolo - Il tipo di titolo (BTP o BOT)
-     * @param {string} codiceIsin - Il codice ISIN del titolo
-     * @returns {Promise} - Promise che risolve con il prezzo corrente
-     */
-    getPrezzoCorrente: function(tipoTitolo, codiceIsin) {
-        return ApiService.getPrezzoCorrente(tipoTitolo, codiceIsin);
-    },
-    
-    /**
-     * Carica i titoli paginati da Borsa Italiana
-     * @param {string} tipo - Il tipo di titolo (BTP o BOT)
-     * @param {number} page - Il numero di pagina (0-based)
-     * @param {number} size - La dimensione della pagina
-     * @returns {Promise} - Promise che risolve con la risposta paginata
-     */
-    loadTitoliPaginati: function(tipo, page = 0, size = 10) {
-        return ApiService.getTitoliPaginati(tipo, page, size);
-    },
-    
-    /**
-     * Carica i dettagli di un titolo da Borsa Italiana
-     * @param {string} tipo - Il tipo di titolo (BTP o BOT)
-     * @param {string} isin - Il codice ISIN del titolo
-     * @returns {Promise} - Promise che risolve con i dettagli del titolo convertiti per il frontend
-     */
-    loadTitoloDettaglio: function(tipo, isin) {
-        return ApiService.getTitoloDettaglio(tipo, isin)
-            .then(dto => {
-                return this.convertFromDTO(dto);
-            });
-    },
-    
-    /**
      * Converte un DTO in un oggetto per il frontend
      * @param {Object} dto - Il DTO da convertire
      * @returns {Object} - L'oggetto convertito per il frontend
@@ -139,13 +81,19 @@ window.Titolo = {
         return {
             id: dto.idTitolo,
             nome: dto.nome,
-            codiceIsin: dto.codiceIsin,
+            codiceIsin: dto.codiceIsin,  // Corretto da isin a codiceIsin
+            tipoTitolo: dto.tipoTitolo,  // Corretto da tipo a tipoTitolo
+            dataEmissione: dto.dataEmissione,
             dataScadenza: dto.dataScadenza,
-            tassoNominale: dto.tassoNominale,
-            periodicitaCedole: dto.periodicitaCedole,
+            tassoNominale: dto.tassoNominale,  // Aggiunto campo tassoNominale
+            cedolaLorda: dto.cedolaLorda * 100, // Converti da decimale a percentuale
+            prezzoEmissione: dto.prezzoEmissione,
+            prezzoRimborso: dto.prezzoRimborso,
+            periodicita: dto.periodicita,
+            periodicitaCedole: dto.periodicitaCedole,  // Aggiunto campo periodicitaCedole
+            modalitaCalcoloBollo: dto.modalitaCalcoloBollo,
             periodicitaBollo: dto.periodicitaBollo,
-            tipoTitolo: dto.tipoTitolo,
-            prezzo: dto.corso || 100.00 // Prezzo di default, potrebbe essere aggiunto al DTO in futuro
+            prezzo: dto.corso  // Aggiunto campo prezzo mappato da corso
         };
     },
     
@@ -158,12 +106,88 @@ window.Titolo = {
         return {
             idTitolo: titolo.id,
             nome: titolo.nome,
-            codiceIsin: titolo.codiceIsin,
+            codiceIsin: titolo.codiceIsin,  // Corretto da isin a codiceIsin
+            tipoTitolo: titolo.tipoTitolo,  // Corretto da tipo a tipoTitolo
+            dataEmissione: titolo.dataEmissione,
             dataScadenza: titolo.dataScadenza,
-            tassoNominale: titolo.tassoNominale,
-            periodicitaCedole: titolo.periodicitaCedole,
+            tassoNominale: titolo.tassoNominale,  // Aggiunto campo tassoNominale
+            cedolaLorda: titolo.cedolaLorda ? titolo.cedolaLorda / 100 : null, // Converti da percentuale a decimale, gestisci null
+            prezzoEmissione: titolo.prezzoEmissione,
+            prezzoRimborso: titolo.prezzoRimborso,
+            periodicita: titolo.periodicita,
+            periodicitaCedole: titolo.periodicitaCedole,  // Aggiunto campo periodicitaCedole
+            modalitaCalcoloBollo: titolo.modalitaCalcoloBollo,
             periodicitaBollo: titolo.periodicitaBollo,
-            tipoTitolo: titolo.tipoTitolo
+            corso: titolo.prezzo  // Aggiunto campo corso mappato da prezzo
         };
+    },
+    
+    /**
+     * Carica i titoli paginati da Borsa Italiana
+     * @param {string} tipo - Il tipo di titolo (BTP o BOT)
+     * @param {number} pagina - Il numero di pagina (0-based)
+     * @param {number} dimensione - Il numero di elementi per pagina
+     * @returns {Promise} - Promise che risolve con l'oggetto paginato contenente i titoli
+     */
+    loadTitoliPaginati: function(tipo, pagina, dimensione) {
+        console.log(`Caricamento titoli paginati di tipo ${tipo}, pagina ${pagina}, dimensione ${dimensione}`);
+        
+        return ApiService.getTitoliPaginati(tipo, pagina, dimensione)
+            .then(response => {
+                console.log(`Titoli paginati ricevuti:`, response);
+                return response;
+            })
+            .catch(error => {
+                console.error(`Errore nel caricamento dei titoli paginati di tipo ${tipo}:`, error);
+                throw error;
+            });
+    },
+    
+    /**
+     * Ottiene il prezzo corrente di un titolo da Borsa Italiana
+     * @param {string} tipo - Il tipo di titolo (BTP o BOT)
+     * @param {string} isin - Il codice ISIN del titolo
+     * @returns {Promise} - Promise che risolve con il prezzo corrente del titolo
+     */
+    getPrezzoCorrente: function(tipo, isin) {
+        console.log(`Recupero prezzo corrente per titolo ${tipo} con ISIN ${isin}`);
+        
+        return ApiService.getPrezzoTitolo(tipo, isin)
+            .then(response => {
+                console.log(`Prezzo corrente ricevuto:`, response);
+                
+                // Il controller restituisce direttamente il valore BigDecimal, non un oggetto JSON
+                if (response !== null && response !== undefined) {
+                    return response;
+                } else {
+                    throw new Error('Prezzo non disponibile nella risposta');
+                }
+            })
+            .catch(error => {
+                console.error(`Errore nel recupero del prezzo corrente per il titolo ${isin}:`, error);
+                throw error;
+            });
+    },
+    
+    /**
+     * Carica i dettagli di un titolo specifico da Borsa Italiana
+     * @param {string} tipo - Il tipo di titolo (BTP o BOT)
+     * @param {string} isin - Il codice ISIN del titolo
+     * @returns {Promise} - Promise che risolve con i dettagli del titolo
+     */
+    loadTitoloDettaglio: function(tipo, isin) {
+        console.log(`Caricamento dettagli per titolo ${tipo} con ISIN ${isin}`);
+        
+        return ApiService.getTitoloDettaglio(tipo, isin)
+            .then(dto => {
+                console.log(`Dettagli titolo ricevuti:`, dto);
+                
+                // Converti il DTO in oggetto per il frontend
+                return this.convertFromDTO(dto);
+            })
+            .catch(error => {
+                console.error(`Errore nel caricamento dei dettagli per il titolo ${isin}:`, error);
+                throw error;
+            });
     }
 };

@@ -31,7 +31,16 @@ public class BorsaItalianaBotServiceImpl implements BorsaItalianaService {
     private static final Logger logger = LoggerFactory.getLogger(BorsaItalianaBotServiceImpl.class);
     private static final String BASE_URL_BOT = "https://www.borsaitaliana.it/borsa/obbligazioni/mot/bot/scheda/";
     private static final String URL_BORSA_ITALIANA_BOT = "https://www.borsaitaliana.it/borsa/obbligazioni/mot/bot/lista.html";
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    
+    // Formati di data aggiuntivi per il parsing
+    private static final DateTimeFormatter[] DATE_FORMATTERS = {
+        DateTimeFormatter.ofPattern("dd/MM/yyyy"),
+        DateTimeFormatter.ofPattern("dd/MM/yy"),
+        DateTimeFormatter.ofPattern("dd/mm/yy"),
+        DateTimeFormatter.ofPattern("dd-MM-yyyy"),
+        DateTimeFormatter.ofPattern("dd-MM-yy"),
+        DateTimeFormatter.ofPattern("dd-mm-yy")
+    };
 
     @Override
     public BigDecimal getCorsoByIsin(String isin) {
@@ -122,9 +131,20 @@ public class BorsaItalianaBotServiceImpl implements BorsaItalianaService {
                         
                         // Parsing dei dati
                         LocalDate dataScadenza = null;
-                        try {
-                            dataScadenza = LocalDate.parse(scadenzaStr, DATE_FORMATTER);
-                        } catch (DateTimeParseException e) {
+                        boolean dataParsed = false;
+                        
+                        // Prova tutti i formati di data disponibili
+                        for (DateTimeFormatter formatter : DATE_FORMATTERS) {
+                            try {
+                                dataScadenza = LocalDate.parse(scadenzaStr, formatter);
+                                dataParsed = true;
+                                break;
+                            } catch (DateTimeParseException e) {
+                                // Continua con il prossimo formato
+                            }
+                        }
+                        
+                        if (!dataParsed) {
                             logger.warn("Impossibile parsare la data di scadenza: {}", scadenzaStr);
                             continue; // Salta titoli con data non valida
                         }
@@ -210,25 +230,22 @@ public class BorsaItalianaBotServiceImpl implements BorsaItalianaService {
                     String value = cells.get(1).text().trim();
                     
                     if (label.contains("Data Scadenza") || label.contains("Scadenza")) {
-                        try {
-                            // Prova prima con il formato dd/MM/yyyy
+                        boolean dataParsed = false;
+                        
+                        // Prova tutti i formati di data disponibili
+                        for (DateTimeFormatter formatter : DATE_FORMATTERS) {
                             try {
-                                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
                                 titolo.setDataScadenza(LocalDate.parse(value, formatter));
-                            } catch (DateTimeParseException e1) {
-                                // Se fallisce, prova con il formato dd-MM-yy
-                                try {
-                                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yy");
-                                    titolo.setDataScadenza(LocalDate.parse(value, formatter));
-                                } catch (DateTimeParseException e2) {
-                                    // Se fallisce anche questo, prova con il formato dd-MM-yyyy
-                                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-                                    titolo.setDataScadenza(LocalDate.parse(value, formatter));
-                                }
+                                dataParsed = true;
+                                break;
+                            } catch (DateTimeParseException e) {
+                                // Continua con il prossimo formato
                             }
-                        } catch (DateTimeParseException e) {
+                        }
+                        
+                        if (!dataParsed) {
                             // Non impostiamo un valore di default, lasciamo che sia null
-                            logger.warn("Errore nel parsing della data di scadenza: {}", e.getMessage());
+                            logger.warn("Errore nel parsing della data di scadenza: {}", value);
                         }
                     // I BOT non hanno un tasso nominale esplicito
                     }

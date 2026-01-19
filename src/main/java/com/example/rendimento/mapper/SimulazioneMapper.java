@@ -49,6 +49,18 @@ public class SimulazioneMapper {
         dto.setRendimentoNettoBollo(simulazione.getRendimentoNettoBollo());
         dto.setPlusMinusValenza(simulazione.getPlusMinusValenza());
         dto.setVersion(simulazione.getVersion());
+        
+        // Mapping dei nuovi campi
+        dto.setNominale(simulazione.getNominale());
+        dto.setPrezzoRiferimentoBollo(simulazione.getPrezzoRiferimentoBollo());
+        dto.setCapitaleInvestito(simulazione.getCapitaleInvestito());
+        dto.setCapitaleConCommissioni(simulazione.getCapitaleConCommissioni());
+        dto.setCedoleNetteAnnue(simulazione.getCedoleNetteAnnue());
+        dto.setGuadagnoNettoSenzaCosti(simulazione.getGuadagnoNettoSenzaCosti());
+        dto.setRendimentoSenzaCosti(simulazione.getRendimentoSenzaCosti());
+        dto.setRendimentoConCommissioni(simulazione.getRendimentoConCommissioni());
+        dto.setRendimentoConBolloMensile(simulazione.getRendimentoConBolloMensile());
+        dto.setBolloTotaleMensile(simulazione.getBolloTotaleMensile());
 
         return dto;
     }
@@ -83,6 +95,18 @@ public class SimulazioneMapper {
         simulazione.setRendimentoNettoBollo(dto.getRendimentoNettoBollo());
         simulazione.setPlusMinusValenza(dto.getPlusMinusValenza());
         simulazione.setVersion(dto.getVersion());
+        
+        // Mapping dei nuovi campi
+        simulazione.setNominale(dto.getNominale());
+        simulazione.setPrezzoRiferimentoBollo(dto.getPrezzoRiferimentoBollo());
+        simulazione.setCapitaleInvestito(dto.getCapitaleInvestito());
+        simulazione.setCapitaleConCommissioni(dto.getCapitaleConCommissioni());
+        simulazione.setCedoleNetteAnnue(dto.getCedoleNetteAnnue());
+        simulazione.setGuadagnoNettoSenzaCosti(dto.getGuadagnoNettoSenzaCosti());
+        simulazione.setRendimentoSenzaCosti(dto.getRendimentoSenzaCosti());
+        simulazione.setRendimentoConCommissioni(dto.getRendimentoConCommissioni());
+        simulazione.setRendimentoConBolloMensile(dto.getRendimentoConBolloMensile());
+        simulazione.setBolloTotaleMensile(dto.getBolloTotaleMensile());
 
         return simulazione;
     }

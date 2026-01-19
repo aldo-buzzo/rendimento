@@ -1,5 +1,7 @@
 package com.example.rendimento.service.impl;
 
+import com.example.rendimento.constants.RendimentoConstants;
+import com.example.rendimento.dto.RisultatoRendimentoAdvancedDTO;
 import com.example.rendimento.dto.RisultatoSimulazioneDTO;
 import com.example.rendimento.dto.SimulazioneDTO;
 import com.example.rendimento.enums.ModalitaCalcoloBollo;
@@ -11,6 +13,8 @@ import com.example.rendimento.repository.SimulazioneRepository;
 import com.example.rendimento.repository.TitoloRepository;
 import com.example.rendimento.service.SimulazioneService;
 import jakarta.persistence.EntityNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
@@ -31,6 +35,8 @@ import org.springframework.data.domain.PageRequest;
 @Service
 public class SimulazioneServiceImpl implements SimulazioneService {
 
+    private static final Logger log = LoggerFactory.getLogger(SimulazioneServiceImpl.class);
+    
     private final SimulazioneRepository simulazioneRepository;
     private final TitoloRepository titoloRepository;
     private final SimulazioneMapper simulazioneMapper;
@@ -340,5 +346,154 @@ public class SimulazioneServiceImpl implements SimulazioneService {
             simulazione.getDataAcquisto(), 
             modalitaBollo
         );
+    }
+    
+    @Override
+    public RisultatoRendimentoAdvancedDTO calcolaRendimentoAdvanced(
+            BigDecimal nominale,
+            BigDecimal prezzoAcquistoPercentuale,
+            BigDecimal cedolaAnnua,
+            BigDecimal anniDurata,
+            BigDecimal commissionRate,
+            BigDecimal prezzoRiferimentoBollo) {
+        
+        // Validazione input
+        if (nominale == null || prezzoAcquistoPercentuale == null || cedolaAnnua == null || 
+            anniDurata == null || commissionRate == null || prezzoRiferimentoBollo == null) {
+            throw new IllegalArgumentException("Tutti i parametri devono essere valorizzati");
+        }
+        
+        RisultatoRendimentoAdvancedDTO risultato = new RisultatoRendimentoAdvancedDTO();
+        
+        // Salva i parametri di input nel risultato
+        risultato.setNominale(nominale);
+        risultato.setPrezzoAcquistoPercentuale(prezzoAcquistoPercentuale);
+        risultato.setCedolaAnnua(cedolaAnnua);
+        risultato.setAnniDurata(anniDurata);
+        risultato.setCommissionRate(commissionRate);
+        risultato.setPrezzoRiferimentoBollo(prezzoRiferimentoBollo);
+        
+        // CALCOLI BASE
+        // capitaleInvestito = nominale * prezzoAcquistoPercentuale / 100
+        BigDecimal capitaleInvestito = nominale.multiply(prezzoAcquistoPercentuale)
+                                     .divide(RendimentoConstants.PERCENT_100, 8, RoundingMode.HALF_UP);
+        risultato.setCapitaleInvestito(capitaleInvestito);
+        
+        // cedoleNetteAnnue = nominale * cedolaAnnua * taxFactor
+        BigDecimal cedoleNetteAnnue = nominale.multiply(cedolaAnnua)
+                                    .multiply(RendimentoConstants.TAX_FACTOR)
+                                    .setScale(8, RoundingMode.HALF_UP);
+        risultato.setCedoleNetteAnnue(cedoleNetteAnnue);
+        
+        // plusvalenzaNetta = (nominale - capitaleInvestito) * taxFactor
+        BigDecimal plusvalenzaNetta = nominale.subtract(capitaleInvestito)
+                                    .multiply(RendimentoConstants.TAX_FACTOR)
+                                    .setScale(8, RoundingMode.HALF_UP);
+        risultato.setPlusvalenzaNetta(plusvalenzaNetta);
+        
+        // guadagnoNettoSenzaCosti = (cedoleNetteAnnue * anniDurata) + plusvalenzaNetta
+        BigDecimal guadagnoNettoSenzaCosti = cedoleNetteAnnue.multiply(anniDurata)
+                                           .add(plusvalenzaNetta)
+                                           .setScale(8, RoundingMode.HALF_UP);
+        risultato.setGuadagnoNettoSenzaCosti(guadagnoNettoSenzaCosti);
+        
+        // RENDIMENTO 1: SENZA COMMISSIONI E BOLLO
+        // rendimentoSenzaCosti = guadagnoNettoSenzaCosti / (capitaleInvestito * anniDurata)
+        BigDecimal rendimentoSenzaCosti = guadagnoNettoSenzaCosti.divide(
+                                        capitaleInvestito.multiply(anniDurata),
+                                        8, RoundingMode.HALF_UP);
+        risultato.setRendimentoSenzaCosti(rendimentoSenzaCosti);
+        
+        // COMMISSIONI DI ACQUISTO
+        // commissioni = capitaleInvestito * commissionRate
+        BigDecimal commissioni = capitaleInvestito.multiply(commissionRate)
+                               .setScale(8, RoundingMode.HALF_UP);
+        risultato.setCommissioni(commissioni);
+        
+        // capitaleConCommissioni = capitaleInvestito + commissioni
+        BigDecimal capitaleConCommissioni = capitaleInvestito.add(commissioni);
+        risultato.setCapitaleConCommissioni(capitaleConCommissioni);
+        
+        // RENDIMENTO 2: CON COMMISSIONI
+        // rendimentoConCommissioni = guadagnoNettoSenzaCosti / (capitaleConCommissioni * anniDurata)
+        BigDecimal rendimentoConCommissioni = guadagnoNettoSenzaCosti.divide(
+                                            capitaleConCommissioni.multiply(anniDurata),
+                                            8, RoundingMode.HALF_UP);
+        risultato.setRendimentoConCommissioni(rendimentoConCommissioni);
+        
+        // BASE BOLLO (SEMPLIFICATA)
+        // baseBollo = nominale * prezzoRiferimentoBollo / 100
+        BigDecimal baseBollo = nominale.multiply(prezzoRiferimentoBollo)
+                             .divide(RendimentoConstants.PERCENT_100, 8, RoundingMode.HALF_UP);
+        
+        // BOLLO ANNUALE
+        // bolloAnnuale = baseBollo * BOLLO_RATE
+        BigDecimal bolloAnnuale = baseBollo.multiply(RendimentoConstants.TAX_BOLLO_RATE)
+                                .setScale(8, RoundingMode.HALF_UP);
+        
+        // bolloTotaleAnnuale = bolloAnnuale * anniDurata
+        BigDecimal bolloTotaleAnnuale = bolloAnnuale.multiply(anniDurata)
+                                      .setScale(8, RoundingMode.HALF_UP);
+        risultato.setBolloTotaleAnnuale(bolloTotaleAnnuale);
+        
+        // RENDIMENTO 3: COMMISSIONI + BOLLO ANNUALE
+        // guadagnoNettoConBolloAnnuale = guadagnoNettoSenzaCosti - bolloTotaleAnnuale
+        BigDecimal guadagnoNettoConBolloAnnuale = guadagnoNettoSenzaCosti.subtract(bolloTotaleAnnuale);
+        
+        // rendimentoConCommissioniEBolloAnnuale = guadagnoNettoConBolloAnnuale / (capitaleConCommissioni * anniDurata)
+        BigDecimal rendimentoConCommissioniEBolloAnnuale = guadagnoNettoConBolloAnnuale.divide(
+                                                         capitaleConCommissioni.multiply(anniDurata),
+                                                         8, RoundingMode.HALF_UP);
+        risultato.setRendimentoConCommissioniEBolloAnnuale(rendimentoConCommissioniEBolloAnnuale);
+        
+        // BOLLO MENSILE
+        // bolloMensile = baseBollo * BOLLO_RATE / 12
+        BigDecimal bolloMensile = baseBollo.multiply(RendimentoConstants.TAX_BOLLO_RATE)
+                                .divide(RendimentoConstants.TIME_MONTHS_IN_YEAR, 8, RoundingMode.HALF_UP);
+        
+        // mesiDetenzione = anniDurata * 12
+        BigDecimal mesiDetenzione = anniDurata.multiply(RendimentoConstants.TIME_MONTHS_IN_YEAR);
+        
+        // bolloTotaleMensile = bolloMensile * mesiDetenzione
+        BigDecimal bolloTotaleMensile = bolloMensile.multiply(mesiDetenzione)
+                                      .setScale(8, RoundingMode.HALF_UP);
+        risultato.setBolloTotaleMensile(bolloTotaleMensile);
+        
+        // RENDIMENTO 4: COMMISSIONI + BOLLO MENSILE
+        // guadagnoNettoConBolloMensile = guadagnoNettoSenzaCosti - bolloTotaleMensile
+        BigDecimal guadagnoNettoConBolloMensile = guadagnoNettoSenzaCosti.subtract(bolloTotaleMensile);
+        
+        // rendimentoConCommissioniEBolloMensile = guadagnoNettoConBolloMensile / (capitaleConCommissioni * anniDurata)
+        BigDecimal rendimentoConCommissioniEBolloMensile = guadagnoNettoConBolloMensile.divide(
+                                                         capitaleConCommissioni.multiply(anniDurata),
+                                                         8, RoundingMode.HALF_UP);
+        risultato.setRendimentoConCommissioniEBolloMensile(rendimentoConCommissioniEBolloMensile);
+        
+        // Imposta altri campi per compatibilità
+        risultato.setGuadagnoTotale(guadagnoNettoSenzaCosti);
+        risultato.setImpostaBollo(bolloTotaleAnnuale);
+        risultato.setInteressiNetti(cedoleNetteAnnue.multiply(anniDurata));
+        
+        return risultato;
+    }
+    
+    @Override
+    public List<SimulazioneDTO> getSimulazioniByUtenteId(Integer utenteId, boolean latest) {
+        log.info("Recupero simulazioni per utente ID: {} (latest: {})", utenteId, latest);
+        
+        List<Simulazione> simulazioni;
+        if (latest) {
+            // Utilizziamo il nuovo metodo che esclude i titoli scaduti
+            LocalDate dataOdierna = LocalDate.now();
+            simulazioni = simulazioneRepository.findLatestByUtenteIdAndNotExpired(utenteId, dataOdierna);
+            log.info("Trovate {} simulazioni più recenti per titoli non scaduti dell'utente ID: {}", simulazioni.size(), utenteId);
+        } else {
+            simulazioni = simulazioneRepository.findByUtenteId(utenteId);
+            log.info("Trovate {} simulazioni totali per l'utente ID: {}", simulazioni.size(), utenteId);
+        }
+        
+        return simulazioni.stream()
+                .map(simulazioneMapper::toDTO)
+                .collect(Collectors.toList());
     }
 }

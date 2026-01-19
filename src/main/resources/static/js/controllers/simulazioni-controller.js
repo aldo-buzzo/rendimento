@@ -366,6 +366,9 @@ class SimulazioniController {
      * Calcola i rendimenti di tutti i titoli
      */
     calcolaRendimentiTuttiTitoli() {
+        // Mostra un indicatore di caricamento
+        DomUtils.toggleLoading(true);
+        
         Simulazione.calcolaRendimentiTuttiTitoli()
             .then(data => {
                 console.log("Rendimenti calcolati:", data);
@@ -373,12 +376,20 @@ class SimulazioniController {
                 // Ricarica le simulazioni dal server
                 this.loadSimulazioniFromServer();
                 
+                // Nascondi l'indicatore di caricamento
+                DomUtils.toggleLoading(false);
+                
                 // Mostra un messaggio di successo
-                alert('Rendimenti calcolati con successo!');
+                DomUtils.showAlert('Rendimenti calcolati con successo!', 'success');
             })
             .catch(error => {
                 console.error('Errore:', error);
-                alert('Si è verificato un errore nel calcolo dei rendimenti.');
+                
+                // Nascondi l'indicatore di caricamento
+                DomUtils.toggleLoading(false);
+                
+                // Mostra un messaggio di errore
+                DomUtils.showAlert('Si è verificato un errore nel calcolo dei rendimenti.', 'danger');
             });
     }
     

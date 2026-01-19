@@ -1,5 +1,6 @@
 package com.example.rendimento.service;
 
+import com.example.rendimento.dto.RisultatoRendimentoAdvancedDTO;
 import com.example.rendimento.dto.RisultatoSimulazioneDTO;
 import com.example.rendimento.dto.SimulazioneDTO;
 import com.example.rendimento.enums.ModalitaCalcoloBollo;
@@ -116,4 +117,33 @@ public interface SimulazioneService {
      * @return lista di simulazioni per il titolo e la data specificati
      */
     List<SimulazioneDTO> findByTitoloIdAndDataAcquisto(Integer idTitolo, LocalDate dataAcquisto);
+    
+    /**
+     * Recupera tutte le simulazioni associate ai titoli di un utente specifico.
+     * 
+     * @param utenteId l'ID dell'utente
+     * @param latest se true, recupera solo le simulazioni più recenti per ogni titolo
+     * @return lista di simulazioni associate ai titoli dell'utente
+     */
+    List<SimulazioneDTO> getSimulazioniByUtenteId(Integer utenteId, boolean latest);
+    
+    /**
+     * Calcola il rendimento avanzato di un titolo di Stato italiano (BTP/BOT) acquistato sul MOT e detenuto fino a scadenza.
+     * Questo metodo implementa un modello lineare annualizzato che calcola quattro diversi rendimenti.
+     * 
+     * @param nominale il valore nominale del titolo
+     * @param prezzoAcquistoPercentuale il prezzo di acquisto in percentuale (es. 99.71)
+     * @param cedolaAnnua la cedola annua (es. 0.0185, zero per BOT)
+     * @param anniDurata la durata in anni (es. 4.5)
+     * @param commissionRate il tasso di commissione (es. 0.0009)
+     * @param prezzoRiferimentoBollo il prezzo di riferimento per il calcolo del bollo (es. prezzo di acquisto)
+     * @return DTO contenente i risultati del calcolo avanzato
+     */
+    RisultatoRendimentoAdvancedDTO calcolaRendimentoAdvanced(
+        BigDecimal nominale,
+        BigDecimal prezzoAcquistoPercentuale,
+        BigDecimal cedolaAnnua,
+        BigDecimal anniDurata,
+        BigDecimal commissionRate,
+        BigDecimal prezzoRiferimentoBollo);
 }

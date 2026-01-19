@@ -19,6 +19,7 @@ public class TitoloDTO {
     private String periodicitaBollo;
     private TipoTitolo tipoTitolo;
     private BigDecimal corso;
+    private Integer utenteId;
 
     /**
      * Costruttore predefinito.
@@ -39,7 +40,7 @@ public class TitoloDTO {
      */
     public TitoloDTO(Integer idTitolo, String nome, String codiceIsin, LocalDate dataScadenza,
                     BigDecimal tassoNominale, String periodicitaCedole, String periodicitaBollo,
-                    TipoTitolo tipoTitolo, BigDecimal corso) {
+                    TipoTitolo tipoTitolo, BigDecimal corso, Integer utenteId) {
         this.idTitolo = idTitolo;
         this.nome = nome;
         this.codiceIsin = codiceIsin;
@@ -49,6 +50,7 @@ public class TitoloDTO {
         this.periodicitaBollo = periodicitaBollo;
         this.tipoTitolo = tipoTitolo;
         this.corso = corso;
+        this.utenteId = utenteId;
     }
 
     // Getter e Setter
@@ -124,6 +126,14 @@ public class TitoloDTO {
     public void setCorso(BigDecimal corso) {
         this.corso = corso;
     }
+    
+    public Integer getUtenteId() {
+        return utenteId;
+    }
+    
+    public void setUtenteId(Integer utenteId) {
+        this.utenteId = utenteId;
+    }
 
     @Override
     public String toString() {
@@ -137,6 +147,7 @@ public class TitoloDTO {
                 ", periodicitaBollo='" + periodicitaBollo + '\'' +
                 ", tipoTitolo='" + tipoTitolo + '\'' +
                 ", corso=" + corso +
+                ", utenteId=" + utenteId +
                 '}';
     }
 }

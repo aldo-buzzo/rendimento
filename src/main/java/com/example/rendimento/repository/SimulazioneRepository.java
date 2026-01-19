@@ -79,4 +79,36 @@ public interface SimulazioneRepository extends JpaRepository<Simulazione, Intege
      * @return lista di simulazioni per il titolo e la data specificati
      */
     List<Simulazione> findByTitolo_IdTitoloAndDataAcquisto(Integer idTitolo, LocalDate dataAcquisto);
+    
+    /**
+     * Trova tutte le simulazioni associate ai titoli di un utente specifico.
+     * 
+     * @param utenteId l'ID dell'utente
+     * @return lista di simulazioni associate ai titoli dell'utente
+     */
+    @Query("SELECT s FROM Simulazione s JOIN s.titolo t WHERE t.utente.idUtente = :utenteId")
+    List<Simulazione> findByUtenteId(@Param("utenteId") Integer utenteId);
+    
+    /**
+     * Trova le simulazioni più recenti per ogni titolo di un utente specifico.
+     * 
+     * @param utenteId l'ID dell'utente
+     * @return lista delle simulazioni più recenti per ogni titolo dell'utente
+     */
+    @Query("SELECT s FROM Simulazione s JOIN s.titolo t WHERE t.utente.idUtente = :utenteId AND " +
+           "s.dataAcquisto = (SELECT MAX(s2.dataAcquisto) FROM Simulazione s2 WHERE s2.titolo.idTitolo = t.idTitolo)")
+    List<Simulazione> findLatestByUtenteId(@Param("utenteId") Integer utenteId);
+    
+    /**
+     * Trova le simulazioni più recenti per ogni titolo di un utente specifico,
+     * escludendo i titoli con data di scadenza inferiore alla data odierna.
+     * 
+     * @param utenteId l'ID dell'utente
+     * @param dataOdierna la data odierna
+     * @return lista delle simulazioni più recenti per ogni titolo non scaduto dell'utente
+     */
+    @Query("SELECT s FROM Simulazione s JOIN s.titolo t WHERE t.utente.idUtente = :utenteId AND " +
+           "t.dataScadenza >= :dataOdierna AND " +
+           "s.dataAcquisto = (SELECT MAX(s2.dataAcquisto) FROM Simulazione s2 WHERE s2.titolo.idTitolo = t.idTitolo)")
+    List<Simulazione> findLatestByUtenteIdAndNotExpired(@Param("utenteId") Integer utenteId, @Param("dataOdierna") LocalDate dataOdierna);
 }

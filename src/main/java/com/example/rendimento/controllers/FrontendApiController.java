@@ -10,11 +10,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,14 +24,14 @@ import com.example.rendimento.constants.AppMessages;
 import com.example.rendimento.dto.AppMetadataDTO;
 import com.example.rendimento.dto.SimulazioneDTO;
 import com.example.rendimento.dto.TitoloDTO;
+import com.example.rendimento.dto.UtenteResponseDTO;
 import com.example.rendimento.enums.PeriodicitaBollo;
 import com.example.rendimento.enums.PeriodicitaCedole;
 import com.example.rendimento.enums.TipoTitolo;
-import com.example.rendimento.repository.TitoloRepository;
 import com.example.rendimento.service.AppMetadataService;
 import com.example.rendimento.service.SimulazioneService;
 import com.example.rendimento.service.TitoloService;
-import com.example.rendimento.service.factory.BorsaItalianaServiceFactory;
+import com.example.rendimento.service.UtenteService;
 
 /**
  * Controller REST che fornisce API per il frontend dell'applicazione.
@@ -51,10 +52,7 @@ public class FrontendApiController {
     private SimulazioneService simulazioneService;
     
     @Autowired
-    private TitoloRepository titoloRepository;
-    
-    @Autowired
-    private BorsaItalianaServiceFactory borsaItalianaServiceFactory;
+    private UtenteService utenteService;
 
     /**
      * Restituisce le informazioni sull'applicazione.
@@ -82,41 +80,6 @@ public class FrontendApiController {
         return result;
     }
 
-    /**
-     * Crea un nuovo titolo o aggiorna un titolo esistente con lo stesso codice ISIN.
-     * 
-     * @param titoloDTO il DTO contenente i dati del titolo
-     * @return il DTO del titolo salvato o aggiornato
-     */
-    @PostMapping("/titolo")
-    public ResponseEntity<?> createTitolo(@RequestBody TitoloDTO titoloDTO) {
-        log.info("Ricevuta richiesta POST /api/frontend/titolo con dati: {}", titoloDTO);
-        // Verifica se esiste già un titolo con lo stesso codice ISIN
-        if (titoloService.existsByCodiceIsin(titoloDTO.getCodiceIsin())) {
-            // Recupera il titolo esistente
-            TitoloDTO esistente = titoloService.findByCodiceIsin(titoloDTO.getCodiceIsin());
-            
-            // Imposta l'ID del titolo esistente nel DTO in arrivo per forzare l'aggiornamento
-            titoloDTO.setIdTitolo(esistente.getIdTitolo());
-            
-            // Salva il titolo aggiornato
-            TitoloDTO updatedTitolo = titoloService.saveTitolo(titoloDTO);
-            
-            // Restituisci una risposta di successo con il titolo aggiornato e un messaggio
-            Map<String, Object> response = new LinkedHashMap<>();
-            response.put("titolo", updatedTitolo);
-            response.put("message", AppMessages.TITOLO_AGGIORNATO);
-            
-            log.info("Risposta per POST /api/frontend/titolo (aggiornamento): {}", response);
-            return ResponseEntity.ok(response);
-        }
-        
-        // Se non esiste, crea un nuovo titolo
-        TitoloDTO savedTitolo = titoloService.saveTitolo(titoloDTO);
-        log.info("Risposta per POST /api/frontend/titolo (creazione): {}", savedTitolo);
-        return ResponseEntity.status(HttpStatus.CREATED)
-            .body(savedTitolo);
-    }
 
     /**
      * Trova un titolo per codice ISIN.
@@ -166,10 +129,32 @@ i
                 codiceIsin, tipoTitolo);
         
         try {
+            // Ottieni l'utente corrente
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            
+            // Ottieni l'ID dell'utente corrente
+            Integer utenteId = utenteService.findByUsername(username)
+                    .map(UtenteResponseDTO::getIdUtente)
+                    .orElseThrow(() -> new IllegalStateException("Utente non autenticato"));
+            
             // Verifica se esiste già un titolo con lo stesso codice ISIN
             if (titoloService.existsByCodiceIsin(codiceIsin)) {
+                // Recupera il titolo esistente
+                TitoloDTO esistente = titoloService.findByCodiceIsin(codiceIsin);
+                
+                // Verifica che il titolo appartenga all'utente corrente
+                if (!utenteId.equals(esistente.getUtenteId())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Collections.singletonMap("error", "Non sei autorizzato a modificare questo titolo"));
+                }
+                
                 // Importa il titolo da Borsa Italiana (questo aggiornerà i dati)
                 TitoloDTO updatedTitolo = titoloService.importaTitoloDaBorsaItaliana(codiceIsin, tipoTitolo);
+                
+                // Assicurati che il titolo sia associato all'utente corrente
+                updatedTitolo.setUtenteId(utenteId);
+                updatedTitolo = titoloService.saveTitolo(updatedTitolo);
                 
                 // Restituisci una risposta di successo con il titolo aggiornato e un messaggio
                 Map<String, Object> response = new LinkedHashMap<>();
@@ -182,6 +167,11 @@ i
             
             // Se non esiste, importa e crea un nuovo titolo
             TitoloDTO savedTitolo = titoloService.importaTitoloDaBorsaItaliana(codiceIsin, tipoTitolo);
+            
+            // Assicurati che il titolo sia associato all'utente corrente
+            savedTitolo.setUtenteId(utenteId);
+            savedTitolo = titoloService.saveTitolo(savedTitolo);
+            
             log.info("Risposta per POST /api/frontend/titolo/importa (creazione): {}", savedTitolo);
             return ResponseEntity.status(HttpStatus.CREATED).body(savedTitolo);
             
@@ -252,8 +242,19 @@ i
     @GetMapping("/simulazioni/latest")
     public List<SimulazioneDTO> getLatestSimulazioniPerTitolo() {
         log.info("Ricevuta richiesta GET /api/frontend/simulazioni/latest");
-        List<SimulazioneDTO> result = simulazioneService.getLatestSimulazioneForEachTitolo();
-        log.info("Risposta per GET /api/frontend/simulazioni/latest: {} simulazioni trovate", result.size());
+        
+        // Ottieni l'utente corrente
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        
+        // Ottieni l'ID dell'utente corrente
+        Integer utenteId = utenteService.findByUsername(username)
+                .map(UtenteResponseDTO::getIdUtente)
+                .orElseThrow(() -> new IllegalStateException("Utente non autenticato"));
+        
+        // Usa il metodo ottimizzato che filtra direttamente nel database
+        List<SimulazioneDTO> result = simulazioneService.getSimulazioniByUtenteId(utenteId, true);
+        log.info("Risposta per GET /api/frontend/simulazioni/latest: {} simulazioni trovate per l'utente ID: {}", result.size(), utenteId);
         return result;
     }
     

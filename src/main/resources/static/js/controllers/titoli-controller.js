@@ -52,6 +52,20 @@ window.TitoliController = {
                 this.loadTitoliPage();
             }
         });
+        
+        // Inizializza i datepicker con validazione per data futura
+        this.initDatepickers();
+    },
+    
+    /**
+     * Inizializza i datepicker con validazione per data futura
+     */
+    initDatepickers: function() {
+        // Inizializza il datepicker per la data di scadenza con validazione per data futura
+        const dataScadenzaInput = document.getElementById('data-scadenza');
+        if (dataScadenzaInput) {
+            DomUtils.initDatepicker(dataScadenzaInput, {}, true); // true per validare che la data sia nel futuro
+        }
     },
     
     /**
@@ -137,10 +151,15 @@ window.TitoliController = {
         
         window.titoli.forEach(titolo => {
             const row = document.createElement('tr');
+            // Verifica se titolo.prezzo è definito prima di chiamare toFixed
+            const prezzoFormattato = titolo.prezzo !== undefined && titolo.prezzo !== null 
+                ? `${titolo.prezzo.toFixed(2)} €` 
+                : 'N/D';
+            
             row.innerHTML = `
                 <td>${titolo.codiceIsin}</td>
                 <td>${titolo.nome}</td>
-                <td>${titolo.prezzo.toFixed(2)} €</td>
+                <td>${prezzoFormattato}</td>
                 <td>
                     <button class="btn btn-sm btn-outline-primary me-1" onclick="TitoliController.editTitolo(${titolo.id})">Modifica</button>
                     <button class="btn btn-sm btn-outline-danger" onclick="TitoliController.deleteTitolo(${titolo.id})">Elimina</button>
@@ -162,7 +181,13 @@ window.TitoliController = {
         window.titoli.forEach(titolo => {
             const option = document.createElement('option');
             option.value = titolo.id;
-            option.textContent = `${titolo.nome} (${titolo.codiceIsin}) - ${titolo.prezzo.toFixed(2)} €`;
+            
+            // Verifica se titolo.prezzo è definito prima di chiamare toFixed
+            const prezzoFormattato = titolo.prezzo !== undefined && titolo.prezzo !== null 
+                ? `${titolo.prezzo.toFixed(2)} €` 
+                : 'N/D';
+            
+            option.textContent = `${titolo.nome} (${titolo.codiceIsin}) - ${prezzoFormattato}`;
             select.appendChild(option);
         });
     },
@@ -227,6 +252,10 @@ window.TitoliController = {
         document.getElementById('titolo-id').value = '';
         document.getElementById('titolo-modal-label').textContent = 'Aggiungi Titolo';
         
+        // Inizializza il datepicker con validazione per data futura
+        const dataScadenzaInput = document.getElementById('data-scadenza');
+        DomUtils.initDatepicker(dataScadenzaInput, {}, true);
+        
         // Se è una modifica, popola il form con i dati del titolo
         if (titoloId) {
             const titolo = window.titoli.find(t => t.id === titoloId);
@@ -234,7 +263,13 @@ window.TitoliController = {
                 document.getElementById('titolo-id').value = titolo.id;
                 document.getElementById('nome-titolo').value = titolo.nome;
                 document.getElementById('codice-isin').value = titolo.codiceIsin || '';
-                document.getElementById('data-scadenza').value = titolo.dataScadenza || '';
+                
+                // Imposta la data di scadenza con validazione
+                if (titolo.dataScadenza) {
+                    const dataScadenza = new Date(titolo.dataScadenza);
+                    DomUtils.setDatepickerDate(dataScadenzaInput, dataScadenza, true);
+                }
+                
                 document.getElementById('tasso-nominale').value = titolo.tassoNominale ? Formatters.formatDecimal(titolo.tassoNominale) : '';
                 document.getElementById('periodicita-cedole').value = titolo.periodicitaCedole || '';
                 document.getElementById('periodicita-bollo').value = titolo.periodicitaBollo || '';
@@ -275,6 +310,13 @@ window.TitoliController = {
         
         if (campiMancanti.length > 0) {
             DomUtils.showAlert('Compila tutti i campi correttamente. Campi mancanti: ' + campiMancanti.join(', '), 'warning');
+            return;
+        }
+        
+        // Valida la data di scadenza
+        const dataScadenzaValidation = DomUtils.validateExpirationDate(dataScadenza);
+        if (!dataScadenzaValidation.isValid) {
+            DomUtils.showAlert('Errore nella data di scadenza: ' + dataScadenzaValidation.message, 'warning');
             return;
         }
         
@@ -554,12 +596,15 @@ window.TitoliController = {
     },
     
     /**
-     * Aggiunge un titolo alla lista locale
+     * Aggiunge un titolo alla lista locale e lo salva nel database
      * @param {string} isin - Il codice ISIN del titolo
      * @param {string} tipo - Il tipo di titolo (BTP o BOT)
      */
     aggiungiTitoloAllaLista: function(isin, tipo) {
         console.log(`Aggiungendo titolo con ISIN ${isin} alla lista...`);
+        
+        // Mostra un indicatore di caricamento
+        DomUtils.toggleLoading(true);
         
         Titolo.loadTitoloDettaglio(tipo, isin)
             .then(titoloObj => {
@@ -571,36 +616,104 @@ window.TitoliController = {
                 // Verifica se il titolo esiste già nella lista locale
                 const existingIndex = window.titoli.findIndex(t => t.codiceIsin === titoloObj.codiceIsin);
                 
-                // Aggiorna o aggiungi il titolo alla lista locale
                 if (existingIndex !== -1) {
+                    // Se il titolo esiste già, aggiorna solo la lista locale
                     window.titoli[existingIndex] = titoloObj;
                     console.log(`Titolo ${isin} aggiornato nella lista locale`);
+                    
+                    // Aggiorna le viste
+                    this.updateTitoliTable();
+                    this.updateTitoliSelect();
+                    
+                    // Nascondi l'indicatore di caricamento
+                    DomUtils.toggleLoading(false);
+                    
+                    // Aggiorna il pulsante nella tabella del modal
+                    this.updateButtonsInModal(isin, tipo);
+                    
+                    // Mostra un messaggio di successo
+                    alert(`Titolo ${titoloObj.nome} (${isin}) aggiornato con successo!`);
                 } else {
-                    window.titoli.push(titoloObj);
-                    console.log(`Titolo ${isin} aggiunto alla lista locale`);
+                    // Se il titolo non esiste, salvalo nel database
+                    Titolo.save(titoloObj)
+                        .then(titoloSalvato => {
+                            console.log(`Titolo ${isin} salvato nel database:`, titoloSalvato);
+                            
+                            // Aggiungi il titolo salvato alla lista locale
+                            window.titoli.push(titoloSalvato);
+                            console.log(`Titolo ${isin} aggiunto alla lista locale`);
+                            
+                            // Aggiorna le viste
+                            this.updateTitoliTable();
+                            this.updateTitoliSelect();
+                            
+                            // Ricalcola i rendimenti di tutti i titoli
+                            console.log('Ricalcolo dei rendimenti di tutti i titoli dopo l\'aggiunta di un nuovo titolo');
+                            ApiService.calcolaRendimentiTuttiTitoli()
+                                .then(data => {
+                                    console.log('Rendimenti ricalcolati con successo:', data);
+                                    
+                                    // Nascondi l'indicatore di caricamento
+                                    DomUtils.toggleLoading(false);
+                                    
+                                    // Aggiorna il pulsante nella tabella del modal
+                                    this.updateButtonsInModal(isin, tipo);
+                                    
+                                    // Mostra un messaggio di successo
+                                    alert(`Titolo ${titoloSalvato.nome} (${isin}) aggiunto alla lista e rendimenti ricalcolati con successo!`);
+                                    
+                                    // Se simulazioniController esiste, ricarica le simulazioni
+                                    if (window.simulazioniController) {
+                                        window.simulazioniController.loadSimulazioniFromServer();
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Errore nel ricalcolo dei rendimenti:', error);
+                                    
+                                    // Nascondi l'indicatore di caricamento
+                                    DomUtils.toggleLoading(false);
+                                    
+                                    // Aggiorna il pulsante nella tabella del modal
+                                    this.updateButtonsInModal(isin, tipo);
+                                    
+                                    // Mostra un messaggio di successo per l'aggiunta del titolo
+                                    alert(`Titolo ${titoloSalvato.nome} (${isin}) aggiunto alla lista, ma si è verificato un errore nel ricalcolo dei rendimenti.`);
+                                });
+                        })
+                        .catch(error => {
+                            console.error(`Errore nel salvataggio del titolo ${isin} nel database:`, error);
+                            
+                            // Nascondi l'indicatore di caricamento
+                            DomUtils.toggleLoading(false);
+                            
+                            // Mostra un messaggio di errore
+                            alert(`Si è verificato un errore nel salvataggio del titolo nel database: ${error.message}`);
+                        });
                 }
-                
-                // Aggiorna le viste
-                this.updateTitoliTable();
-                this.updateTitoliSelect();
-                
-                // Aggiorna il pulsante nella tabella del modal
-                const buttons = document.querySelectorAll(`button[onclick="TitoliController.aggiungiTitoloAllaLista('${isin}', '${tipo}')"]`);
-                buttons.forEach(button => {
-                    button.classList.remove('btn-primary');
-                    button.classList.add('btn-success');
-                    button.textContent = 'Già in lista';
-                });
-                
-                // Mostra un messaggio di successo
-                alert(`Titolo ${titoloObj.nome} (${isin}) aggiunto alla lista con successo!`);
             })
             .catch(error => {
                 console.error(`Errore nell'aggiunta del titolo ${isin} alla lista:`, error);
                 
+                // Nascondi l'indicatore di caricamento
+                DomUtils.toggleLoading(false);
+                
                 // Mostra un messaggio di errore
                 alert(`Si è verificato un errore nell'aggiunta del titolo alla lista: ${error.message}`);
             });
+    },
+    
+    /**
+     * Aggiorna i pulsanti nella tabella del modal
+     * @param {string} isin - Il codice ISIN del titolo
+     * @param {string} tipo - Il tipo di titolo (BTP o BOT)
+     */
+    updateButtonsInModal: function(isin, tipo) {
+        const buttons = document.querySelectorAll(`button[onclick="TitoliController.aggiungiTitoloAllaLista('${isin}', '${tipo}')"]`);
+        buttons.forEach(button => {
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-success');
+            button.textContent = 'Già in lista';
+        });
     }
 };
 

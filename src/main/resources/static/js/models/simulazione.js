@@ -75,7 +75,18 @@ window.Simulazione = {
             rendimentoNettoCedole: risultatoCalcolo.tassoNettoCommissioni,
             impostaBollo: risultatoCalcolo.impostaBollo,
             rendimentoNettoBollo: risultatoCalcolo.tassoNettoBollo,
-            plusMinusValenza: risultatoCalcolo.plusvalenzaNetta
+            plusMinusValenza: risultatoCalcolo.plusvalenzaNetta,
+            // Nuovi campi per il calcolo avanzato dei rendimenti
+            nominale: risultatoCalcolo.nominale,
+            prezzoRiferimentoBollo: risultatoCalcolo.prezzoRiferimentoBollo,
+            capitaleInvestito: risultatoCalcolo.capitaleInvestito,
+            capitaleConCommissioni: risultatoCalcolo.capitaleConCommissioni,
+            cedoleNetteAnnue: risultatoCalcolo.cedoleNetteAnnue,
+            guadagnoNettoSenzaCosti: risultatoCalcolo.guadagnoNettoSenzaCosti,
+            rendimentoSenzaCosti: risultatoCalcolo.rendimentoSenzaCosti,
+            rendimentoConCommissioni: risultatoCalcolo.rendimentoConCommissioni,
+            rendimentoConBolloMensile: risultatoCalcolo.rendimentoConCommissioniEBolloMensile,
+            bolloTotaleMensile: risultatoCalcolo.bolloTotaleMensile
         };
     },
     
@@ -97,7 +108,18 @@ window.Simulazione = {
             rendimentoNettoCedole: dto.rendimentoNettoCedole * 100, // Converti da decimale a percentuale
             impostaBollo: dto.impostaBollo,
             rendimentoNettoBollo: dto.rendimentoNettoBollo, // Il valore è già una percentuale nel backend
-            plusMinusValenza: dto.plusMinusValenza
+            plusMinusValenza: dto.plusMinusValenza,
+            // Nuovi campi per il calcolo avanzato dei rendimenti
+            nominale: dto.nominale,
+            prezzoRiferimentoBollo: dto.prezzoRiferimentoBollo,
+            capitaleInvestito: dto.capitaleInvestito,
+            capitaleConCommissioni: dto.capitaleConCommissioni,
+            cedoleNetteAnnue: dto.cedoleNetteAnnue,
+            guadagnoNettoSenzaCosti: dto.guadagnoNettoSenzaCosti,
+            rendimentoSenzaCosti: dto.rendimentoSenzaCosti * 100, // Converti da decimale a percentuale
+            rendimentoConCommissioni: dto.rendimentoConCommissioni * 100, // Converti da decimale a percentuale
+            rendimentoConBolloMensile: dto.rendimentoConBolloMensile * 100, // Converti da decimale a percentuale
+            bolloTotaleMensile: dto.bolloTotaleMensile
         };
     },
     
@@ -119,7 +141,18 @@ window.Simulazione = {
             rendimentoNettoCedole: simulazione.rendimentoNettoCedole / 100, // Converti da percentuale a decimale
             impostaBollo: simulazione.impostaBollo,
             rendimentoNettoBollo: simulazione.rendimentoNettoBollo / 100, // Converti da percentuale a decimale
-            plusMinusValenza: simulazione.plusMinusValenza
+            plusMinusValenza: simulazione.plusMinusValenza,
+            // Nuovi campi per il calcolo avanzato dei rendimenti
+            nominale: simulazione.nominale,
+            prezzoRiferimentoBollo: simulazione.prezzoRiferimentoBollo,
+            capitaleInvestito: simulazione.capitaleInvestito,
+            capitaleConCommissioni: simulazione.capitaleConCommissioni,
+            cedoleNetteAnnue: simulazione.cedoleNetteAnnue,
+            guadagnoNettoSenzaCosti: simulazione.guadagnoNettoSenzaCosti,
+            rendimentoSenzaCosti: simulazione.rendimentoSenzaCosti / 100, // Converti da percentuale a decimale
+            rendimentoConCommissioni: simulazione.rendimentoConCommissioni / 100, // Converti da percentuale a decimale
+            rendimentoConBolloMensile: simulazione.rendimentoConBolloMensile / 100, // Converti da percentuale a decimale
+            bolloTotaleMensile: simulazione.bolloTotaleMensile
         };
     }
 };

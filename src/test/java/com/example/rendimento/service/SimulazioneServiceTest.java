@@ -1,15 +1,14 @@
 package com.example.rendimento.service;
 
-import com.example.rendimento.dto.RisultatoSimulazioneDTO;
-import com.example.rendimento.enums.ModalitaCalcoloBollo;
-import com.example.rendimento.enums.PeriodicitaBollo;
-import com.example.rendimento.enums.PeriodicitaCedole;
-import com.example.rendimento.enums.TipoTitolo;
-import com.example.rendimento.mapper.SimulazioneMapper;
-import com.example.rendimento.model.Titolo;
-import com.example.rendimento.repository.SimulazioneRepository;
-import com.example.rendimento.repository.TitoloRepository;
-import com.example.rendimento.service.impl.SimulazioneServiceImpl;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.when;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.util.Optional;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,13 +16,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import com.example.rendimento.dto.RisultatoSimulazioneDTO;
+import com.example.rendimento.enums.ModalitaCalcoloBollo;
+import com.example.rendimento.enums.TipoTitolo;
+import com.example.rendimento.mapper.SimulazioneMapper;
+import com.example.rendimento.model.Titolo;
+import com.example.rendimento.repository.SimulazioneRepository;
+import com.example.rendimento.repository.TitoloRepository;
+import com.example.rendimento.service.impl.SimulazioneServiceImpl;
 
 /**
  * Test per la classe SimulazioneServiceImpl.

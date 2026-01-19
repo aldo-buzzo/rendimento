@@ -1,27 +1,40 @@
 package com.example.rendimento.controllers;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import com.example.rendimento.dto.RisultatoSimulazioneDTO;
-import com.example.rendimento.dto.SimulazioneDTO;
-import com.example.rendimento.dto.TitoloDTO;
-import com.example.rendimento.enums.ModalitaCalcoloBollo;
-import com.example.rendimento.model.Titolo;
-import com.example.rendimento.repository.TitoloRepository;
-import com.example.rendimento.service.SimulazioneService;
-import com.example.rendimento.service.factory.BorsaItalianaServiceFactory;
-import com.example.rendimento.service.BorsaItalianaService;
-import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.rendimento.dto.RisultatoSimulazioneDTO;
+import com.example.rendimento.dto.SimulazioneDTO;
+import com.example.rendimento.dto.TitoloDTO;
+import com.example.rendimento.dto.UtenteResponseDTO;
+import com.example.rendimento.enums.ModalitaCalcoloBollo;
+import com.example.rendimento.model.Titolo;
+import com.example.rendimento.repository.TitoloRepository;
+import com.example.rendimento.service.BorsaItalianaService;
+import com.example.rendimento.service.SimulazioneService;
+import com.example.rendimento.service.UtenteService;
+import com.example.rendimento.service.factory.BorsaItalianaServiceFactory;
+
+import jakarta.persistence.EntityNotFoundException;
 
 /**
  * Controller REST per la gestione delle simulazioni.
@@ -35,6 +48,7 @@ public class SimulazioneController {
     private final SimulazioneService simulazioneService;
     private final TitoloRepository titoloRepository;
     private final BorsaItalianaServiceFactory borsaItalianaServiceFactory;
+    private final UtenteService utenteService;
 
     /**
      * Costruttore con parametri per l'iniezione delle dipendenze.
@@ -43,10 +57,11 @@ public class SimulazioneController {
      */
     @Autowired
     public SimulazioneController(SimulazioneService simulazioneService, TitoloRepository titoloRepository, 
-                                BorsaItalianaServiceFactory borsaItalianaServiceFactory) {
+                                BorsaItalianaServiceFactory borsaItalianaServiceFactory, UtenteService utenteService) {
         this.simulazioneService = simulazioneService;
         this.titoloRepository = titoloRepository;
         this.borsaItalianaServiceFactory = borsaItalianaServiceFactory;
+        this.utenteService = utenteService;
     }
 
     /**
@@ -135,14 +150,18 @@ public class SimulazioneController {
             @RequestParam(required = false, defaultValue = "true") boolean latest) {
         log.info("Ricevuta richiesta GET /api/simulazioni con parametro latest: {}", latest);
         
-        List<SimulazioneDTO> simulazioni;
-        if (latest) {
-            simulazioni = simulazioneService.getLatestSimulazioneForEachTitolo();
-            log.info("Risposta per GET /api/simulazioni con latest=true: {} simulazioni più recenti trovate", simulazioni.size());
-        } else {
-            simulazioni = simulazioneService.getAllSimulazioni();
-            log.info("Risposta per GET /api/simulazioni con latest=false: {} simulazioni trovate", simulazioni.size());
-        }
+        // Ottieni l'utente corrente
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        
+        // Ottieni l'ID dell'utente corrente
+        Integer utenteId = utenteService.findByUsername(username)
+                .map(UtenteResponseDTO::getIdUtente)
+                .orElseThrow(() -> new IllegalStateException("Utente non autenticato"));
+        
+        // Usa il metodo ottimizzato che filtra direttamente nel database
+        List<SimulazioneDTO> simulazioni = simulazioneService.getSimulazioniByUtenteId(utenteId, latest);
+        log.info("Recuperate {} simulazioni per l'utente ID: {} (latest: {})", simulazioni.size(), utenteId, latest);
         
         return ResponseEntity.ok(simulazioni);
     }
@@ -156,9 +175,28 @@ public class SimulazioneController {
     @GetMapping("/{id}")
     public ResponseEntity<SimulazioneDTO> getSimulazioneById(@PathVariable Integer id) {
         log.info("Ricevuta richiesta GET /api/simulazioni/{} con id: {}", "id", id);
+        
+        // Ottieni l'utente corrente
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        
+        // Ottieni l'ID dell'utente corrente
+        Integer utenteId = utenteService.findByUsername(username)
+                .map(UtenteResponseDTO::getIdUtente)
+                .orElse(null);
+        
         SimulazioneDTO simulazione = simulazioneService.findById(id);
-        log.info("Risposta per GET /api/simulazioni/{}: {}", id, simulazione);
-        return ResponseEntity.ok(simulazione);
+        
+        // Verifica che la simulazione appartenga all'utente corrente
+        if (simulazione != null && simulazione.getTitolo() != null && 
+                (simulazione.getTitolo().getUtenteId() == null || 
+                 simulazione.getTitolo().getUtenteId().equals(utenteId))) {
+            log.info("Risposta per GET /api/simulazioni/{}: {}", id, simulazione);
+            return ResponseEntity.ok(simulazione);
+        } else {
+            log.info("Risposta per GET /api/simulazioni/{}: Simulazione non trovata o non autorizzata", id);
+            return ResponseEntity.notFound().build();
+        }
     }
 
     /**
@@ -186,12 +224,27 @@ public class SimulazioneController {
     public ResponseEntity<SimulazioneDTO> getSimulazioneByTitoloId(@PathVariable Integer idTitolo) {
         log.info("Ricevuta richiesta GET /api/simulazioni/titolo/{} con idTitolo: {}", "idTitolo", idTitolo);
         
+        // Ottieni l'utente corrente
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        
+        // Ottieni l'ID dell'utente corrente
+        Integer utenteId = utenteService.findByUsername(username)
+                .map(UtenteResponseDTO::getIdUtente)
+                .orElse(null);
+        
         // Ottieni la simulazione più recente per il titolo specificato
         SimulazioneDTO simulazione = simulazioneService.getLatestSimulazioneByTitoloId(idTitolo);
         
         // Ottieni i dettagli del titolo
         Titolo titolo = titoloRepository.findById(idTitolo)
             .orElseThrow(() -> new EntityNotFoundException("Titolo non trovato con ID: " + idTitolo));
+        
+        // Verifica che il titolo appartenga all'utente corrente
+        if (titolo.getUtente() != null && utenteId != null && !titolo.getUtente().getIdUtente().equals(utenteId)) {
+            log.info("Risposta per GET /api/simulazioni/titolo/{}: Titolo non trovato o non autorizzato", idTitolo);
+            return ResponseEntity.notFound().build();
+        }
         
         // Converti il titolo in DTO
         TitoloDTO titoloDTO = new TitoloDTO();
@@ -203,6 +256,7 @@ public class SimulazioneController {
         titoloDTO.setPeriodicitaCedole(titolo.getPeriodicitaCedole().toString());
         titoloDTO.setPeriodicitaBollo(titolo.getPeriodicitaBollo().toString());
         titoloDTO.setTipoTitolo(titolo.getTipoTitolo());
+        titoloDTO.setUtenteId(titolo.getUtente() != null ? titolo.getUtente().getIdUtente() : null);
         
         // Imposta il titolo nella simulazione
         simulazione.setTitolo(titoloDTO);
@@ -221,6 +275,23 @@ public class SimulazioneController {
     @GetMapping("/titolo/{idTitolo}/all")
     public ResponseEntity<List<SimulazioneDTO>> getAllSimulazioniByTitoloId(@PathVariable Integer idTitolo) {
         log.info("Ricevuta richiesta GET /api/simulazioni/titolo/{}/all con idTitolo: {}", "idTitolo", idTitolo);
+        
+        // Ottieni l'utente corrente
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        
+        // Ottieni l'ID dell'utente corrente
+        Integer utenteId = utenteService.findByUsername(username)
+                .map(UtenteResponseDTO::getIdUtente)
+                .orElse(null);
+        
+        // Verifica che il titolo appartenga all'utente corrente
+        Titolo titolo = titoloRepository.findById(idTitolo).orElse(null);
+        if (titolo != null && titolo.getUtente() != null && utenteId != null && 
+                !titolo.getUtente().getIdUtente().equals(utenteId)) {
+            log.info("Risposta per GET /api/simulazioni/titolo/{}/all: Titolo non trovato o non autorizzato", idTitolo);
+            return ResponseEntity.notFound().build();
+        }
         
         // Ottieni tutte le simulazioni per il titolo specificato
         List<SimulazioneDTO> simulazioni = simulazioneService.findByTitoloId(idTitolo);
@@ -261,9 +332,18 @@ public class SimulazioneController {
     public ResponseEntity<List<SimulazioneDTO>> calcolaRendimentiTuttiTitoli() {
         log.info("Ricevuta richiesta POST /api/simulazioni/calcola-rendimenti-tutti-titoli");
         
-        // Recupera tutti i titoli con data di scadenza futura
-        List<Titolo> titoliValidi = titoloRepository.findByDataScadenzaAfter(LocalDate.now());
-        log.info("Trovati {} titoli con scadenza futura", titoliValidi.size());
+        // Ottieni l'utente corrente
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        
+        // Ottieni l'ID dell'utente corrente
+        Integer utenteId = utenteService.findByUsername(username)
+                .map(UtenteResponseDTO::getIdUtente)
+                .orElseThrow(() -> new IllegalStateException("Utente non autenticato"));
+        
+        // Recupera tutti i titoli con data di scadenza futura che appartengono all'utente corrente
+        List<Titolo> titoliValidi = titoloRepository.findByDataScadenzaAfterAndUtente_IdUtente(LocalDate.now(), utenteId);
+        log.info("Trovati {} titoli con scadenza futura per l'utente ID: {}", titoliValidi.size(), utenteId);
         
         List<SimulazioneDTO> simulazioniSalvate = new ArrayList<>();
         BigDecimal importoFisso = new BigDecimal("10000"); // Importo fisso di 10.000 euro

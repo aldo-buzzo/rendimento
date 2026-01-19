@@ -43,4 +43,13 @@ public interface TitoloRepository extends JpaRepository<Titolo, Integer> {
      * @return lista di titoli con data di scadenza successiva alla data specificata
      */
     java.util.List<Titolo> findByDataScadenzaAfter(LocalDate data);
+    
+    /**
+     * Trova titoli con data di scadenza successiva alla data specificata e che appartengono all'utente specificato.
+     * 
+     * @param data la data di riferimento
+     * @param utenteId l'ID dell'utente proprietario dei titoli
+     * @return lista di titoli con data di scadenza successiva alla data specificata e che appartengono all'utente specificato
+     */
+    java.util.List<Titolo> findByDataScadenzaAfterAndUtente_IdUtente(LocalDate data, Integer utenteId);
 }
