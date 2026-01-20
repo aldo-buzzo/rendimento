@@ -81,8 +81,14 @@ public class Simulazione {
     @Column(name = "rendimento_con_bollo_mensile", precision = 10, scale = 6)
     private BigDecimal rendimentoConBolloMensile;
 
+    @Column(name = "rendimento_con_bollo_annuale", precision = 10, scale = 6)
+    private BigDecimal rendimentoConBolloAnnuale;
+
     @Column(name = "bollo_totale_mensile", precision = 10, scale = 4)
     private BigDecimal bolloTotaleMensile;
+
+    @Column(name = "bollo_totale_annuale", precision = 10, scale = 4)
+    private BigDecimal bolloTotaleAnnuale;
 
     /**
      * Costruttore predefinito richiesto da JPA.
@@ -292,12 +298,28 @@ public class Simulazione {
         this.rendimentoConBolloMensile = rendimentoConBolloMensile;
     }
 
+    public BigDecimal getRendimentoConBolloAnnuale() {
+        return rendimentoConBolloAnnuale;
+    }
+
+    public void setRendimentoConBolloAnnuale(BigDecimal rendimentoConBolloAnnuale) {
+        this.rendimentoConBolloAnnuale = rendimentoConBolloAnnuale;
+    }
+
     public BigDecimal getBolloTotaleMensile() {
         return bolloTotaleMensile;
     }
 
     public void setBolloTotaleMensile(BigDecimal bolloTotaleMensile) {
         this.bolloTotaleMensile = bolloTotaleMensile;
+    }
+
+    public BigDecimal getBolloTotaleAnnuale() {
+        return bolloTotaleAnnuale;
+    }
+
+    public void setBolloTotaleAnnuale(BigDecimal bolloTotaleAnnuale) {
+        this.bolloTotaleAnnuale = bolloTotaleAnnuale;
     }
 
     @Override
@@ -323,7 +345,9 @@ public class Simulazione {
                 ", rendimentoSenzaCosti=" + rendimentoSenzaCosti +
                 ", rendimentoConCommissioni=" + rendimentoConCommissioni +
                 ", rendimentoConBolloMensile=" + rendimentoConBolloMensile +
+                ", rendimentoConBolloAnnuale=" + rendimentoConBolloAnnuale +
                 ", bolloTotaleMensile=" + bolloTotaleMensile +
+                ", bolloTotaleAnnuale=" + bolloTotaleAnnuale +
                 ", version=" + version +
                 '}';
     }

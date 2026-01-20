@@ -39,11 +39,10 @@ window.Simulazione = {
      * @param {number} idTitolo - L'ID del titolo
      * @param {number} prezzoAcquisto - Il prezzo di acquisto
      * @param {number} importo - L'importo nominale
-     * @param {string} modalitaBollo - La modalità di calcolo del bollo (ANNUALE o MENSILE)
      * @returns {Promise} - Promise che risolve con il risultato del calcolo
      */
-    calcolaRendimento: function(idTitolo, prezzoAcquisto, importo, modalitaBollo = 'ANNUALE') {
-        return ApiService.calcolaRendimento(idTitolo, prezzoAcquisto, importo, modalitaBollo);
+    calcolaRendimento: function(idTitolo, prezzoAcquisto, importo) {
+        return ApiService.calcolaRendimento(idTitolo, prezzoAcquisto, importo);
     },
     
     /**
@@ -86,7 +85,9 @@ window.Simulazione = {
             rendimentoSenzaCosti: risultatoCalcolo.rendimentoSenzaCosti,
             rendimentoConCommissioni: risultatoCalcolo.rendimentoConCommissioni,
             rendimentoConBolloMensile: risultatoCalcolo.rendimentoConCommissioniEBolloMensile,
-            bolloTotaleMensile: risultatoCalcolo.bolloTotaleMensile
+            bolloTotaleMensile: risultatoCalcolo.bolloTotaleMensile,
+            rendimentoConBolloAnnuale: risultatoCalcolo.rendimentoConCommissioniEBolloAnnuale,
+            bolloTotaleAnnuale: risultatoCalcolo.bolloTotaleAnnuale
         };
     },
     
@@ -119,7 +120,9 @@ window.Simulazione = {
             rendimentoSenzaCosti: dto.rendimentoSenzaCosti * 100, // Converti da decimale a percentuale
             rendimentoConCommissioni: dto.rendimentoConCommissioni * 100, // Converti da decimale a percentuale
             rendimentoConBolloMensile: dto.rendimentoConBolloMensile * 100, // Converti da decimale a percentuale
-            bolloTotaleMensile: dto.bolloTotaleMensile
+            bolloTotaleMensile: dto.bolloTotaleMensile,
+            rendimentoConBolloAnnuale: dto.rendimentoConBolloAnnuale * 100, // Converti da decimale a percentuale
+            bolloTotaleAnnuale: dto.bolloTotaleAnnuale
         };
     },
     
@@ -152,7 +155,9 @@ window.Simulazione = {
             rendimentoSenzaCosti: simulazione.rendimentoSenzaCosti / 100, // Converti da percentuale a decimale
             rendimentoConCommissioni: simulazione.rendimentoConCommissioni / 100, // Converti da percentuale a decimale
             rendimentoConBolloMensile: simulazione.rendimentoConBolloMensile / 100, // Converti da percentuale a decimale
-            bolloTotaleMensile: simulazione.bolloTotaleMensile
+            bolloTotaleMensile: simulazione.bolloTotaleMensile,
+            rendimentoConBolloAnnuale: simulazione.rendimentoConBolloAnnuale / 100, // Converti da percentuale a decimale
+            bolloTotaleAnnuale: simulazione.bolloTotaleAnnuale
         };
     }
 };

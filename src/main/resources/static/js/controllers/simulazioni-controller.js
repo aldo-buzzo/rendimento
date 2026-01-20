@@ -182,11 +182,35 @@ class SimulazioniController {
         
         tbody.innerHTML = '';
         
+        // Aggiorna la data di acquisto nel titolo della sezione
+        const dataRendimentiElement = document.getElementById('data-rendimenti');
+        if (dataRendimentiElement && this.simulazioni.length > 0) {
+            // Prendi la data di acquisto dalla prima simulazione (sono tutte uguali)
+            const dataAcquisto = this.simulazioni[0].dataAcquisto;
+            if (dataAcquisto) {
+                dataRendimentiElement.textContent = `Rendimenti al: ${Formatters.formatDate(dataAcquisto)}`;
+            }
+        }
+        
         // Verifica che window.titoli esista prima di usarlo
         if (!window.titoli || !Array.isArray(window.titoli)) {
             console.error('window.titoli non è definito o non è un array');
             return;
         }
+        
+        // Ordina le simulazioni per data di scadenza crescente
+        this.simulazioni.sort((a, b) => {
+            const titoloA = window.titoli.find(t => t && t.id == a.titoloId);
+            const titoloB = window.titoli.find(t => t && t.id == b.titoloId);
+            
+            if (!titoloA || !titoloA.dataScadenza) return -1;
+            if (!titoloB || !titoloB.dataScadenza) return 1;
+            
+            const scadenzaA = new Date(titoloA.dataScadenza);
+            const scadenzaB = new Date(titoloB.dataScadenza);
+            
+            return scadenzaA - scadenzaB;
+        });
         
         this.simulazioni.forEach(simulazione => {
             // Verifica che simulazione.titoloId esista
@@ -211,19 +235,16 @@ class SimulazioniController {
             const rendimentoNettoBollo = simulazione.rendimentoNettoBollo || 0;
             const valoreFinaleTeorico = importoNominale * (1 + (rendimentoNettoBollo / 100));
             
-            // Usa Formatters.formatDecimal e Formatters.formatDate per la formattazione
-            row.innerHTML = `
-                <td>${titolo.nome || ''} (${titolo.codiceIsin || ''})</td>
-                <td>${Formatters.formatDecimal(importoNominale)} €</td>
-                <td>${Formatters.formatDecimal(simulazione.prezzoAcquisto || 0)} €</td>
-                <td>${Formatters.formatDate(simulazione.dataAcquisto || '')}</td>
-                <td>${Formatters.formatDate(titolo.dataScadenza || '')}</td>
-                <td>${Formatters.formatDecimal(simulazione.commissioniAcquisto || 0)}%</td>
-                <td>${Formatters.formatDecimal(simulazione.impostaBollo || 0)} €</td>
-                            <td>${Formatters.formatDecimal(simulazione.rendimentoLordo || 0)}%</td>
-                            <td>${Formatters.formatDecimal(simulazione.rendimentoNettoCedole || 0)}%</td>
-                            <td class="${rendimentoClass}">${Formatters.formatDecimal(rendimentoNettoBollo)}%</td>
-                <td>${Formatters.formatDecimal(valoreFinaleTeorico)} €</td>
+                        // Usa Formatters.formatDecimal e Formatters.formatDate per la formattazione
+                        row.innerHTML = `
+                            <td>${titolo.nome || ''} (${titolo.codiceIsin || ''})</td>
+                            <td>${Formatters.formatDecimal(simulazione.prezzoAcquisto || 0)}</td>
+                            <td>${Formatters.formatDate(titolo.dataScadenza || '')}</td>
+                            <td>${Formatters.formatDecimal(simulazione.rendimentoSenzaCosti || 0)}%</td>
+                            <td>${Formatters.formatDecimal(simulazione.rendimentoConCommissioni || 0)}%</td>
+                            <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloMensile || 0)}%</td>
+                            <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloAnnuale || 0)}%</td>
+                            <td>${Formatters.formatDecimal(valoreFinaleTeorico)}</td>
             `;
             
             // Aggiungi event listener per il doppio click
@@ -318,7 +339,8 @@ class SimulazioniController {
         giorniAllaScadenzaInput.value = diffDays > 0 ? diffDays : 0;
         
         // Imposta il tasso d'interesse con il valore del titolo selezionato
-        if (titolo.tassoNominale) {
+        // Verifica se tassoNominale è definito (anche se è zero)
+        if (titolo.tassoNominale != null) {
             tassoInteresseInput.value = Formatters.formatDecimal(titolo.tassoNominale);
         }
     }
@@ -425,7 +447,7 @@ class SimulazioniController {
         // Mostra un indicatore di caricamento
         DomUtils.toggleLoading(true);
         
-        Simulazione.calcolaRendimento(titoloId, prezzoAcquisto, importo, modalitaBollo)
+        Simulazione.calcolaRendimento(titoloId, prezzoAcquisto, importo)
             .then(data => {
                 console.log("Rendimento calcolato:", data);
                 
@@ -665,11 +687,35 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     tbody.innerHTML = '';
                     
+                    // Aggiorna la data di acquisto nel titolo della sezione
+                    const dataRendimentiElement = document.getElementById('data-rendimenti');
+                    if (dataRendimentiElement && this.simulazioni.length > 0) {
+                        // Prendi la data di acquisto dalla prima simulazione (sono tutte uguali)
+                        const dataAcquisto = this.simulazioni[0].dataAcquisto;
+                        if (dataAcquisto) {
+                            dataRendimentiElement.textContent = `Rendimenti al: ${Formatters.formatDate(dataAcquisto)}`;
+                        }
+                    }
+                    
                     // Verifica che window.titoli esista prima di usarlo
                     if (!window.titoli || !Array.isArray(window.titoli)) {
                         console.error('window.titoli non è definito o non è un array');
                         return;
                     }
+                    
+                    // Ordina le simulazioni per data di scadenza crescente
+                    this.simulazioni.sort((a, b) => {
+                        const titoloA = window.titoli.find(t => t && t.id == a.titoloId);
+                        const titoloB = window.titoli.find(t => t && t.id == b.titoloId);
+                        
+                        if (!titoloA || !titoloA.dataScadenza) return -1;
+                        if (!titoloB || !titoloB.dataScadenza) return 1;
+                        
+                        const scadenzaA = new Date(titoloA.dataScadenza);
+                        const scadenzaB = new Date(titoloB.dataScadenza);
+                        
+                        return scadenzaA - scadenzaB;
+                    });
                     
                     this.simulazioni.forEach(simulazione => {
                         // Verifica che simulazione.titoloId esista
@@ -697,16 +743,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Usa Formatters.formatDecimal e Formatters.formatDate per la formattazione
                         row.innerHTML = `
                             <td>${titolo.nome || ''} (${titolo.codiceIsin || ''})</td>
-                            <td>${Formatters.formatDecimal(importoNominale)} €</td>
-                            <td>${Formatters.formatDecimal(simulazione.prezzoAcquisto || 0)} €</td>
-                            <td>${Formatters.formatDate(simulazione.dataAcquisto || '')}</td>
+                            <td>${Formatters.formatDecimal(simulazione.prezzoAcquisto || 0)}</td>
                             <td>${Formatters.formatDate(titolo.dataScadenza || '')}</td>
-                            <td>${Formatters.formatDecimal(simulazione.commissioniAcquisto || 0)}%</td>
-                            <td>${Formatters.formatDecimal(simulazione.impostaBollo || 0)} €</td>
-                            <td>${Formatters.formatDecimal(simulazione.rendimentoLordo || 0)}%</td>
-                            <td>${Formatters.formatDecimal(simulazione.rendimentoNettoCedole || 0)}%</td>
-                            <td class="${rendimentoClass}">${Formatters.formatDecimal(rendimentoNettoBollo)}%</td>
-                            <td>${Formatters.formatDecimal(valoreFinaleTeorico)} €</td>
+                            <td>${Formatters.formatDecimal(simulazione.rendimentoSenzaCosti || 0)}%</td>
+                            <td>${Formatters.formatDecimal(simulazione.rendimentoConCommissioni || 0)}%</td>
+                            <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloMensile || 0)}%</td>
+                            <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloAnnuale || 0)}%</td>
+                            <td>${Formatters.formatDecimal(valoreFinaleTeorico)}</td>
                         `;
                         
                         // Aggiungi event listener per il doppio click

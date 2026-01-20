@@ -111,4 +111,19 @@ public interface SimulazioneRepository extends JpaRepository<Simulazione, Intege
            "t.dataScadenza >= :dataOdierna AND " +
            "s.dataAcquisto = (SELECT MAX(s2.dataAcquisto) FROM Simulazione s2 WHERE s2.titolo.idTitolo = t.idTitolo)")
     List<Simulazione> findLatestByUtenteIdAndNotExpired(@Param("utenteId") Integer utenteId, @Param("dataOdierna") LocalDate dataOdierna);
+    
+    /**
+     * Trova le simulazioni più recenti per ogni titolo di un utente specifico,
+     * escludendo i titoli con data di scadenza inferiore alla data odierna,
+     * ordinate per data di scadenza crescente.
+     * 
+     * @param utenteId l'ID dell'utente
+     * @param dataOdierna la data odierna
+     * @return lista delle simulazioni più recenti per ogni titolo non scaduto dell'utente, ordinate per data di scadenza crescente
+     */
+    @Query("SELECT s FROM Simulazione s JOIN s.titolo t WHERE t.utente.idUtente = :utenteId AND " +
+           "t.dataScadenza >= :dataOdierna AND " +
+           "s.dataAcquisto = (SELECT MAX(s2.dataAcquisto) FROM Simulazione s2 WHERE s2.titolo.idTitolo = t.idTitolo) " +
+           "ORDER BY t.dataScadenza ASC")
+    List<Simulazione> findLatestByUtenteIdAndNotExpiredOrderByScadenzaAsc(@Param("utenteId") Integer utenteId, @Param("dataOdierna") LocalDate dataOdierna);
 }

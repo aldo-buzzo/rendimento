@@ -1,7 +1,6 @@
 package com.example.rendimento.controllers;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,11 +21,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.rendimento.constants.RendimentoConstants;
 import com.example.rendimento.dto.RisultatoSimulazioneDTO;
 import com.example.rendimento.dto.SimulazioneDTO;
 import com.example.rendimento.dto.TitoloDTO;
 import com.example.rendimento.dto.UtenteResponseDTO;
-import com.example.rendimento.enums.ModalitaCalcoloBollo;
 import com.example.rendimento.model.Titolo;
 import com.example.rendimento.repository.TitoloRepository;
 import com.example.rendimento.service.BorsaItalianaService;
@@ -70,21 +69,19 @@ public class SimulazioneController {
      * @param idTitolo ID del titolo
      * @param prezzoAcquisto prezzo di acquisto inserito dall'utente
      * @param importo importo dell'investimento
-     * @param modalitaBollo modalità di calcolo del bollo (ANNUALE o MENSILE)
      * @return DTO contenente tutti i risultati del calcolo
      */
     @PostMapping("/calcola-rendimento")
     public ResponseEntity<RisultatoSimulazioneDTO> calcolaRendimento(
             @RequestParam Integer idTitolo,
             @RequestParam BigDecimal prezzoAcquisto,
-            @RequestParam BigDecimal importo,
-            @RequestParam ModalitaCalcoloBollo modalitaBollo) {
+            @RequestParam BigDecimal importo) {
         
-        log.info("Ricevuta richiesta POST /api/simulazioni/calcola-rendimento con idTitolo: {}, prezzoAcquisto: {}, importo: {}, modalitaBollo: {}", 
-                idTitolo, prezzoAcquisto, importo, modalitaBollo);
+        log.info("Ricevuta richiesta POST /api/simulazioni/calcola-rendimento con idTitolo: {}, prezzoAcquisto: {}, importo: {}", 
+                idTitolo, prezzoAcquisto, importo);
         
         RisultatoSimulazioneDTO risultato = simulazioneService.calcolaRendimento(
-            idTitolo, prezzoAcquisto, importo, modalitaBollo);
+            idTitolo, prezzoAcquisto, importo);
         
         log.info("Risposta per POST /api/simulazioni/calcola-rendimento: {}", risultato);
         return ResponseEntity.ok(risultato);
@@ -112,8 +109,6 @@ public class SimulazioneController {
      * @param prezzoAcquisto prezzo di acquisto inserito dall'utente
      * @param importo importo dell'investimento
      * @param dataAcquisto data di acquisto
-     * @param modalitaBollo modalità di calcolo del bollo (ANNUALE o MENSILE)
-     * @param commissioniAcquisto commissioni di acquisto (in percentuale, es. 0.09 per 0.09%)
      * @return il DTO della simulazione salvata con ID aggiornato
      */
     @PostMapping("/calcola-e-salva")
@@ -121,18 +116,13 @@ public class SimulazioneController {
             @RequestParam Integer idTitolo,
             @RequestParam BigDecimal prezzoAcquisto,
             @RequestParam BigDecimal importo,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataAcquisto,
-            @RequestParam ModalitaCalcoloBollo modalitaBollo,
-            @RequestParam BigDecimal commissioniAcquisto) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataAcquisto) {
         
-        log.info("Ricevuta richiesta POST /api/simulazioni/calcola-e-salva con idTitolo: {}, prezzoAcquisto: {}, importo: {}, dataAcquisto: {}, modalitaBollo: {}, commissioniAcquisto: {}", 
-                idTitolo, prezzoAcquisto, importo, dataAcquisto, modalitaBollo, commissioniAcquisto);
-        
-        // Converti le commissioni da percentuale a decimale (es. da 0.09% a 0.0009)
-        BigDecimal commissioniDecimali = commissioniAcquisto.divide(new BigDecimal("100"), 8, BigDecimal.ROUND_HALF_UP);
+        log.info("Ricevuta richiesta POST /api/simulazioni/calcola-e-salva con idTitolo: {}, prezzoAcquisto: {}, importo: {}, dataAcquisto: {}", 
+                idTitolo, prezzoAcquisto, importo, dataAcquisto);
         
         SimulazioneDTO savedSimulazione = simulazioneService.calcolaESalvaSimulazione(
-            idTitolo, prezzoAcquisto, importo, dataAcquisto, modalitaBollo, commissioniDecimali);
+            idTitolo, prezzoAcquisto, importo, dataAcquisto);
         
         log.info("Risposta per POST /api/simulazioni/calcola-e-salva: {}", savedSimulazione);
         return ResponseEntity.ok(savedSimulazione);
@@ -159,9 +149,10 @@ public class SimulazioneController {
                 .map(UtenteResponseDTO::getIdUtente)
                 .orElseThrow(() -> new IllegalStateException("Utente non autenticato"));
         
-        // Usa il metodo ottimizzato che filtra direttamente nel database
-        List<SimulazioneDTO> simulazioni = simulazioneService.getSimulazioniByUtenteId(utenteId, latest);
-        log.info("Recuperate {} simulazioni per l'utente ID: {} (latest: {})", simulazioni.size(), utenteId, latest);
+        // Usa il metodo ottimizzato che filtra direttamente nel database e ordina per data di scadenza crescente
+        List<SimulazioneDTO> simulazioni = simulazioneService.getSimulazioniByUtenteIdOrderByScadenzaAsc(utenteId, latest);
+        log.info("Recuperate {} simulazioni per l'utente ID: {} (latest: {}) ordinate per data di scadenza crescente", 
+                simulazioni.size(), utenteId, latest);
         
         return ResponseEntity.ok(simulazioni);
     }
@@ -346,31 +337,29 @@ public class SimulazioneController {
         log.info("Trovati {} titoli con scadenza futura per l'utente ID: {}", titoliValidi.size(), utenteId);
         
         List<SimulazioneDTO> simulazioniSalvate = new ArrayList<>();
-        BigDecimal importoFisso = new BigDecimal("10000"); // Importo fisso di 10.000 euro
-        BigDecimal commissioniDefault = new BigDecimal("0.0009"); // 0,09%
         
         // Per ogni titolo, calcola e salva una simulazione
         for (Titolo titolo : titoliValidi) {
             try {
                 // Ottieni il prezzo attuale del titolo tramite BorsaItalianaService
-                BigDecimal prezzoAcquisto = new BigDecimal("100"); // Valore di default
+                BigDecimal prezzoAcquisto = null;
                 
                 try {
                     // Ottieni il servizio appropriato in base al tipo di titolo
                     BorsaItalianaService borsaItalianaService = borsaItalianaServiceFactory.getBorsaItalianaService(titolo.getTipoTitolo());
                     
-                    // Ottieni il titolo con il prezzo attuale
-                    TitoloDTO titoloDTO = borsaItalianaService.getTitoloByIsin(titolo.getCodiceIsin());
+                    // Ottieni direttamente il corso (prezzo) del titolo
+                    prezzoAcquisto = borsaItalianaService.getCorsoByIsin(titolo.getCodiceIsin());
                     
-                    // Se il prezzo è disponibile, usalo
-                    if (titoloDTO != null && titoloDTO.getCorso() != null) {
-                        prezzoAcquisto = titoloDTO.getCorso();
+                    if (prezzoAcquisto != null) {
                         log.info("Prezzo attuale ottenuto per il titolo {}: {}", titolo.getCodiceIsin(), prezzoAcquisto);
                     } else {
-                        log.warn("Prezzo non disponibile per il titolo {}, uso valore di default", titolo.getCodiceIsin());
+                        log.warn("Prezzo non disponibile per il titolo {}, simulazione saltata", titolo.getCodiceIsin());
+                        continue; // Salta questo titolo e passa al prossimo
                     }
                 } catch (Exception e) {
                     log.error("Errore nel recupero del prezzo per il titolo {}: {}", titolo.getCodiceIsin(), e.getMessage());
+                    continue; // Salta questo titolo e passa al prossimo
                 }
                 
                 // Verifica se esiste già una simulazione per questo titolo nella stessa giornata
@@ -388,25 +377,12 @@ public class SimulazioneController {
                     RisultatoSimulazioneDTO risultato = simulazioneService.calcolaRendimento(
                         titolo.getIdTitolo(),
                         prezzoAcquisto,
-                        importoFisso,
-                        ModalitaCalcoloBollo.ANNUALE
+                        RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE
                     );
                     
-                    // Aggiorna i campi della simulazione esistente
-                    simulazioneEsistente.setPrezzoAcquisto(prezzoAcquisto);
-                    simulazioneEsistente.setDataAcquisto(LocalDate.now());
-                    simulazioneEsistente.setCommissioniAcquisto(commissioniDefault);
-                    simulazioneEsistente.setRendimentoLordo(risultato.getTasso().divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
-                    simulazioneEsistente.setRendimentoTassato(risultato.getTasso().multiply(new BigDecimal("0.875"))
-                                                  .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
-                    simulazioneEsistente.setRendimentoNettoCedole(risultato.getTassoNettoCommissioni()
-                                                      .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
-                    simulazioneEsistente.setImpostaBollo(risultato.getImpostaBollo());
-                    simulazioneEsistente.setRendimentoNettoBollo(risultato.getTassoNettoBollo());
-                    simulazioneEsistente.setPlusMinusValenza(risultato.getPlusvalenzaNetta());
-                    
-                    // Salva la simulazione aggiornata
-                    simulazione = simulazioneService.salvaSimulazione(simulazioneEsistente);
+                    // Aggiorna la simulazione esistente utilizzando il nuovo metodo
+                    // che garantisce che tutti i campi siano aggiornati correttamente
+                    simulazione = simulazioneService.aggiornaSimulazione(simulazioneEsistente, risultato, RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE);
                     log.info("Simulazione aggiornata per il titolo ID: {}, ISIN: {}", 
                             titolo.getIdTitolo(), titolo.getCodiceIsin());
                 } else {
@@ -414,10 +390,8 @@ public class SimulazioneController {
                     simulazione = simulazioneService.calcolaESalvaSimulazione(
                         titolo.getIdTitolo(),
                         prezzoAcquisto,
-                        importoFisso,
-                        LocalDate.now(),
-                        ModalitaCalcoloBollo.ANNUALE,
-                        commissioniDefault
+                        RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE,
+                        LocalDate.now()
                     );
                     log.info("Nuova simulazione creata per il titolo ID: {}, ISIN: {}", 
                             titolo.getIdTitolo(), titolo.getCodiceIsin());

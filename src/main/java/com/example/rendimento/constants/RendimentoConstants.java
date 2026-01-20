@@ -78,6 +78,13 @@ public final class RendimentoConstants {
     public static final BigDecimal COMMISSION_DEFAULT_RATE = new BigDecimal("0.0009");
     
     /**
+     * Importo fisso per le simulazioni automatiche (10.000 euro).
+     * <p>
+     * Utilizzato nel calcolo automatico dei rendimenti di tutti i titoli.
+     */
+    public static final BigDecimal IMPORTO_FISSO_SIMULAZIONE = new BigDecimal("10000");
+    
+    /**
      * Costruttore privato per impedire l'istanziazione.
      * <p>
      * Questa classe contiene solo costanti statiche e non deve essere istanziata.

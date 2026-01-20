@@ -61,6 +61,8 @@ public class SimulazioneMapper {
         dto.setRendimentoConCommissioni(simulazione.getRendimentoConCommissioni());
         dto.setRendimentoConBolloMensile(simulazione.getRendimentoConBolloMensile());
         dto.setBolloTotaleMensile(simulazione.getBolloTotaleMensile());
+        dto.setRendimentoConBolloAnnuale(simulazione.getRendimentoConBolloAnnuale());
+        dto.setBolloTotaleAnnuale(simulazione.getBolloTotaleAnnuale());
 
         return dto;
     }
@@ -107,6 +109,8 @@ public class SimulazioneMapper {
         simulazione.setRendimentoConCommissioni(dto.getRendimentoConCommissioni());
         simulazione.setRendimentoConBolloMensile(dto.getRendimentoConBolloMensile());
         simulazione.setBolloTotaleMensile(dto.getBolloTotaleMensile());
+        simulazione.setRendimentoConBolloAnnuale(dto.getRendimentoConBolloAnnuale());
+        simulazione.setBolloTotaleAnnuale(dto.getBolloTotaleAnnuale());
 
         return simulazione;
     }

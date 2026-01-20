@@ -17,7 +17,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import com.example.rendimento.dto.RisultatoSimulazioneDTO;
-import com.example.rendimento.enums.ModalitaCalcoloBollo;
 import com.example.rendimento.enums.TipoTitolo;
 import com.example.rendimento.mapper.SimulazioneMapper;
 import com.example.rendimento.model.Titolo;
@@ -55,7 +54,6 @@ public class SimulazioneServiceTest {
         Integer idTitolo = 1;
         BigDecimal prezzoAcquisto = new BigDecimal("109.8887");
         BigDecimal importo = new BigDecimal("10000");
-        ModalitaCalcoloBollo modalitaBollo = ModalitaCalcoloBollo.ANNUALE;
 
         // Creazione del titolo di test
         Titolo titolo = new Titolo();
@@ -73,7 +71,7 @@ public class SimulazioneServiceTest {
 
         // Act
         RisultatoSimulazioneDTO risultato = simulazioneService.calcolaRendimento(
-                idTitolo, prezzoAcquisto, importo, modalitaBollo);
+                idTitolo, prezzoAcquisto, importo);
 
         // Assert
         assertNotNull(risultato, "Il risultato non dovrebbe essere null");

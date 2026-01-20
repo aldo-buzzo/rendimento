@@ -1,13 +1,11 @@
 package com.example.rendimento.service;
 
-import com.example.rendimento.dto.RisultatoRendimentoAdvancedDTO;
-import com.example.rendimento.dto.RisultatoSimulazioneDTO;
-import com.example.rendimento.dto.SimulazioneDTO;
-import com.example.rendimento.enums.ModalitaCalcoloBollo;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+
+import com.example.rendimento.dto.RisultatoSimulazioneDTO;
+import com.example.rendimento.dto.SimulazioneDTO;
 
 /**
  * Interfaccia per il servizio che gestisce le operazioni sulle simulazioni.
@@ -25,17 +23,18 @@ public interface SimulazioneService {
     
     /**
      * Calcola il rendimento di un titolo in base ai parametri forniti.
+     * Il metodo utilizza calcolaRendimentoAdvanced che calcola sia il bollo mensile che annuale
+     * e utilizza il bollo mensile come default.
      * 
      * @param idTitolo ID del titolo
      * @param prezzoAcquisto prezzo di acquisto inserito dall'utente
      * @param importo importo dell'investimento
-     * @param modalitaBollo modalità di calcolo del bollo (ANNUALE o MENSILE)
      * @return DTO contenente tutti i risultati del calcolo
      * @throws jakarta.persistence.EntityNotFoundException se il titolo non esiste
      * @throws IllegalArgumentException se i parametri non sono validi
      */
     RisultatoSimulazioneDTO calcolaRendimento(Integer idTitolo, BigDecimal prezzoAcquisto, 
-                                             BigDecimal importo, ModalitaCalcoloBollo modalitaBollo);
+                                             BigDecimal importo);
     
     /**
      * Salva una simulazione nel database.
@@ -47,20 +46,19 @@ public interface SimulazioneService {
     
     /**
      * Calcola il rendimento e salva la simulazione in un'unica operazione.
+     * Il metodo utilizza calcolaRendimentoAdvanced che calcola sia il bollo mensile che annuale
+     * e imposta un valore di default per le commissioni.
      * 
      * @param idTitolo ID del titolo
      * @param prezzoAcquisto prezzo di acquisto inserito dall'utente
      * @param importo importo dell'investimento
      * @param dataAcquisto data di acquisto
-     * @param modalitaBollo modalità di calcolo del bollo (ANNUALE o MENSILE)
-     * @param commissioniAcquisto commissioni di acquisto (in formato decimale, es. 0.0009 per 0.09%)
      * @return il DTO della simulazione salvata con ID aggiornato
      * @throws jakarta.persistence.EntityNotFoundException se il titolo non esiste
      * @throws IllegalArgumentException se i parametri non sono validi
      */
     SimulazioneDTO calcolaESalvaSimulazione(Integer idTitolo, BigDecimal prezzoAcquisto, 
-                                          BigDecimal importo, LocalDate dataAcquisto,
-                                          ModalitaCalcoloBollo modalitaBollo, BigDecimal commissioniAcquisto);
+                                          BigDecimal importo, LocalDate dataAcquisto);
     
     /**
      * Recupera tutte le simulazioni.
@@ -128,22 +126,24 @@ public interface SimulazioneService {
     List<SimulazioneDTO> getSimulazioniByUtenteId(Integer utenteId, boolean latest);
     
     /**
-     * Calcola il rendimento avanzato di un titolo di Stato italiano (BTP/BOT) acquistato sul MOT e detenuto fino a scadenza.
-     * Questo metodo implementa un modello lineare annualizzato che calcola quattro diversi rendimenti.
+     * Aggiorna una simulazione esistente con i risultati di un nuovo calcolo di rendimento.
+     * Questo metodo utilizza internamente convertToSimulazioneDTO per garantire che tutti i campi
+     * siano aggiornati correttamente.
      * 
-     * @param nominale il valore nominale del titolo
-     * @param prezzoAcquistoPercentuale il prezzo di acquisto in percentuale (es. 99.71)
-     * @param cedolaAnnua la cedola annua (es. 0.0185, zero per BOT)
-     * @param anniDurata la durata in anni (es. 4.5)
-     * @param commissionRate il tasso di commissione (es. 0.0009)
-     * @param prezzoRiferimentoBollo il prezzo di riferimento per il calcolo del bollo (es. prezzo di acquisto)
-     * @return DTO contenente i risultati del calcolo avanzato
+     * @param simulazioneEsistente la simulazione esistente da aggiornare
+     * @param risultato il risultato del nuovo calcolo di rendimento
+     * @param importo l'importo dell'investimento
+     * @return la simulazione aggiornata e salvata
      */
-    RisultatoRendimentoAdvancedDTO calcolaRendimentoAdvanced(
-        BigDecimal nominale,
-        BigDecimal prezzoAcquistoPercentuale,
-        BigDecimal cedolaAnnua,
-        BigDecimal anniDurata,
-        BigDecimal commissionRate,
-        BigDecimal prezzoRiferimentoBollo);
+    SimulazioneDTO aggiornaSimulazione(SimulazioneDTO simulazioneEsistente, RisultatoSimulazioneDTO risultato, BigDecimal importo);
+    
+    /**
+     * Recupera tutte le simulazioni associate ai titoli di un utente specifico,
+     * ordinate per data di scadenza crescente.
+     * 
+     * @param utenteId l'ID dell'utente
+     * @param latest se true, recupera solo le simulazioni più recenti per ogni titolo
+     * @return lista di simulazioni associate ai titoli dell'utente, ordinate per data di scadenza crescente
+     */
+    List<SimulazioneDTO> getSimulazioniByUtenteIdOrderByScadenzaAsc(Integer utenteId, boolean latest);
 }

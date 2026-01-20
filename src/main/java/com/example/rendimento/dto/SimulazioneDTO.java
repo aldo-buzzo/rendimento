@@ -33,7 +33,9 @@ public class SimulazioneDTO {
     private BigDecimal rendimentoSenzaCosti;
     private BigDecimal rendimentoConCommissioni;
     private BigDecimal rendimentoConBolloMensile;
+    private BigDecimal rendimentoConBolloAnnuale;
     private BigDecimal bolloTotaleMensile;
+    private BigDecimal bolloTotaleAnnuale;
 
     /**
      * Costruttore predefinito.
@@ -287,12 +289,28 @@ public class SimulazioneDTO {
         this.rendimentoConBolloMensile = rendimentoConBolloMensile;
     }
 
+    public BigDecimal getRendimentoConBolloAnnuale() {
+        return rendimentoConBolloAnnuale;
+    }
+
+    public void setRendimentoConBolloAnnuale(BigDecimal rendimentoConBolloAnnuale) {
+        this.rendimentoConBolloAnnuale = rendimentoConBolloAnnuale;
+    }
+
     public BigDecimal getBolloTotaleMensile() {
         return bolloTotaleMensile;
     }
 
     public void setBolloTotaleMensile(BigDecimal bolloTotaleMensile) {
         this.bolloTotaleMensile = bolloTotaleMensile;
+    }
+
+    public BigDecimal getBolloTotaleAnnuale() {
+        return bolloTotaleAnnuale;
+    }
+
+    public void setBolloTotaleAnnuale(BigDecimal bolloTotaleAnnuale) {
+        this.bolloTotaleAnnuale = bolloTotaleAnnuale;
     }
 
     @Override
@@ -318,7 +336,9 @@ public class SimulazioneDTO {
                 ", rendimentoSenzaCosti=" + rendimentoSenzaCosti +
                 ", rendimentoConCommissioni=" + rendimentoConCommissioni +
                 ", rendimentoConBolloMensile=" + rendimentoConBolloMensile +
+                ", rendimentoConBolloAnnuale=" + rendimentoConBolloAnnuale +
                 ", bolloTotaleMensile=" + bolloTotaleMensile +
+                ", bolloTotaleAnnuale=" + bolloTotaleAnnuale +
                 ", version=" + version +
                 '}';
     }

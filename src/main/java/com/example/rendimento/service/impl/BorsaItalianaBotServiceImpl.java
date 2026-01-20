@@ -55,7 +55,8 @@ public class BorsaItalianaBotServiceImpl implements BorsaItalianaService {
     
     @Override
     public TitoloDTO getTitoloByIsin(String isin) {
-        throw new UnsupportedOperationException("Metodo non supportato per i BOT");
+        // Utilizziamo il metodo getTitoloBotByIsin che è già implementato
+        return getTitoloBotByIsin(isin);
     }
     
     @Override

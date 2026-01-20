@@ -194,11 +194,31 @@ window.ApiService = {
      * @param {number} idTitolo - L'ID del titolo
      * @param {number} prezzoAcquisto - Il prezzo di acquisto
      * @param {number} importo - L'importo nominale
-     * @param {string} modalitaBollo - La modalità di calcolo del bollo (ANNUALE o MENSILE)
      * @returns {Promise} - Promise che risolve con il risultato del calcolo
      */
-    calcolaRendimento: function(idTitolo, prezzoAcquisto, importo, modalitaBollo = 'ANNUALE') {
-        return this.get(`${this.baseUrl}/simulazioni/calcola-rendimento?idTitolo=${idTitolo}&prezzoAcquisto=${prezzoAcquisto}&importo=${importo}&modalitaBollo=${modalitaBollo}`);
+    calcolaRendimento: function(idTitolo, prezzoAcquisto, importo) {
+        // L'endpoint è definito come @PostMapping ma si aspetta i parametri come @RequestParam
+        // Quindi dobbiamo inviare una richiesta POST con i parametri nella query string
+        const url = `${this.baseUrl}/simulazioni/calcola-rendimento?idTitolo=${idTitolo}&prezzoAcquisto=${prezzoAcquisto}&importo=${importo}`;
+        
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                // Se l'errore è 401 (Unauthorized) o 403 (Forbidden), reindirizza alla pagina di login
+                if (response.status === 401 || response.status === 403) {
+                    console.log('Sessione scaduta o utente non autorizzato. Reindirizzamento alla pagina di login...');
+                    window.location.href = '/login';
+                    throw new Error('Reindirizzamento alla pagina di login');
+                }
+                throw new Error('Errore nella richiesta: ' + response.status);
+            }
+            return response.json();
+        });
     },
     
     /**
