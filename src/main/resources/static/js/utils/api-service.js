@@ -115,7 +115,7 @@ window.ApiService = {
      * @returns {Promise} - Promise che risolve con l'array dei titoli
      */
     getTitoli: function() {
-        return this.get(`${this.baseUrl}/frontend/titolo`);
+        return this.get(`${this.baseUrl}/titolo`);
     },
     
     /**
@@ -124,7 +124,7 @@ window.ApiService = {
      * @returns {Promise} - Promise che risolve con il titolo richiesto
      */
     getTitolo: function(id) {
-        return this.get(`${this.baseUrl}/frontend/titolo/${id}`);
+        return this.get(`${this.baseUrl}/titolo/${id}`);
     },
     
     /**
@@ -142,7 +142,7 @@ window.ApiService = {
      * @returns {Promise} - Promise che risolve con l'esito dell'eliminazione
      */
     deleteTitolo: function(id) {
-        return this.delete(`${this.baseUrl}/frontend/titolo/${id}`);
+        return this.delete(`${this.baseUrl}/titolo/${id}`);
     },
     
     /**
@@ -275,5 +275,14 @@ window.ApiService = {
      */
     getEnumValues: function(enumName) {
         return this.get(`${this.baseUrl}/frontend/enum/${enumName}`);
+    },
+    
+    /**
+     * Recupera i dati dettagliati di calcolo per una simulazione
+     * @param {number} id - L'ID della simulazione
+     * @returns {Promise} - Promise che risolve con i dati dettagliati di calcolo
+     */
+    getCalcoloDettagliato: function(id) {
+        return this.get(`${this.baseUrl}/simulazioni/${id}/calcolo-dettagliato`);
     }
 };

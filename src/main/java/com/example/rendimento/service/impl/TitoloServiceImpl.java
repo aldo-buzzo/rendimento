@@ -1,7 +1,9 @@
 package com.example.rendimento.service.impl;
 
+import com.example.rendimento.dto.RendimentiDTO;
 import com.example.rendimento.dto.TitoloDTO;
 import com.example.rendimento.dto.UtenteResponseDTO;
+import com.example.rendimento.enums.PeriodoScadenza;
 import com.example.rendimento.enums.TipoTitolo;
 import com.example.rendimento.exception.ConflittoModificaException;
 import com.example.rendimento.mapper.TitoloMapper;
@@ -24,7 +26,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Implementazione dell'interfaccia TitoloService.
@@ -52,6 +58,12 @@ public class TitoloServiceImpl implements TitoloService {
     @Override
     public List<TitoloDTO> getAllTitoli() {
         List<Titolo> titoli = titoloRepository.findAll();
+        return titoloMapper.toDtoList(titoli);
+    }
+    
+    @Override
+    public List<TitoloDTO> getTitoliByUtenteId(Integer utenteId) {
+        List<Titolo> titoli = titoloRepository.findByUtente_IdUtente(utenteId);
         return titoloMapper.toDtoList(titoli);
     }
 
@@ -209,6 +221,16 @@ public class TitoloServiceImpl implements TitoloService {
     }
     
     @Override
+    public List<TitoloDTO> getTitoliByUtenteIdAndDataScadenzaBefore(Integer utenteId, java.time.LocalDate dataScadenza) {
+        List<Titolo> titoli = titoloRepository.findByDataScadenzaAfterAndUtente_IdUtente(java.time.LocalDate.now(), utenteId);
+        // Filtra i titoli che hanno una data di scadenza precedente o uguale alla data specificata
+        List<Titolo> titoliFiltered = titoli.stream()
+                .filter(titolo -> titolo.getDataScadenza().isBefore(dataScadenza) || titolo.getDataScadenza().isEqual(dataScadenza))
+                .toList();
+        return titoloMapper.toDtoList(titoliFiltered);
+    }
+    
+    @Override
     @Transactional
     public TitoloDTO importaTitoloDaBorsaItaliana(String codiceIsin, String tipoTitoloStr) {
         log.info("Importazione titolo da Borsa Italiana - ISIN: {}, Tipo: {}", codiceIsin, tipoTitoloStr);
@@ -267,5 +289,118 @@ public class TitoloServiceImpl implements TitoloService {
                     codiceIsin, tipoTitoloStr, e.getMessage());
             throw new RuntimeException("Errore durante l'importazione del titolo", e);
         }
+    }
+    
+    @Override
+    public RendimentiDTO calcolaRendimentiPerPeriodo(PeriodoScadenza periodo) {
+        log.info("Calcolo rendimenti per periodo: {}", periodo);
+        
+        try {
+            // Recupera tutti i titoli
+            List<Titolo> titoli = titoloRepository.findAll();
+            
+            // Filtra i titoli in base al periodo di scadenza
+            List<Titolo> titoliFiltrati = titoli.stream()
+                    .filter(titolo -> {
+                        // Calcola i mesi tra oggi e la data di scadenza
+                        LocalDate oggi = LocalDate.now();
+                        LocalDate scadenza = titolo.getDataScadenza();
+                        long mesiAllaScadenza = ChronoUnit.MONTHS.between(oggi, scadenza);
+                        
+                        // Verifica se il titolo rientra nel periodo specificato
+                        return mesiAllaScadenza >= periodo.getMesiMin() && mesiAllaScadenza <= periodo.getMesiMax();
+                    })
+                    .collect(Collectors.toList());
+            
+            return calcolaRendimenti(titoliFiltrati);
+        } catch (Exception e) {
+            log.error("Errore durante il calcolo dei rendimenti per periodo: {}, Errore: {}", 
+                    periodo, e.getMessage(), e);
+            throw new RuntimeException("Errore durante il calcolo dei rendimenti", e);
+        }
+    }
+    
+    @Override
+    public RendimentiDTO calcolaRendimentiPerPeriodo(String periodoString) {
+        PeriodoScadenza periodo = PeriodoScadenza.fromString(periodoString);
+        return calcolaRendimentiPerPeriodo(periodo);
+    }
+    
+    /**
+     * Calcola i rendimenti per una lista di titoli.
+     * 
+     * @param titoli Lista di titoli per cui calcolare i rendimenti
+     * @return DTO contenente i rendimenti calcolati
+     */
+    private RendimentiDTO calcolaRendimenti(List<Titolo> titoli) {
+        if (titoli.isEmpty()) {
+            return new RendimentiDTO(0.0, 0.0, 0.0, new ArrayList<>());
+        }
+        
+        List<RendimentiDTO.TitoloRendimentoDTO> titoliRendimento = new ArrayList<>();
+        double rendimentoMinimoTrimestrale = Double.MAX_VALUE;
+        double rendimentoMassimoTrimestrale = Double.MIN_VALUE;
+        double rendimentoMinimoAnnuale = Double.MAX_VALUE;
+        double rendimentoMassimoAnnuale = Double.MIN_VALUE;
+        double sommaRendimentiTrimestrali = 0.0;
+        double sommaRendimentiAnnuali = 0.0;
+        double sommaRendimentiBolloMensile = 0.0;
+        double sommaRendimentiBolloAnnuale = 0.0;
+        
+        // Aliquota imposta di bollo (0.2% annuale)
+        final double ALIQUOTA_BOLLO_ANNUALE = 0.002;
+        final double ALIQUOTA_BOLLO_MENSILE = ALIQUOTA_BOLLO_ANNUALE / 12;
+        
+        for (Titolo titolo : titoli) {
+            // Calcola il rendimento trimestrale (tasso nominale / 4)
+            double rendimentoTrimestrale = titolo.getTassoNominale().doubleValue() / 4;
+            
+            // Calcola il rendimento annuale (tasso nominale)
+            double rendimentoAnnuale = titolo.getTassoNominale().doubleValue();
+            
+            // Calcola il rendimento con bollo mensile
+            double rendimentoBolloMensile = rendimentoAnnuale - (ALIQUOTA_BOLLO_MENSILE * 12 * 100);
+            
+            // Calcola il rendimento con bollo annuale
+            double rendimentoBolloAnnuale = rendimentoAnnuale - (ALIQUOTA_BOLLO_ANNUALE * 100);
+            
+            // Aggiorna i valori minimi e massimi
+            rendimentoMinimoTrimestrale = Math.min(rendimentoMinimoTrimestrale, rendimentoTrimestrale);
+            rendimentoMassimoTrimestrale = Math.max(rendimentoMassimoTrimestrale, rendimentoTrimestrale);
+            rendimentoMinimoAnnuale = Math.min(rendimentoMinimoAnnuale, rendimentoAnnuale);
+            rendimentoMassimoAnnuale = Math.max(rendimentoMassimoAnnuale, rendimentoAnnuale);
+            
+            // Aggiorna le somme per il calcolo delle medie
+            sommaRendimentiTrimestrali += rendimentoTrimestrale;
+            sommaRendimentiAnnuali += rendimentoAnnuale;
+            sommaRendimentiBolloMensile += rendimentoBolloMensile;
+            sommaRendimentiBolloAnnuale += rendimentoBolloAnnuale;
+            
+            // Crea il DTO per il titolo
+            RendimentiDTO.TitoloRendimentoDTO titoloRendimentoDTO = new RendimentiDTO.TitoloRendimentoDTO(
+                    titolo.getNome(),
+                    rendimentoTrimestrale,
+                    rendimentoAnnuale,
+                    rendimentoBolloMensile,
+                    rendimentoBolloAnnuale
+            );
+            
+            titoliRendimento.add(titoloRendimentoDTO);
+        }
+        
+        // Calcola le medie
+        double rendimentoMedioTrimestrale = sommaRendimentiTrimestrali / titoli.size();
+        double rendimentoMedioAnnuale = sommaRendimentiAnnuali / titoli.size();
+        
+        // Calcola il rendimento medio complessivo (media tra trimestrale e annuale)
+        double rendimentoMedio = (rendimentoMedioTrimestrale + rendimentoMedioAnnuale) / 2;
+        
+        // Calcola il rendimento minimo complessivo (media tra trimestrale e annuale)
+        double rendimentoMinimo = (rendimentoMinimoTrimestrale + rendimentoMinimoAnnuale) / 2;
+        
+        // Calcola il rendimento massimo complessivo (media tra trimestrale e annuale)
+        double rendimentoMassimo = (rendimentoMassimoTrimestrale + rendimentoMassimoAnnuale) / 2;
+        
+        return new RendimentiDTO(rendimentoMinimo, rendimentoMedio, rendimentoMassimo, titoliRendimento);
     }
 }

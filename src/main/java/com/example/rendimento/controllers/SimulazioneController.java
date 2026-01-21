@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.rendimento.constants.RendimentoConstants;
+import com.example.rendimento.dto.RisultatoRendimentoAdvancedDTO;
 import com.example.rendimento.dto.RisultatoSimulazioneDTO;
 import com.example.rendimento.dto.SimulazioneDTO;
 import com.example.rendimento.dto.TitoloDTO;
@@ -407,5 +408,56 @@ public class SimulazioneController {
         log.info("Risposta per POST /api/simulazioni/calcola-rendimenti-tutti-titoli: {} simulazioni aggiornate/create", 
                 simulazioniSalvate.size());
         return ResponseEntity.ok(simulazioniSalvate);
+    }
+    
+    /**
+     * Endpoint per il recupero dei dati dettagliati di calcolo per una simulazione.
+     * Questo endpoint restituisce un oggetto RisultatoRendimentoAdvancedDTO con tutti i dati
+     * necessari per visualizzare i calcoli dettagliati nella pagina info-titolo-rendimenti.html.
+     *
+     * @param id l'ID della simulazione per cui recuperare i dati dettagliati
+     * @return i dati dettagliati di calcolo
+     */
+    @GetMapping("/{id}/calcolo-dettagliato")
+    public ResponseEntity<RisultatoRendimentoAdvancedDTO> getCalcoloDettagliato(@PathVariable Integer id) {
+        log.info("Ricevuta richiesta GET /api/simulazioni/{}/calcolo-dettagliato con id: {}", "id", id);
+        
+        // Ottieni l'utente corrente
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        
+        // Ottieni l'ID dell'utente corrente
+        Integer utenteId = utenteService.findByUsername(username)
+                .map(UtenteResponseDTO::getIdUtente)
+                .orElse(null);
+        
+        // Recupera la simulazione
+        SimulazioneDTO simulazione = simulazioneService.findById(id);
+        if (simulazione == null) {
+            log.info("Risposta per GET /api/simulazioni/{}/calcolo-dettagliato: Simulazione non trovata", id);
+            return ResponseEntity.notFound().build();
+        }
+        
+        // Verifica che la simulazione appartenga all'utente corrente
+        if (simulazione.getTitolo() != null && simulazione.getTitolo().getUtenteId() != null && 
+                utenteId != null && !simulazione.getTitolo().getUtenteId().equals(utenteId)) {
+            log.info("Risposta per GET /api/simulazioni/{}/calcolo-dettagliato: Simulazione non autorizzata", id);
+            return ResponseEntity.notFound().build();
+        }
+        
+        // Recupera il titolo associato
+        Titolo titolo = titoloRepository.findById(simulazione.getIdTitolo())
+                .orElseThrow(() -> new EntityNotFoundException("Titolo non trovato con ID: " + simulazione.getIdTitolo()));
+        
+        // Utilizza la logica esistente per calcolare i rendimenti dettagliati
+        RisultatoRendimentoAdvancedDTO risultato = simulazioneService.calcolaRendimentoAdvanced(
+                titolo,
+                simulazione.getPrezzoAcquisto(),
+                simulazione.getNominale() != null ? simulazione.getNominale() : new BigDecimal("10000"),
+                simulazione.getDataAcquisto()
+        );
+        
+        log.info("Risposta per GET /api/simulazioni/{}/calcolo-dettagliato: {}", id, risultato);
+        return ResponseEntity.ok(risultato);
     }
 }

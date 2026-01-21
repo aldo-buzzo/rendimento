@@ -1,41 +1,10 @@
 # Ambiente di Test con Database H2 in Memoria
 
-Questo documento descrive la configurazione dell'ambiente di test che utilizza un database H2 in memoria per i test JUnit del progetto Rendimento.
+Questo documento descrive come utilizzare l'ambiente di test con database H2 in memoria per il progetto Rendimento.
 
 ## Configurazione
 
-L'ambiente di test è configurato per utilizzare un database H2 in memoria invece del database PostgreSQL utilizzato in produzione. Questo approccio offre diversi vantaggi:
-
-1. **Isolamento**: I test non influenzano il database di produzione
-2. **Velocità**: Il database in memoria è molto più veloce di un database su disco
-3. **Consistenza**: Ogni esecuzione di test parte da uno stato pulito e prevedibile
-4. **Portabilità**: Non è necessario configurare un database esterno per eseguire i test
-
-## File di Configurazione
-
-### 1. Dipendenze Maven (pom.xml)
-
-Le seguenti dipendenze sono state aggiunte al file `pom.xml`:
-
-```xml
-<!-- Dipendenze per i test -->
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-test</artifactId>
-    <scope>test</scope>
-</dependency>
-
-<!-- Database H2 in memoria per i test -->
-<dependency>
-    <groupId>com.h2database</groupId>
-    <artifactId>h2</artifactId>
-    <scope>test</scope>
-</dependency>
-```
-
-### 2. Configurazione del Database di Test (application-test.yml)
-
-Il file `src/test/resources/application-test.yml` contiene la configurazione del database H2 in memoria:
+L'ambiente di test è già configurato per utilizzare un database H2 in memoria. La configurazione si trova nel file `src/test/resources/application-test.yml`.
 
 ```yaml
 spring:
@@ -47,54 +16,115 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
-    show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
         format_sql: true
+    show-sql: true
   h2:
     console:
       enabled: true
+      path: /h2-console
 ```
 
-## Classi di Test
+Questa configurazione:
+- Utilizza un database H2 in memoria (`jdbc:h2:mem:testdb`)
+- Configura Hibernate per creare le tabelle all'avvio e eliminarle alla chiusura (`ddl-auto: create-drop`)
+- Abilita la console H2 per l'ispezione del database durante i test (`h2.console.enabled: true`)
+- Mostra le query SQL eseguite durante i test (`show-sql: true`)
 
-Sono state create due classi di test di esempio che mostrano come utilizzare il database H2 in memoria:
+## Dipendenze
 
-### 1. TitoloRepositoryTest
+Le dipendenze necessarie sono già incluse nel file `pom.xml`:
 
-Questa classe testa le operazioni CRUD del repository `TitoloRepository`. Utilizza l'annotazione `@SpringBootTest` e `@ActiveProfiles("test")` per caricare la configurazione del database H2 in memoria.
-
-### 2. TitoloServiceTest
-
-Questa classe testa un servizio di esempio che utilizza il repository `TitoloRepository`. Mostra come testare la logica di business con un database in memoria.
-
-## Come Eseguire i Test
-
-Per eseguire i test, è possibile utilizzare Maven:
-
-```bash
-mvn test
+```xml
+<!-- Database H2 in memoria per i test -->
+<dependency>
+    <groupId>com.h2database</groupId>
+    <artifactId>h2</artifactId>
+    <scope>test</scope>
+</dependency>
 ```
 
-Oppure eseguire i test direttamente dall'IDE.
+## Utilizzo
 
-## Buone Pratiche
+### Annotazioni per i Test
 
-1. **Utilizzare `@Transactional`**: Questa annotazione garantisce che ogni test venga eseguito in una transazione separata che viene rollback alla fine del test, mantenendo il database in uno stato pulito.
+Per utilizzare il database H2 in memoria nei test, è necessario aggiungere le seguenti annotazioni alle classi di test:
 
-2. **Utilizzare `@ActiveProfiles("test")`**: Questa annotazione assicura che venga utilizzata la configurazione del database H2 in memoria.
+```java
+@SpringBootTest
+@ActiveProfiles("test") // Utilizza il profilo di test con il database H2
+@Transactional
+public class MioTest {
+    // ...
+}
+```
 
-3. **Inizializzare i dati di test nel metodo `@BeforeEach`**: Questo garantisce che ogni test abbia i dati necessari in uno stato prevedibile.
+- `@SpringBootTest`: Carica il contesto Spring completo
+- `@ActiveProfiles("test")`: Utilizza il profilo "test" che è configurato per usare il database H2
+- `@Transactional`: Ogni test viene eseguito in una transazione che viene rollback alla fine
 
-4. **Utilizzare asserzioni JUnit per verificare i risultati**: Le asserzioni JUnit forniscono messaggi di errore chiari in caso di fallimento dei test.
+### Creazione di Dati di Test
 
-## Estensione
+Per facilitare la creazione di dati di test, è disponibile la classe `TestDataBuilder` che fornisce metodi per creare utenti e titoli di test:
 
-Per estendere questa configurazione ad altri test:
+```java
+// Crea un utente di test
+Utente utente = TestDataBuilder.createDefaultUtente("1");
+utenteRepository.save(utente);
 
-1. Creare nuove classi di test nella directory `src/test/java`
-2. Annotare le classi con `@SpringBootTest` e `@ActiveProfiles("test")`
-3. Utilizzare l'annotazione `@Transactional` per garantire il rollback delle transazioni
-4. Iniettare i repository o i servizi necessari con `@Autowired`
-5. Implementare i metodi di test con le asserzioni JUnit
+// Crea un titolo di test
+Titolo titolo = TestDataBuilder.createDefaultTitolo("1", utente);
+titoloRepository.save(titolo);
+
+// Crea un insieme di dati di test
+List<Utente> utenti = TestDataBuilder.createTestData(utenteRepository, titoloRepository, 2, 3);
+// Crea 2 utenti, ciascuno con 3 titoli
+```
+
+### Esempi di Test
+
+#### Test di Repository
+
+Vedere `TitoloRepositoryIntegrationTest.java` per un esempio di test di repository che utilizza il database H2 in memoria.
+
+#### Test di Service
+
+Vedere `TitoloServiceTest.java` per un esempio di test di service che utilizza il database H2 in memoria.
+
+#### Test di Controller
+
+Vedere `TitoloControllerTest.java` per un esempio di test di controller che utilizza il database H2 in memoria e MockMvc per simulare le richieste HTTP.
+
+## Consigli per i Test
+
+1. **Isolamento dei Test**: Ogni test dovrebbe essere indipendente dagli altri. Utilizzare `@BeforeEach` per inizializzare i dati di test prima di ogni test.
+
+2. **Transazioni**: L'annotazione `@Transactional` assicura che ogni test venga eseguito in una transazione che viene rollback alla fine, in modo che i dati creati durante un test non influenzino gli altri test.
+
+3. **Dati di Test**: Utilizzare la classe `TestDataBuilder` per creare dati di test in modo coerente e riutilizzabile.
+
+4. **Verifica dei Risultati**: Utilizzare le asserzioni di JUnit per verificare i risultati dei test. Ad esempio:
+   ```java
+   assertEquals(expected, actual);
+   assertTrue(condition);
+   assertNotNull(object);
+   ```
+
+5. **Test di Integrazione**: I test che utilizzano il database H2 in memoria sono test di integrazione, non test unitari. Per i test unitari, considerare l'utilizzo di mock.
+
+## Risoluzione dei Problemi
+
+### Errore: "Table not found"
+
+Se si verifica un errore "Table not found", assicurarsi che:
+- L'annotazione `@ActiveProfiles("test")` sia presente sulla classe di test
+- Il file `application-test.yml` sia configurato correttamente
+- L'entità JPA sia annotata correttamente con `@Entity` e `@Table`
+
+### Errore: "No qualifying bean of type"
+
+Se si verifica un errore "No qualifying bean of type", assicurarsi che:
+- L'annotazione `@SpringBootTest` sia presente sulla classe di test
+- Il componente che si sta cercando di iniettare sia annotato correttamente (ad esempio, `@Repository`, `@Service`, `@Controller`)

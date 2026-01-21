@@ -18,33 +18,27 @@
         <div class="row">
             <div class="col-12">
                 <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-header d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center gap-3">
                             <div class="d-flex align-items-center">
                                 <h2>Rendimenti</h2>
-                                <span class="ms-2 text-muted" id="data-rendimenti"></span>
                                 <a href="info-rendimenti.html" class="ms-2" title="Informazioni sul calcolo dei rendimenti">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
                                         <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
                                         <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
                                     </svg>
                                 </a>
+                                <span class="ms-2 text-muted">al: <span id="data-rendimenti"></span></span>
                             </div>
                             <button class="btn btn-outline-success" id="calcola-rendimenti-btn-rendimenti">Ricalcola</button>
                         </div>
-                        <div class="d-flex gap-3">
-                            <div class="text-nowrap">
-                                <span class="fw-bold">Rend Minimo:</span>
-                                <span id="rendimento-minimo">0.00%</span>
-                            </div>
-                            <div class="text-nowrap">
-                                <span class="fw-bold">Rendimento Massimo:</span>
-                                <span id="rendimento-massimo">0.00%</span>
-                            </div>
-                            <div class="text-nowrap">
-                                <span class="fw-bold">Rendimento Medio:</span>
-                                <span id="rendimento-medio">0.00%</span>
-                            </div>
+                        <div>
+                            <a href="trends.html" class="btn btn-outline-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-graph-up" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0Zm14.817 3.113a.5.5 0 0 1 .07.704l-4.5 5.5a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61 4.15-5.073a.5.5 0 0 1 .704-.07Z"/>
+                                </svg>
+                                Trends
+                            </a>
                         </div>
                     </div>
                     <div class="card-body">
@@ -68,6 +62,7 @@
                             </table>
                         </div>
                         <div class="d-flex gap-2 mt-3">
+                            <a href="lista-titoli.html" class="btn btn-outline-primary">Lista Titoli</a>
                             <button class="btn btn-primary" id="add-titolo-btn-rendimenti">Aggiungi Titolo</button>
                             <button class="btn btn-outline-primary" id="lista-btp-btn-rendimenti">Lista BTP</button>
                             <button class="btn btn-outline-primary" id="lista-bot-btn-rendimenti">Lista BOT</button>
@@ -78,38 +73,7 @@
         </div>
 
         <div class="row">
-            <div class="col-md-6">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h2>Lista Titoli</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-striped" id="titoli-table">
-                                <thead>
-                                    <tr>
-                                        <th>Codice ISIN</th>
-                                        <th>Nome</th>
-                                        <th>Prezzo</th>
-                                        <th>Azioni</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="titoli-list">
-                                    <!-- I titoli verranno caricati dinamicamente qui -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-primary" id="add-titolo-btn">Aggiungi Titolo</button>
-                            <button class="btn btn-outline-primary" id="lista-btp-btn">Lista BTP</button>
-                            <button class="btn btn-outline-primary" id="lista-bot-btn">Lista BOT</button>
-                            <button class="btn btn-outline-success" id="calcola-rendimenti-btn">Calcola Rendimenti</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6">
+            <div class="col-md-12">
                 <div class="card mb-4">
                     <div class="card-header">
                         <h2>Nuova Simulazione</h2>
@@ -467,6 +431,22 @@
     <!-- Script per i pulsanti nella sezione Rendimenti -->
     <script src="js/rendimenti-buttons.js"></script>
     <script src="js/main.js"></script>
+    
+    <!-- Elementi nascosti per l'inizializzazione del controller titoli -->
+    <div style="display: none;">
+        <button id="add-titolo-btn"></button>
+        <button id="lista-btp-btn"></button>
+        <button id="lista-bot-btn"></button>
+        <button id="cerca-titolo-btn"></button>
+        <button id="save-titolo-btn"></button>
+        <button id="prev-page-btn"></button>
+        <button id="next-page-btn"></button>
+        <input id="cerca-isin" type="hidden">
+        <div id="titoli-list"></div>
+        <select id="periodicita-cedole"></select>
+        <select id="periodicita-bollo"></select>
+        <select id="tipo-titolo"></select>
+    </div>
     
     <footer class="mt-5 py-3 text-center border-top">
         <div class="container">

@@ -9,6 +9,9 @@ public class RisultatoRendimentoAdvancedDTO extends RisultatoSimulazioneDTO {
     private BigDecimal anniDurata;
     private BigDecimal commissionRate;
     private BigDecimal prezzoRiferimentoBollo;
+    private BigDecimal valoreRimborso;
+    private BigDecimal fattoreTempo;
+    private BigDecimal fattoreAnnualizzazione;
 
     private BigDecimal capitaleInvestito;
     private BigDecimal capitaleConCommissioni;
@@ -93,4 +96,12 @@ public class RisultatoRendimentoAdvancedDTO extends RisultatoSimulazioneDTO {
     public BigDecimal getRendimentoConCommissioniEBolloMensile() { return rendimentoConCommissioniEBolloMensile; }
     public void setRendimentoConCommissioniEBolloMensile(BigDecimal rendimentoConCommissioniEBolloMensile) { this.rendimentoConCommissioniEBolloMensile = rendimentoConCommissioniEBolloMensile; }
 
+    public BigDecimal getValoreRimborso() { return valoreRimborso != null ? valoreRimborso : BigDecimal.valueOf(100); }
+    public void setValoreRimborso(BigDecimal valoreRimborso) { this.valoreRimborso = valoreRimborso; }
+    
+    public BigDecimal getFattoreTempo() { return fattoreTempo; }
+    public void setFattoreTempo(BigDecimal fattoreTempo) { this.fattoreTempo = fattoreTempo; }
+    
+    public BigDecimal getFattoreAnnualizzazione() { return fattoreAnnualizzazione; }
+    public void setFattoreAnnualizzazione(BigDecimal fattoreAnnualizzazione) { this.fattoreAnnualizzazione = fattoreAnnualizzazione; }
 }

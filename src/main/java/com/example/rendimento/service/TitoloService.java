@@ -1,6 +1,9 @@
 package com.example.rendimento.service;
 
+import com.example.rendimento.dto.RendimentiDTO;
 import com.example.rendimento.dto.TitoloDTO;
+import com.example.rendimento.enums.PeriodoScadenza;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -63,4 +66,40 @@ public interface TitoloService {
      * @param id l'ID del titolo da eliminare
      */
     void deleteTitolo(Integer id);
+    
+    /**
+     * Recupera tutti i titoli che appartengono all'utente specificato.
+     * 
+     * @param utenteId l'ID dell'utente proprietario dei titoli
+     * @return lista di titoli che appartengono all'utente specificato
+     */
+    List<TitoloDTO> getTitoliByUtenteId(Integer utenteId);
+    
+    /**
+     * Recupera tutti i titoli che appartengono all'utente specificato e hanno una data di scadenza
+     * precedente o uguale alla data specificata.
+     * 
+     * @param utenteId l'ID dell'utente proprietario dei titoli
+     * @param dataScadenza la data di scadenza massima
+     * @return lista di titoli che appartengono all'utente specificato e scadono entro la data specificata
+     */
+    List<TitoloDTO> getTitoliByUtenteIdAndDataScadenzaBefore(Integer utenteId, LocalDate dataScadenza);
+    
+    /**
+     * Calcola i rendimenti dei titoli per un determinato periodo di scadenza.
+     * I rendimenti vengono calcolati considerando solo interessi e plusvalenze/minusvalenze,
+     * escludendo commissioni e spese.
+     * 
+     * @param periodo il periodo di scadenza per cui calcolare i rendimenti
+     * @return DTO contenente i rendimenti minimi, medi e massimi, e la lista dei titoli con i loro rendimenti
+     */
+    RendimentiDTO calcolaRendimentiPerPeriodo(PeriodoScadenza periodo);
+    
+    /**
+     * Calcola i rendimenti dei titoli per un determinato periodo di scadenza specificato come stringa.
+     * 
+     * @param periodoString il periodo di scadenza come stringa (trimestrali, semestrali, annuali, triennali, tutti)
+     * @return DTO contenente i rendimenti minimi, medi e massimi, e la lista dei titoli con i loro rendimenti
+     */
+    RendimentiDTO calcolaRendimentiPerPeriodo(String periodoString);
 }

@@ -220,4 +220,54 @@ public class TitoloRepositoryTest {
         assertTrue(titoliScadenzaFutura.stream().anyMatch(t -> t.getNome().equals("BTP Futuro 2")));
         assertFalse(titoliScadenzaFutura.stream().anyMatch(t -> t.getNome().equals("BTP Scaduto")));
     }
+    
+    @Test
+    public void testTrovaTitoliPerUtenteId() {
+        // Crea un secondo utente di test
+        Utente utente2 = new Utente(
+                "testuser2",
+                "password456",
+                "test2@example.com",
+                "Test2",
+                "User2",
+                LocalDateTime.now()
+        );
+        utenteRepository.save(utente2);
+        
+        // Crea e salva titoli per entrambi gli utenti
+        Titolo titoloUtente1 = new Titolo(
+                "BTP Utente 1",
+                "IT0005777777",
+                LocalDate.of(2027, 5, 15),
+                new BigDecimal("3.25"),
+                "SEMESTRALE",
+                "ANNUALE",
+                TipoTitolo.BTP,
+                utente
+        );
+        
+        Titolo titoloUtente2 = new Titolo(
+                "BTP Utente 2",
+                "IT0005888888",
+                LocalDate.of(2028, 7, 20),
+                new BigDecimal("3.75"),
+                "SEMESTRALE",
+                "ANNUALE",
+                TipoTitolo.BTP,
+                utente2
+        );
+        
+        titoloRepository.save(titoloUtente1);
+        titoloRepository.save(titoloUtente2);
+
+        // Cerca titoli per ID utente
+        List<Titolo> titoliUtente1 = titoloRepository.findByUtente_IdUtente(utente.getIdUtente());
+        List<Titolo> titoliUtente2 = titoloRepository.findByUtente_IdUtente(utente2.getIdUtente());
+
+        // Verifica i risultati
+        assertEquals(1, titoliUtente1.size());
+        assertEquals(1, titoliUtente2.size());
+        assertEquals("BTP Utente 1", titoliUtente1.get(0).getNome());
+        assertEquals("BTP Utente 2", titoliUtente2.get(0).getNome());
+    }
 }

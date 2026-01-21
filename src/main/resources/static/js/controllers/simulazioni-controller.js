@@ -102,6 +102,31 @@ class SimulazioniController {
     }
     
     /**
+     * Configura gli event listener per le icone di informazioni
+     */
+    setupInfoIconListeners() {
+        // Aggiungi event listener per le icone di informazioni
+        document.querySelectorAll('.info-icon').forEach(icon => {
+            icon.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation(); // Previene la propagazione dell'evento al gestore di doppio click della riga
+                const simulazioneId = icon.getAttribute('data-simulazione-id');
+                const rendimentoTipo = icon.getAttribute('data-rendimento-tipo');
+                this.showRendimentoInfo(simulazioneId, rendimentoTipo);
+            });
+        });
+    }
+    
+    /**
+     * Mostra le informazioni dettagliate sul rendimento
+     * @param {number} simulazioneId - ID della simulazione
+     * @param {string} tipoRendimento - Tipo di rendimento (netto, commissioni, bolloMensile, bolloAnnuale)
+     */
+    showRendimentoInfo(simulazioneId, tipoRendimento) {
+        window.location.href = `info-titolo-rendimenti.html?simulazioneId=${simulazioneId}&tipoRendimento=${tipoRendimento}`;
+    }
+    
+    /**
      * Carica le simulazioni dal server
      */
     loadSimulazioniFromServer() {
@@ -149,12 +174,10 @@ class SimulazioniController {
                 dataAcquisto: dataAcquisto1.toISOString().split('T')[0],
                 importoNominale: 10000,
                 commissioniAcquisto: 0.25,
-                rendimentoLordo: 2.75,
-                rendimentoTassato: 2.31,
-                rendimentoNettoCedole: 2.25,
-                impostaBollo: 0.20,
-                rendimentoNettoBollo: 2.05,
-                plusMinusValenza: 0.50
+                rendimentoSenzaCosti: 2.75,
+                rendimentoConCommissioni: 2.31,
+                rendimentoConBolloMensile: 2.25,
+                rendimentoConBolloAnnuale: 2.05
             },
             { 
                 id: 2, 
@@ -163,12 +186,10 @@ class SimulazioniController {
                 dataAcquisto: dataAcquisto2.toISOString().split('T')[0],
                 importoNominale: 20000,
                 commissioniAcquisto: 0.20,
-                rendimentoLordo: 1.95,
-                rendimentoTassato: 1.64,
-                rendimentoNettoCedole: 1.60,
-                impostaBollo: 0.20,
-                rendimentoNettoBollo: 1.40,
-                plusMinusValenza: 0.40
+                rendimentoSenzaCosti: 1.95,
+                rendimentoConCommissioni: 1.64,
+                rendimentoConBolloMensile: 1.60,
+                rendimentoConBolloAnnuale: 1.40
             }
         ];
     }
@@ -223,28 +244,42 @@ class SimulazioniController {
             
             // Aggiungi attributo data-titolo-id per il doppio click
             row.setAttribute('data-titolo-id', simulazione.titoloId);
+            row.setAttribute('data-simulazione-id', simulazione.id);
             
             // Aggiungi classe per indicare che la riga è cliccabile
             row.classList.add('simulazione-row');
             
             // Determina la classe CSS in base al rendimento netto
-            const rendimentoClass = (simulazione.rendimentoNettoBollo || 0) >= 0 ? 'rendimento-positivo' : 'rendimento-negativo';
+            const rendimentoClass = (simulazione.rendimentoConBolloAnnuale || 0) >= 0 ? 'rendimento-positivo' : 'rendimento-negativo';
             
             // Calcola il valore finale
             const importoNominale = simulazione.importoNominale || 0;
-            const rendimentoNettoBollo = simulazione.rendimentoNettoBollo || 0;
+            const rendimentoNettoBollo = simulazione.rendimentoConBolloAnnuale || 0;
             const valoreFinaleTeorico = importoNominale * (1 + (rendimentoNettoBollo / 100));
             
-                        // Usa Formatters.formatDecimal e Formatters.formatDate per la formattazione
-                        row.innerHTML = `
-                            <td>${titolo.nome || ''} (${titolo.codiceIsin || ''})</td>
-                            <td>${Formatters.formatDecimal(simulazione.prezzoAcquisto || 0)}</td>
-                            <td>${Formatters.formatDate(titolo.dataScadenza || '')}</td>
-                            <td>${Formatters.formatDecimal(simulazione.rendimentoSenzaCosti || 0)}%</td>
-                            <td>${Formatters.formatDecimal(simulazione.rendimentoConCommissioni || 0)}%</td>
-                            <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloMensile || 0)}%</td>
-                            <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloAnnuale || 0)}%</td>
-                            <td>${Formatters.formatDecimal(valoreFinaleTeorico)}</td>
+            // Crea l'icona di informazioni
+            const infoIconSvg = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                    <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                </svg>
+            `;
+            
+            // Usa Formatters.formatDecimal e Formatters.formatDate per la formattazione
+            row.innerHTML = `
+                <td>${titolo.nome || ''} (${titolo.codiceIsin || ''})</td>
+                <td>${Formatters.formatDecimal(simulazione.prezzoAcquisto || 0)}</td>
+                <td>${Formatters.formatDate(titolo.dataScadenza || '')}</td>
+                <td>${Formatters.formatDecimal(simulazione.rendimentoSenzaCosti || 0)}%</td>
+                <td>${Formatters.formatDecimal(simulazione.rendimentoConCommissioni || 0)}%</td>
+                <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloMensile || 0)}%</td>
+                <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloAnnuale || 0)}%</td>
+                <td>
+                    ${Formatters.formatDecimal(valoreFinaleTeorico)}
+                    <a href="#" class="info-icon" data-simulazione-id="${simulazione.id}" data-rendimento-tipo="bolloAnnuale">
+                        ${infoIconSvg}
+                    </a>
+                </td>
             `;
             
             // Aggiungi event listener per il doppio click
@@ -257,6 +292,9 @@ class SimulazioniController {
             
             tbody.appendChild(row);
         });
+        
+        // Aggiungi event listener per le icone di informazioni
+        this.setupInfoIconListeners();
     }
     
     /**
@@ -272,18 +310,6 @@ class SimulazioniController {
             
             // Memorizza il formato ISO per l'invio al server
             dataAcquistoInput.setAttribute('data-iso-date', today.toISOString().split('T')[0]);
-        }
-        
-        // Imposta il valore di default per le commissioni (0,9/1000 = 0.09%)
-        const commissioniInput = document.getElementById('commissioni-acquisto');
-        if (commissioniInput) {
-            commissioniInput.value = "0.09";
-        }
-        
-        // Imposta il valore di default per il tasso d'interesse a vuoto
-        const tassoInteresseInput = document.getElementById('tasso-interesse');
-        if (tassoInteresseInput) {
-            tassoInteresseInput.value = "";
         }
     }
     
@@ -548,231 +574,8 @@ class SimulazioniController {
     }
 }
 
-// Inizializza il controller quando il DOM è pronto e le librerie sono caricate
+// Inizializza il controller quando il DOM è pronto
 document.addEventListener('DOMContentLoaded', function() {
-    // Funzione per verificare se jQuery e datepicker sono disponibili
-    function checkJQueryAndDatepicker() {
-        return window.jQuery && $.fn && $.fn.datepicker;
-    }
-    
-    // Funzione per verificare se window.titoli è disponibile
-    function checkTitoliAvailable() {
-        return window.titoli && Array.isArray(window.titoli);
-    }
-    
-    // Funzione per inizializzare il controller
-    function initController(retryCount = 0) {
-        const maxRetries = 5; // Numero massimo di tentativi
-        const retryDelay = 500; // Ritardo tra i tentativi in ms
-        
-        // Se window.titoli non è ancora disponibile, inizializzalo come array vuoto
-        if (!checkTitoliAvailable()) {
-            console.log('window.titoli non è ancora definito, inizializzazione come array vuoto');
-            window.titoli = [];
-        }
-        
-        // Verifica se jQuery e datepicker sono disponibili
-        if (checkJQueryAndDatepicker()) {
-            try {
-                // Crea l'istanza del controller e la rende disponibile globalmente
-                window.simulazioniController = new SimulazioniController();
-                console.log('Controller simulazioni inizializzato con successo' + (retryCount > 0 ? ' (dopo ' + retryCount + ' tentativi)' : ''));
-            } catch (error) {
-                console.error('Errore durante l\'inizializzazione del controller:', error);
-                
-                // Se ci sono ancora tentativi disponibili, riprova
-                if (retryCount < maxRetries) {
-                    console.warn(`Tentativo ${retryCount + 1}/${maxRetries} fallito. Riprovo tra ${retryDelay}ms...`);
-                    setTimeout(() => initController(retryCount + 1), retryDelay);
-                } else {
-                    console.error(`Impossibile inizializzare il controller dopo ${maxRetries} tentativi.`);
-                    
-                    // Inizializza comunque il controller in modalità fallback
-                    initFallbackMode();
-                }
-            }
-        } else {
-            console.warn('jQuery o datepicker non disponibili. Tentativo ' + (retryCount + 1) + '/' + maxRetries);
-            
-            // Se ci sono ancora tentativi disponibili, riprova
-            if (retryCount < maxRetries) {
-                setTimeout(() => initController(retryCount + 1), retryDelay);
-            } else {
-                console.error(`jQuery o datepicker non disponibili dopo ${maxRetries} tentativi. Inizializzazione in modalità fallback.`);
-                
-                // Inizializza il controller in modalità fallback
-                initFallbackMode();
-            }
-        }
-    }
-    
-    // Funzione per inizializzare il controller in modalità fallback
-    function initFallbackMode() {
-        console.log('Inizializzazione controller in modalità fallback (senza jQuery/datepicker)');
-        
-        // Assicurati che window.titoli esista
-        if (!window.titoli) {
-            window.titoli = [];
-        }
-        
-        try {
-            // Crea una versione semplificata del controller
-            class SimplifiedController {
-                constructor() {
-                    this.simulazioni = [];
-                    this.simulazioniCaricate = false;
-                    
-                    // Carica le simulazioni dal server
-                    this.loadSimulazioniFromServer();
-                }
-                
-                loadSimulazioniFromServer() {
-                    Simulazione.load(true)
-                        .then(data => {
-                            this.simulazioni = data;
-                            this.simulazioniCaricate = true;
-                            this.updateSimulazioniTable();
-                        })
-                        .catch(error => {
-                            console.error('Errore nel caricamento delle simulazioni:', error);
-                            if (!this.simulazioniCaricate && this.simulazioni.length === 0) {
-                                this.loadSampleData();
-                                this.updateSimulazioniTable();
-                            }
-                        });
-                }
-                
-                loadSampleData() {
-                    // Simulazioni di esempio
-                    const dataAcquisto1 = new Date();
-                    dataAcquisto1.setMonth(dataAcquisto1.getMonth() - 6);
-                    const dataAcquisto2 = new Date();
-                    dataAcquisto2.setMonth(dataAcquisto2.getMonth() - 3);
-                    
-                    this.simulazioni = [
-                        { 
-                            id: 1, 
-                            titoloId: 1, 
-                            prezzoAcquisto: 98.25,
-                            dataAcquisto: dataAcquisto1.toISOString().split('T')[0],
-                            importoNominale: 10000,
-                            commissioniAcquisto: 0.25,
-                            rendimentoLordo: 2.75,
-                            rendimentoTassato: 2.31,
-                            rendimentoNettoCedole: 2.25,
-                            impostaBollo: 0.20,
-                            rendimentoNettoBollo: 2.05,
-                            plusMinusValenza: 0.50
-                        },
-                        { 
-                            id: 2, 
-                            titoloId: 2, 
-                            prezzoAcquisto: 99.10,
-                            dataAcquisto: dataAcquisto2.toISOString().split('T')[0],
-                            importoNominale: 20000,
-                            commissioniAcquisto: 0.20,
-                            rendimentoLordo: 1.95,
-                            rendimentoTassato: 1.64,
-                            rendimentoNettoCedole: 1.60,
-                            impostaBollo: 0.20,
-                            rendimentoNettoBollo: 1.40,
-                            plusMinusValenza: 0.40
-                        }
-                    ];
-                }
-                
-                updateSimulazioniTable() {
-                    const tbody = document.getElementById('simulazioni-list');
-                    if (!tbody) return;
-                    
-                    tbody.innerHTML = '';
-                    
-                    // Aggiorna la data di acquisto nel titolo della sezione
-                    const dataRendimentiElement = document.getElementById('data-rendimenti');
-                    if (dataRendimentiElement && this.simulazioni.length > 0) {
-                        // Prendi la data di acquisto dalla prima simulazione (sono tutte uguali)
-                        const dataAcquisto = this.simulazioni[0].dataAcquisto;
-                        if (dataAcquisto) {
-                            dataRendimentiElement.textContent = `Rendimenti al: ${Formatters.formatDate(dataAcquisto)}`;
-                        }
-                    }
-                    
-                    // Verifica che window.titoli esista prima di usarlo
-                    if (!window.titoli || !Array.isArray(window.titoli)) {
-                        console.error('window.titoli non è definito o non è un array');
-                        return;
-                    }
-                    
-                    // Ordina le simulazioni per data di scadenza crescente
-                    this.simulazioni.sort((a, b) => {
-                        const titoloA = window.titoli.find(t => t && t.id == a.titoloId);
-                        const titoloB = window.titoli.find(t => t && t.id == b.titoloId);
-                        
-                        if (!titoloA || !titoloA.dataScadenza) return -1;
-                        if (!titoloB || !titoloB.dataScadenza) return 1;
-                        
-                        const scadenzaA = new Date(titoloA.dataScadenza);
-                        const scadenzaB = new Date(titoloB.dataScadenza);
-                        
-                        return scadenzaA - scadenzaB;
-                    });
-                    
-                    this.simulazioni.forEach(simulazione => {
-                        // Verifica che simulazione.titoloId esista
-                        if (!simulazione.titoloId) return;
-                        
-                        const titolo = window.titoli.find(t => t && t.id == simulazione.titoloId);
-                        if (!titolo) return;
-                        
-                        const row = document.createElement('tr');
-                        
-                        // Aggiungi attributo data-titolo-id per il doppio click
-                        row.setAttribute('data-titolo-id', simulazione.titoloId);
-                        
-                        // Aggiungi classe per indicare che la riga è cliccabile
-                        row.classList.add('simulazione-row');
-                        
-                        // Determina la classe CSS in base al rendimento netto
-                        const rendimentoClass = (simulazione.rendimentoNettoBollo || 0) >= 0 ? 'rendimento-positivo' : 'rendimento-negativo';
-                        
-                        // Calcola il valore finale
-                        const importoNominale = simulazione.importoNominale || 0;
-                        const rendimentoNettoBollo = simulazione.rendimentoNettoBollo || 0;
-                        const valoreFinaleTeorico = importoNominale * (1 + (rendimentoNettoBollo / 100));
-                        
-                        // Usa Formatters.formatDecimal e Formatters.formatDate per la formattazione
-                        row.innerHTML = `
-                            <td>${titolo.nome || ''} (${titolo.codiceIsin || ''})</td>
-                            <td>${Formatters.formatDecimal(simulazione.prezzoAcquisto || 0)}</td>
-                            <td>${Formatters.formatDate(titolo.dataScadenza || '')}</td>
-                            <td>${Formatters.formatDecimal(simulazione.rendimentoSenzaCosti || 0)}%</td>
-                            <td>${Formatters.formatDecimal(simulazione.rendimentoConCommissioni || 0)}%</td>
-                            <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloMensile || 0)}%</td>
-                            <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloAnnuale || 0)}%</td>
-                            <td>${Formatters.formatDecimal(valoreFinaleTeorico)}</td>
-                        `;
-                        
-                        // Aggiungi event listener per il doppio click
-                        row.addEventListener('dblclick', function() {
-                            const titoloId = this.getAttribute('data-titolo-id');
-                            if (titoloId) {
-                                window.location.href = `dettaglio-simulazione.html?titoloId=${titoloId}`;
-                            }
-                        });
-                        
-                        tbody.appendChild(row);
-                    });
-                }
-            }
-            
-            // Crea l'istanza del controller semplificato
-            window.simulazioniController = new SimplifiedController();
-            console.log('Controller simulazioni inizializzato in modalità fallback');
-        } catch (error) {
-            console.error('Errore durante l\'inizializzazione del controller in modalità fallback:', error);
-        }
-    }
-    
-    // Avvia l'inizializzazione
-    initController();
+    // Crea l'istanza del controller e la rende disponibile globalmente
+    window.simulazioniController = new SimulazioniController();
 });

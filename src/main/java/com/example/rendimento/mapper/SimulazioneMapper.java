@@ -1,6 +1,7 @@
 package com.example.rendimento.mapper;
 
 import com.example.rendimento.dto.SimulazioneDTO;
+import com.example.rendimento.dto.TitoloDTO;
 import com.example.rendimento.model.Simulazione;
 import com.example.rendimento.repository.TitoloRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -63,6 +64,22 @@ public class SimulazioneMapper {
         dto.setBolloTotaleMensile(simulazione.getBolloTotaleMensile());
         dto.setRendimentoConBolloAnnuale(simulazione.getRendimentoConBolloAnnuale());
         dto.setBolloTotaleAnnuale(simulazione.getBolloTotaleAnnuale());
+        
+        // Aggiungi il titolo al DTO
+        if (simulazione.getTitolo() != null) {
+            TitoloDTO titoloDTO = new TitoloDTO();
+            titoloDTO.setIdTitolo(simulazione.getTitolo().getIdTitolo());
+            titoloDTO.setNome(simulazione.getTitolo().getNome());
+            titoloDTO.setCodiceIsin(simulazione.getTitolo().getCodiceIsin());
+            titoloDTO.setDataScadenza(simulazione.getTitolo().getDataScadenza());
+            titoloDTO.setTassoNominale(simulazione.getTitolo().getTassoNominale());
+            titoloDTO.setPeriodicitaCedole(simulazione.getTitolo().getPeriodicitaCedole().toString());
+            titoloDTO.setPeriodicitaBollo(simulazione.getTitolo().getPeriodicitaBollo().toString());
+            titoloDTO.setTipoTitolo(simulazione.getTitolo().getTipoTitolo());
+            titoloDTO.setUtenteId(simulazione.getTitolo().getUtente() != null ? simulazione.getTitolo().getUtente().getIdUtente() : null);
+            
+            dto.setTitolo(titoloDTO);
+        }
 
         return dto;
     }

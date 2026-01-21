@@ -4,8 +4,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.example.rendimento.dto.RisultatoRendimentoAdvancedDTO;
 import com.example.rendimento.dto.RisultatoSimulazioneDTO;
 import com.example.rendimento.dto.SimulazioneDTO;
+import com.example.rendimento.model.Titolo;
 
 /**
  * Interfaccia per il servizio che gestisce le operazioni sulle simulazioni.
@@ -146,4 +148,22 @@ public interface SimulazioneService {
      * @return lista di simulazioni associate ai titoli dell'utente, ordinate per data di scadenza crescente
      */
     List<SimulazioneDTO> getSimulazioniByUtenteIdOrderByScadenzaAsc(Integer utenteId, boolean latest);
+    
+    /**
+     * Calcola il rendimento avanzato di un titolo in base ai parametri forniti.
+     * Questo metodo calcola sia il bollo mensile che annuale e fornisce dettagli
+     * completi sul calcolo del rendimento.
+     * 
+     * @param titolo il titolo per cui calcolare il rendimento
+     * @param prezzoAcquisto prezzo di acquisto inserito dall'utente
+     * @param nominale importo nominale dell'investimento
+     * @param dataAcquisto data di acquisto
+     * @return DTO contenente tutti i risultati dettagliati del calcolo
+     * @throws IllegalArgumentException se i parametri non sono validi
+     */
+    RisultatoRendimentoAdvancedDTO calcolaRendimentoAdvanced(
+            Titolo titolo,
+            BigDecimal prezzoAcquisto,
+            BigDecimal nominale,
+            LocalDate dataAcquisto);
 }

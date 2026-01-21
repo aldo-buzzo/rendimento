@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dettaglio Calcolo Rendimenti</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Dettaglio Calcolo Rendimenti</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Dettaglio Calcolo Rendimenti</h5>
+                        <button id="btn-back" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Torna alla lista
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="loading" class="text-center my-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Caricamento...</span>
+                            </div>
+                            <p class="mt-2">Caricamento dati in corso...</p>
+                        </div>
+
+                        <div id="content" class="d-none">
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold">Informazioni Titolo</h6>
+                                    <table class="table table-sm">
+                                        <tbody>
+                                            <tr>
+                                                <th>Nome</th>
+                                                <td id="titolo-nome"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>ISIN</th>
+                                                <td id="titolo-isin"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Tipo</th>
+                                                <td id="titolo-tipo"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Scadenza</th>
+                                                <td id="titolo-scadenza"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Tasso Nominale</th>
+                                                <td id="titolo-tasso"></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold">Parametri Simulazione</h6>
+                                    <table class="table table-sm">
+                                        <tbody>
+                                            <tr>
+                                                <th>Prezzo Acquisto</th>
+                                                <td id="sim-prezzo"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Importo Nominale</th>
+                                                <td id="sim-importo"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Data Acquisto</th>
+                                                <td id="sim-data"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Commissioni</th>
+                                                <td id="sim-commissioni"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Giorni alla Scadenza</th>
+                                                <td id="sim-giorni"></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12">
+                                    <h6 class="fw-bold">Dettaglio Calcolo</h6>
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div id="calcolo-dettagliato">
+                                                <!-- Il contenuto verrà inserito dinamicamente -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sezione Risultati rimossa, ora inclusa nel dettaglio calcolo -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils/formatters.js"></script>
+    <script src="js/utils/validators.js"></script>
+    <script src="js/utils/dom-utils.js"></script>
+    <script src="js/utils/api-service.js"></script>
+    <script src="js/models/titolo.js"></script>
+    <script src="js/models/simulazione.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ottieni i parametri dalla query string
+            const urlParams = new URLSearchParams(window.location.search);
+            const simulazioneId = urlParams.get('simulazioneId');
+            const tipoRendimento = urlParams.get('tipoRendimento');
+            
+            if (!simulazioneId) {
+                showError('ID simulazione mancante');
+                return;
+            }
+            
+            // Pulsante per tornare alla pagina precedente
+            document.getElementById('btn-back').addEventListener('click', function() {
+                window.history.back();
+            });
+            
+            // Carica i dati della simulazione
+            loadSimulazioneDetails(simulazioneId, tipoRendimento);
+        });
+        
+function loadSimulazioneDetails(simulazioneId, tipoRendimento) {
+            // Mostra il loader
+            toggleLoading(true);
+            
+            // Carica direttamente i dettagli del calcolo
+            ApiService.getCalcoloDettagliato(simulazioneId)
+                .then(calcoloDettagliato => {
+                    // Ottieni la simulazione completa
+                    ApiService.getSimulazione(simulazioneId)
+                        .then(simulazione => {
+                            // Usa il titolo incluso nella simulazione
+                            const titolo = simulazione.titolo;
+                            
+                            // Crea un oggetto simulazione con i dati del calcolo dettagliato
+                            const simulazioneCompleta = {
+                                id: simulazioneId,
+                                titoloId: simulazione.idTitolo,
+                                prezzoAcquisto: calcoloDettagliato.prezzoAcquistoPercentuale,
+                                importoNominale: calcoloDettagliato.nominale,
+                                dataAcquisto: simulazione.dataAcquisto,
+                                commissioniAcquisto: calcoloDettagliato.commissionRate * 100, // Converti in percentuale
+                                rendimentoSenzaCosti: calcoloDettagliato.rendimentoSenzaCosti * 100, // Converti in percentuale
+                                rendimentoConCommissioni: calcoloDettagliato.rendimentoConCommissioni * 100, // Converti in percentuale
+                                rendimentoConBolloMensile: calcoloDettagliato.rendimentoConCommissioniEBolloMensile * 100, // Converti in percentuale
+                                rendimentoConBolloAnnuale: calcoloDettagliato.rendimentoConCommissioniEBolloAnnuale * 100 // Converti in percentuale
+                            };
+                            
+                            // Visualizza i dati
+                            displaySimulazioneDetails(simulazioneCompleta, titolo, calcoloDettagliato, tipoRendimento);
+                            toggleLoading(false);
+                        })
+                        .catch(error => {
+                            console.error('Errore nel caricamento della simulazione:', error);
+                            showError('Si è verificato un errore nel caricamento della simulazione');
+                            toggleLoading(false);
+                        });
+                })
+                .catch(error => {
+                    console.error('Errore nel caricamento dei dati:', error);
+                    showError('Si è verificato un errore nel caricamento dei dati');
+                    toggleLoading(false);
+                });
+        }
+        
+        function displaySimulazioneDetails(simulazione, titolo, calcoloDettagliato, tipoRendimento) {
+            try {
+                // Popola le informazioni del titolo
+                document.getElementById('titolo-nome').textContent = titolo.nome || '';
+                document.getElementById('titolo-isin').textContent = titolo.codiceIsin || '';
+                document.getElementById('titolo-tipo').textContent = titolo.tipoTitolo || '';
+                document.getElementById('titolo-scadenza').textContent = Formatters.formatDate(titolo.dataScadenza) || '';
+                document.getElementById('titolo-tasso').textContent = (titolo.tassoNominale ? Formatters.formatDecimal(titolo.tassoNominale) + '%' : '') || '';
+                
+                // Popola i parametri della simulazione
+                document.getElementById('sim-prezzo').textContent = Formatters.formatDecimal(simulazione.prezzoAcquisto) || '';
+                document.getElementById('sim-importo').textContent = Formatters.formatDecimal(simulazione.importoNominale) || '';
+                document.getElementById('sim-data').textContent = Formatters.formatDate(simulazione.dataAcquisto) || '';
+                document.getElementById('sim-commissioni').textContent = Formatters.formatDecimal(simulazione.commissioniAcquisto) + '%' || '';
+                
+                // Calcola i giorni alla scadenza
+                const dataAcquisto = new Date(simulazione.dataAcquisto);
+                const dataScadenza = new Date(titolo.dataScadenza);
+                const diffTime = dataScadenza - dataAcquisto;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                document.getElementById('sim-giorni').textContent = diffDays > 0 ? diffDays : 0;
+                
+                // Popola il dettaglio del calcolo in base al tipo di rendimento selezionato
+                const calcoloDetailDiv = document.getElementById('calcolo-dettagliato');
+                
+                // Verifica che l'elemento esista
+                if (!calcoloDetailDiv) {
+                    console.error("Elemento 'calcolo-dettagliato' non trovato nel DOM");
+                    showError("Errore nel caricamento della pagina: elemento 'calcolo-dettagliato' non trovato");
+                    return;
+                }
+                
+                // Svuota il contenitore
+                calcoloDetailDiv.innerHTML = '';
+                
+                // Crea il contenuto in base al tipo di rendimento
+                let dettaglioHtml = '';
+                
+                switch (tipoRendimento) {
+                    case 'netto':
+                        dettaglioHtml = createNettoDetailHtml(calcoloDettagliato, simulazione);
+                        break;
+                    case 'commissioni':
+                        dettaglioHtml = createCommissioniDetailHtml(calcoloDettagliato, simulazione);
+                        break;
+                    case 'bolloMensile':
+                        dettaglioHtml = createBolloMensileDetailHtml(calcoloDettagliato, simulazione);
+                        break;
+                    case 'bolloAnnuale':
+                        dettaglioHtml = createBolloAnnualeDetailHtml(calcoloDettagliato, simulazione);
+                        break;
+                    default:
+                        dettaglioHtml = '<p>Seleziona un tipo di rendimento valido</p>';
+                        break;
+                }
+                
+                calcoloDetailDiv.innerHTML = dettaglioHtml;
+                
+                // Mostra il contenuto
+                document.getElementById('content').classList.remove('d-none');
+            } catch (error) {
+                console.error("Errore durante la visualizzazione dei dettagli della simulazione:", error);
+                showError("Si è verificato un errore durante la visualizzazione dei dettagli: " + error.message);
+            }
+        }
+        
+        function createNettoDetailHtml(calcoloDettagliato, simulazione) {
+            // Assicurati che i valori siano definiti o imposta a 0
+            const valoreRimborso = calcoloDettagliato.valoreRimborso || 100;
+            const prezzoAcquisto = simulazione.prezzoAcquisto || 0;
+            const interessiNetti = calcoloDettagliato.interessiNetti || 0;
+            const plusvalenzaNetta = calcoloDettagliato.plusvalenzaNetta || 0;
+            const fattoreTempo = calcoloDettagliato.fattoreTempo || 0;
+            const fattoreAnnualizzazione = calcoloDettagliato.fattoreAnnualizzazione || 0;
+            const rendimentoSenzaCosti = simulazione.rendimentoSenzaCosti || 0;
+            
+            return `
+                <h5>Rendimento Senza Costi</h5>
+                <p>Il rendimento senza costi rappresenta il rendimento lordo del titolo, calcolato considerando solo la differenza tra il valore di rimborso e il prezzo di acquisto, più gli interessi.</p>
+                
+                <div class="alert alert-light">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Formula:</h6>
+                            <p>Rendimento = ((Valore di Rimborso - Prezzo di Acquisto) + Interessi) / Prezzo di Acquisto * Fattore Annualizzazione * 100</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Calcolo:</h6>
+                            <ul>
+                                <li>Valore di Rimborso: ${Formatters.formatDecimal(valoreRimborso)} €</li>
+                                <li>Prezzo di Acquisto: ${Formatters.formatDecimal(prezzoAcquisto)} €</li>
+                                <li>Interessi Netti: ${Formatters.formatDecimal(interessiNetti)} €</li>
+                                <li>Plusvalenza/Minusvalenza Netta: ${Formatters.formatDecimal(plusvalenzaNetta)} €</li>
+                                <li>Fattore Tempo (giorni/360): ${Formatters.formatDecimal(fattoreTempo)}</li>
+                                <li>Fattore Annualizzazione (360/giorni): ${Formatters.formatDecimal(fattoreAnnualizzazione)}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <p>Rendimento = ((${Formatters.formatDecimal(valoreRimborso)} - ${Formatters.formatDecimal(prezzoAcquisto)}) + ${Formatters.formatDecimal(interessiNetti)}) / ${Formatters.formatDecimal(prezzoAcquisto)} * ${Formatters.formatDecimal(fattoreAnnualizzazione)} * 100 = ${Formatters.formatDecimal(rendimentoSenzaCosti)}%</p>
+                    
+                    <h6>Risultati:</h6>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Tipo Rendimento</th>
+                                <th>Valore</th>
+                                <th>Formula Applicata</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Rendimento Senza Costi</td>
+                                <td>${Formatters.formatDecimal(rendimentoSenzaCosti)}%</td>
+                                <td>((${Formatters.formatDecimal(valoreRimborso)} - ${Formatters.formatDecimal(prezzoAcquisto)}) + ${Formatters.formatDecimal(interessiNetti)}) / ${Formatters.formatDecimal(prezzoAcquisto)} * ${Formatters.formatDecimal(fattoreAnnualizzazione)} * 100</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        function createNettoResultsHtml(calcoloDettagliato, simulazione) {
+            return `
+                <tr>
+                    <td>Rendimento Senza Costi</td>
+                    <td>${Formatters.formatDecimal(simulazione.rendimentoSenzaCosti)}%</td>
+                    <td>((Valore di Rimborso - Prezzo di Acquisto) + Interessi) / Prezzo di Acquisto * 100</td>
+                </tr>
+            `;
+        }
+        
+        function createCommissioniDetailHtml(calcoloDettagliato, simulazione) {
+            // Assicurati che i valori siano definiti o imposta a 0
+            const valoreRimborso = calcoloDettagliato.valoreRimborso || 100;
+            const prezzoAcquisto = simulazione.prezzoAcquisto || 0;
+            const commissioni = calcoloDettagliato.commissioni || 0;
+            const interessiNetti = calcoloDettagliato.interessiNetti || 0;
+            const plusvalenzaNetta = calcoloDettagliato.plusvalenzaNetta || 0;
+            const fattoreTempo = calcoloDettagliato.fattoreTempo || 0;
+            const fattoreAnnualizzazione = calcoloDettagliato.fattoreAnnualizzazione || 0;
+            const rendimentoSenzaCosti = simulazione.rendimentoSenzaCosti || 0;
+            const rendimentoConCommissioni = simulazione.rendimentoConCommissioni || 0;
+            
+            return `
+                <h5>Rendimento Con Commissioni</h5>
+                <p>Il rendimento con commissioni rappresenta il rendimento del titolo considerando anche le commissioni di acquisto.</p>
+                
+                <div class="alert alert-light">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Formula:</h6>
+                            <p>Rendimento = ((Valore di Rimborso - Prezzo di Acquisto - Commissioni) + Interessi) / Prezzo di Acquisto * Fattore Annualizzazione * 100</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Calcolo:</h6>
+                            <ul>
+                                <li>Valore di Rimborso: ${Formatters.formatDecimal(valoreRimborso)} €</li>
+                                <li>Prezzo di Acquisto: ${Formatters.formatDecimal(prezzoAcquisto)} €</li>
+                                <li>Commissioni: ${Formatters.formatDecimal(commissioni)} €</li>
+                                <li>Interessi Netti: ${Formatters.formatDecimal(interessiNetti)} €</li>
+                                <li>Plusvalenza/Minusvalenza Netta: ${Formatters.formatDecimal(plusvalenzaNetta)} €</li>
+                                <li>Fattore Tempo (giorni/360): ${Formatters.formatDecimal(fattoreTempo)}</li>
+                                <li>Fattore Annualizzazione (360/giorni): ${Formatters.formatDecimal(fattoreAnnualizzazione)}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <p>Rendimento = ((${Formatters.formatDecimal(valoreRimborso)} - ${Formatters.formatDecimal(prezzoAcquisto)} - ${Formatters.formatDecimal(commissioni)}) + ${Formatters.formatDecimal(interessiNetti)}) / ${Formatters.formatDecimal(prezzoAcquisto)} * ${Formatters.formatDecimal(fattoreAnnualizzazione)} * 100 = ${Formatters.formatDecimal(rendimentoConCommissioni)}%</p>
+                    
+                    <h6>Risultati:</h6>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Tipo Rendimento</th>
+                                <th>Valore</th>
+                                <th>Formula Applicata</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Rendimento Senza Costi</td>
+                                <td>${Formatters.formatDecimal(rendimentoSenzaCosti)}%</td>
+                                <td>((${Formatters.formatDecimal(valoreRimborso)} - ${Formatters.formatDecimal(prezzoAcquisto)}) + ${Formatters.formatDecimal(interessiNetti)}) / ${Formatters.formatDecimal(prezzoAcquisto)} * ${Formatters.formatDecimal(fattoreAnnualizzazione)} * 100</td>
+                            </tr>
+                            <tr>
+                                <td>Rendimento Con Commissioni</td>
+                                <td>${Formatters.formatDecimal(rendimentoConCommissioni)}%</td>
+                                <td>((${Formatters.formatDecimal(valoreRimborso)} - ${Formatters.formatDecimal(prezzoAcquisto)} - ${Formatters.formatDecimal(commissioni)}) + ${Formatters.formatDecimal(interessiNetti)}) / ${Formatters.formatDecimal(prezzoAcquisto)} * ${Formatters.formatDecimal(fattoreAnnualizzazione)} * 100</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        function createCommissioniResultsHtml(calcoloDettagliato, simulazione) {
+            return `
+                <tr>
+                    <td>Rendimento Senza Costi</td>
+                    <td>${Formatters.formatDecimal(simulazione.rendimentoSenzaCosti)}%</td>
+                    <td>((Valore di Rimborso - Prezzo di Acquisto) + Interessi) / Prezzo di Acquisto * 100</td>
+                </tr>
+                <tr>
+                    <td>Rendimento Con Commissioni</td>
+                    <td>${Formatters.formatDecimal(simulazione.rendimentoConCommissioni)}%</td>
+                    <td>((Valore di Rimborso - Prezzo di Acquisto - Commissioni) + Interessi) / Prezzo di Acquisto * 100</td>
+                </tr>
+            `;
+        }
+        
+        function createBolloMensileDetailHtml(calcoloDettagliato, simulazione) {
+            // Assicurati che i valori siano definiti o imposta a 0
+            const valoreRimborso = calcoloDettagliato.valoreRimborso || 100;
+            const prezzoAcquisto = simulazione.prezzoAcquisto || 0;
+            const commissioni = calcoloDettagliato.commissioni || 0;
+            const bolloTotaleMensile = calcoloDettagliato.bolloTotaleMensile || 0;
+            const interessiNetti = calcoloDettagliato.interessiNetti || 0;
+            const plusvalenzaNetta = calcoloDettagliato.plusvalenzaNetta || 0;
+            const fattoreTempo = calcoloDettagliato.fattoreTempo || 0;
+            const fattoreAnnualizzazione = calcoloDettagliato.fattoreAnnualizzazione || 0;
+            const rendimentoSenzaCosti = simulazione.rendimentoSenzaCosti || 0;
+            const rendimentoConCommissioni = simulazione.rendimentoConCommissioni || 0;
+            const rendimentoConBolloMensile = simulazione.rendimentoConBolloMensile || 0;
+            
+            return `
+                <h5>Rendimento Con Bollo Mensile</h5>
+                <p>Il rendimento con bollo mensile rappresenta il rendimento del titolo considerando le commissioni di acquisto e l'imposta di bollo calcolata mensilmente.</p>
+                
+                <div class="alert alert-light">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Formula:</h6>
+                            <p>Rendimento = ((Valore di Rimborso - Prezzo di Acquisto - Commissioni - Bollo Mensile) + Interessi) / Prezzo di Acquisto * Fattore Annualizzazione * 100</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Calcolo:</h6>
+                            <ul>
+                                <li>Valore di Rimborso: ${Formatters.formatDecimal(valoreRimborso)} €</li>
+                                <li>Prezzo di Acquisto: ${Formatters.formatDecimal(prezzoAcquisto)} €</li>
+                                <li>Commissioni: ${Formatters.formatDecimal(commissioni)} €</li>
+                                <li>Bollo Mensile: ${Formatters.formatDecimal(bolloTotaleMensile)} €</li>
+                                <li>Interessi Netti: ${Formatters.formatDecimal(interessiNetti)} €</li>
+                                <li>Plusvalenza/Minusvalenza Netta: ${Formatters.formatDecimal(plusvalenzaNetta)} €</li>
+                                <li>Fattore Tempo (giorni/360): ${Formatters.formatDecimal(fattoreTempo)}</li>
+                                <li>Fattore Annualizzazione (360/giorni): ${Formatters.formatDecimal(fattoreAnnualizzazione)}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <p>Rendimento = ((${Formatters.formatDecimal(valoreRimborso)} - ${Formatters.formatDecimal(prezzoAcquisto)} - ${Formatters.formatDecimal(commissioni)} - ${Formatters.formatDecimal(bolloTotaleMensile)}) + ${Formatters.formatDecimal(interessiNetti)}) / ${Formatters.formatDecimal(prezzoAcquisto)} * ${Formatters.formatDecimal(fattoreAnnualizzazione)} * 100 = ${Formatters.formatDecimal(rendimentoConBolloMensile)}%</p>
+                    
+                    <h6>Risultati:</h6>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Tipo Rendimento</th>
+                                <th>Valore</th>
+                                <th>Formula Applicata</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Rendimento Senza Costi</td>
+                                <td>${Formatters.formatDecimal(rendimentoSenzaCosti)}%</td>
+                                <td>((${Formatters.formatDecimal(valoreRimborso)} - ${Formatters.formatDecimal(prezzoAcquisto)}) + ${Formatters.formatDecimal(interessiNetti)}) / ${Formatters.formatDecimal(prezzoAcquisto)} * ${Formatters.formatDecimal(fattoreAnnualizzazione)} * 100</td>
+                            </tr>
+                            <tr>
+                                <td>Rendimento Con Commissioni</td>
+                                <td>${Formatters.formatDecimal(rendimentoConCommissioni)}%</td>
+                                <td>((${Formatters.formatDecimal(valoreRimborso)} - ${Formatters.formatDecimal(prezzoAcquisto)} - ${Formatters.formatDecimal(commissioni)}) + ${Formatters.formatDecimal(interessiNetti)}) / ${Formatters.formatDecimal(prezzoAcquisto)} * ${Formatters.formatDecimal(fattoreAnnualizzazione)} * 100</td>
+                            </tr>
+                            <tr>
+                                <td>Rendimento Con Bollo Mensile</td>
+                                <td>${Formatters.formatDecimal(rendimentoConBolloMensile)}%</td>
+                                <td>((${Formatters.formatDecimal(valoreRimborso)} - ${Formatters.formatDecimal(prezzoAcquisto)} - ${Formatters.formatDecimal(commissioni)} - ${Formatters.formatDecimal(bolloTotaleMensile)}) + ${Formatters.formatDecimal(interessiNetti)}) / ${Formatters.formatDecimal(prezzoAcquisto)} * ${Formatters.formatDecimal(fattoreAnnualizzazione)} * 100</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        function createBolloMensileResultsHtml(calcoloDettagliato, simulazione) {
+            return `
+                <tr>
+                    <td>Rendimento Senza Costi</td>
+                    <td>${Formatters.formatDecimal(simulazione.rendimentoSenzaCosti)}%</td>
+                    <td>((Valore di Rimborso - Prezzo di Acquisto) + Interessi) / Prezzo di Acquisto * 100</td>
+                </tr>
+                <tr>
+                    <td>Rendimento Con Commissioni</td>
+                    <td>${Formatters.formatDecimal(simulazione.rendimentoConCommissioni)}%</td>
+                    <td>((Valore di Rimborso - Prezzo di Acquisto - Commissioni) + Interessi) / Prezzo di Acquisto * 100</td>
+                </tr>
+                <tr>
+                    <td>Rendimento Con Bollo Mensile</td>
+                    <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloMensile)}%</td>
+                    <td>((Valore di Rimborso - Prezzo di Acquisto - Commissioni - Bollo Mensile) + Interessi) / Prezzo di Acquisto * 100</td>
+                </tr>
+            `;
+        }
+        
+        function createBolloAnnualeDetailHtml(calcoloDettagliato, simulazione) {
+            // Assicurati che i valori siano definiti o imposta a 0
+            const valoreRimborso = calcoloDettagliato.valoreRimborso || 100;
+            const prezzoAcquisto = simulazione.prezzoAcquisto || 0;
+            const commissioni = calcoloDettagliato.commissioni || 0;
+            const bolloTotaleAnnuale = calcoloDettagliato.bolloTotaleAnnuale || 0;
+            const interessiNetti = calcoloDettagliato.interessiNetti || 0;
+            const plusvalenzaNetta = calcoloDettagliato.plusvalenzaNetta || 0;
+            const fattoreTempo = calcoloDettagliato.fattoreTempo || 0;
+            const fattoreAnnualizzazione = calcoloDettagliato.fattoreAnnualizzazione || 0;
+            const rendimentoSenzaCosti = simulazione.rendimentoSenzaCosti || 0;
+            const rendimentoConCommissioni = simulazione.rendimentoConCommissioni || 0;
+            const rendimentoConBolloMensile = simulazione.rendimentoConBolloMensile || 0;
+            const rendimentoConBolloAnnuale = simulazione.rendimentoConBolloAnnuale || 0;
+            
+            return `
+                <div class="alert alert-light">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Formula:</h6>
+                            <p>Rendimento = ((Valore di Rimborso - Prezzo di Acquisto - Commissioni - Bollo Annuale) + Interessi) / Prezzo di Acquisto * Fattore Annualizzazione * 100</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Calcolo:</h6>
+                            <ul>
+                                <li>Valore di Rimborso: ${Formatters.formatDecimal(valoreRimborso)} €</li>
+                                <li>Prezzo di Acquisto: ${Formatters.formatDecimal(prezzoAcquisto)} €</li>
+                                <li>Commissioni: ${Formatters.formatDecimal(commissioni)} €</li>
+                                <li>Bollo Annuale: ${Formatters.formatDecimal(bolloTotaleAnnuale)} €</li>
+                                <li>Interessi Netti: ${Formatters.formatDecimal(interessiNetti)} €</li>
+                                <li>Plusvalenza/Minusvalenza Netta: ${Formatters.formatDecimal(plusvalenzaNetta)} €</li>
+                                <li>Fattore Tempo (giorni/360): ${Formatters.formatDecimal(fattoreTempo)}</li>
+                                <li>Fattore Annualizzazione (360/giorni): ${Formatters.formatDecimal(fattoreAnnualizzazione)}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <p>Rendimento = ((${Formatters.formatDecimal(valoreRimborso)} - ${Formatters.formatDecimal(prezzoAcquisto)} - ${Formatters.formatDecimal(commissioni)} - ${Formatters.formatDecimal(bolloTotaleAnnuale)}) + ${Formatters.formatDecimal(interessiNetti)}) / ${Formatters.formatDecimal(prezzoAcquisto)} * ${Formatters.formatDecimal(fattoreAnnualizzazione)} * 100 = ${Formatters.formatDecimal(rendimentoConBolloAnnuale)}%</p>
+                    
+                    <h6>Risultati:</h6>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Tipo Rendimento</th>
+                                <th>Valore</th>
+                                <th>Formula Applicata</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Rendimento Senza Costi</td>
+                                <td>${Formatters.formatDecimal(rendimentoSenzaCosti)}%</td>
+                                <td>((${Formatters.formatDecimal(valoreRimborso)} - ${Formatters.formatDecimal(prezzoAcquisto)}) + ${Formatters.formatDecimal(interessiNetti)}) / ${Formatters.formatDecimal(prezzoAcquisto)} * ${Formatters.formatDecimal(fattoreAnnualizzazione)} * 100</td>
+                            </tr>
+                            <tr>
+                                <td>Rendimento Con Commissioni</td>
+                                <td>${Formatters.formatDecimal(rendimentoConCommissioni)}%</td>
+                                <td>((${Formatters.formatDecimal(valoreRimborso)} - ${Formatters.formatDecimal(prezzoAcquisto)} - ${Formatters.formatDecimal(commissioni)}) + ${Formatters.formatDecimal(interessiNetti)}) / ${Formatters.formatDecimal(prezzoAcquisto)} * ${Formatters.formatDecimal(fattoreAnnualizzazione)} * 100</td>
+                            </tr>
+                            <tr>
+                                <td>Rendimento Con Bollo Mensile</td>
+                                <td>${Formatters.formatDecimal(rendimentoConBolloMensile)}%</td>
+                                <td>((${Formatters.formatDecimal(valoreRimborso)} - ${Formatters.formatDecimal(prezzoAcquisto)} - ${Formatters.formatDecimal(commissioni)} - ${Formatters.formatDecimal(calcoloDettagliato.bolloTotaleMensile || 0)}) + ${Formatters.formatDecimal(interessiNetti)}) / ${Formatters.formatDecimal(prezzoAcquisto)} * ${Formatters.formatDecimal(fattoreAnnualizzazione)} * 100</td>
+                            </tr>
+                            <tr>
+                                <td>Rendimento Con Bollo Annuale</td>
+                                <td>${Formatters.formatDecimal(rendimentoConBolloAnnuale)}%</td>
+                                <td>((${Formatters.formatDecimal(valoreRimborso)} - ${Formatters.formatDecimal(prezzoAcquisto)} - ${Formatters.formatDecimal(commissioni)} - ${Formatters.formatDecimal(bolloTotaleAnnuale)}) + ${Formatters.formatDecimal(interessiNetti)}) / ${Formatters.formatDecimal(prezzoAcquisto)} * ${Formatters.formatDecimal(fattoreAnnualizzazione)} * 100</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        function createBolloAnnualeResultsHtml(calcoloDettagliato, simulazione) {
+            return `
+                <tr>
+                    <td>Rendimento Senza Costi</td>
+                    <td>${Formatters.formatDecimal(simulazione.rendimentoSenzaCosti)}%</td>
+                    <td>((Valore di Rimborso - Prezzo di Acquisto) + Interessi) / Prezzo di Acquisto * 100</td>
+                </tr>
+                <tr>
+                    <td>Rendimento Con Commissioni</td>
+                    <td>${Formatters.formatDecimal(simulazione.rendimentoConCommissioni)}%</td>
+                    <td>((Valore di Rimborso - Prezzo di Acquisto - Commissioni) + Interessi) / Prezzo di Acquisto * 100</td>
+                </tr>
+                <tr>
+                    <td>Rendimento Con Bollo Mensile</td>
+                    <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloMensile)}%</td>
+                    <td>((Valore di Rimborso - Prezzo di Acquisto - Commissioni - Bollo Mensile) + Interessi) / Prezzo di Acquisto * 100</td>
+                </tr>
+                <tr>
+                    <td>Rendimento Con Bollo Annuale</td>
+                    <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloAnnuale)}%</td>
+                    <td>((Valore di Rimborso - Prezzo di Acquisto - Commissioni - Bollo Annuale) + Interessi) / Prezzo di Acquisto * 100</td>
+                </tr>
+            `;
+        }
+        
+        function toggleLoading(show) {
+            const loadingElement = document.getElementById('loading');
+            const contentElement = document.getElementById('content');
+            
+            if (show) {
+                loadingElement.classList.remove('d-none');
+                contentElement.classList.add('d-none');
+            } else {
+                loadingElement.classList.add('d-none');
+                contentElement.classList.remove('d-none');
+            }
+        }
+        
+        function showError(message) {
+            const contentElement = document.getElementById('content');
+            contentElement.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill"></i> ${message}
+                </div>
+            `;
+            contentElement.classList.remove('d-none');
+            
+            document.getElementById('loading').classList.add('d-none');
+        }
+    </script>
+</body>
+</html>
