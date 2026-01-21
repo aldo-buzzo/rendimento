@@ -42,6 +42,25 @@ window.Formatters = {
             maximumFractionDigits: 5
         }).format(num);
     },
+    
+    /**
+     * Formatta un numero decimale con esattamente 3 cifre decimali
+     * @param {number|string} value - Il valore da formattare
+     * @returns {string} Il valore formattato con 3 cifre decimali
+     */
+    formatDecimal3: function(value) {
+        if (value === null || value === undefined) return '';
+        
+        // Converti il valore in numero e poi formatta con esattamente 3 decimali
+        const num = parseFloat(value);
+        if (isNaN(num)) return '';
+        
+        // Usa Intl.NumberFormat per formattare il numero secondo le convenzioni italiane
+        return new Intl.NumberFormat('it-IT', {
+            minimumFractionDigits: 3,
+            maximumFractionDigits: 3
+        }).format(num);
+    },
 
     /**
      * Formatta una data in formato italiano (gg-mm-aaaa)

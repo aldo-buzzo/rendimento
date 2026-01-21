@@ -87,86 +87,45 @@ window.TrendsController = (function() {
         // Mostra indicatore di caricamento
         DomUtils.toggleLoading(true);
         
-        // Chiama l'API per recuperare i titoli filtrati
-        ApiService.get(`${ApiService.baseUrl}/titolo/scadenza/${periodo}`)
-            .then(titoli => {
-                console.log(`Titoli caricati per periodo ${periodo}:`, titoli);
-                
-                // Filtra i titoli in base all'intorno di scadenza specificato
-                const titoliInIntorno = filtraTitoliPerIntornoScadenza(titoli, periodo);
+        // Chiama l'API per recuperare i dati di trend dei rendimenti
+        ApiService.get(`${ApiService.baseUrl}/simulazioni/trends/${periodo}`)
+            .then(trendData => {
+                console.log(`Dati di trend caricati per periodo ${periodo}:`, trendData);
                 
                 // Aggiorna la tabella dei titoli
-                updateTitoliTable(titoliInIntorno, sectionIndex);
+                updateTitoliTable(trendData.titoli, sectionIndex);
                 
-                // Calcola e visualizza i rendimenti
-                updateRendimentiStats(titoliInIntorno, sectionIndex);
+                // Aggiorna i rendimenti statistici
+                updateRendimentiStatsFromTrendData(trendData, sectionIndex);
                 
                 // Nascondi indicatore di caricamento
                 DomUtils.toggleLoading(false);
             })
             .catch(error => {
-                console.error(`Errore nel caricamento dei titoli per periodo ${periodo}:`, error);
-                DomUtils.showAlert('Errore nel caricamento dei titoli', 'danger');
+                console.error(`Errore nel caricamento dei dati di trend per periodo ${periodo}:`, error);
+                DomUtils.showAlert('Errore nel caricamento dei dati di trend', 'danger');
                 DomUtils.toggleLoading(false);
             });
     }
     
     /**
-     * Filtra i titoli in base all'intorno di scadenza specificato
+     * Aggiorna i rendimenti statistici dai dati di trend
      * 
-     * @param {Array} titoli - Array di titoli
-     * @param {string} periodo - Il periodo di scadenza (trimestrali, semestrali, annuali, triennali, tutti)
-     * @returns {Array} - Array di titoli filtrati
+     * @param {Object} trendData - Dati di trend dei rendimenti
+     * @param {number} sectionIndex - L'indice della sezione (1, 2, 3)
      */
-    function filtraTitoliPerIntornoScadenza(titoli, periodo) {
-        if (periodo === 'tutti') {
-            return titoli;
-        }
-        
-        const oggi = new Date();
-        let minMesi = 0;
-        let maxMesi = 0;
-        
-        // Definisci l'intorno di scadenza in base al periodo
-        switch (periodo) {
-            case 'trimestrali':
-                minMesi = 2;
-                maxMesi = 3;
-                break;
-            case 'semestrali':
-                minMesi = 5;
-                maxMesi = 6;
-                break;
-            case 'annuali':
-                minMesi = 11;
-                maxMesi = 12;
-                break;
-            case 'triennali':
-                minMesi = 30; // 2 anni e mezzo
-                maxMesi = 36; // 3 anni
-                break;
-            default:
-                return titoli;
-        }
-        
-        // Calcola le date di scadenza minima e massima
-        const dataMinima = new Date(oggi);
-        dataMinima.setMonth(dataMinima.getMonth() + minMesi);
-        
-        const dataMassima = new Date(oggi);
-        dataMassima.setMonth(dataMassima.getMonth() + maxMesi);
-        
-        // Filtra i titoli in base all'intorno di scadenza
-        return titoli.filter(titolo => {
-            const dataScadenza = new Date(titolo.dataScadenza);
-            return dataScadenza >= dataMinima && dataScadenza <= dataMassima;
-        });
+    function updateRendimentiStatsFromTrendData(trendData, sectionIndex) {
+        // Imposta i rendimenti minimi, medi e massimi
+        // Moltiplica per 100 perché i valori sono decimali (es. 0.05 per 5%)
+        document.getElementById(`rendimento-minimo-${sectionIndex}`).textContent = Formatters.formatDecimal3(trendData.rendimentoMinimo * 100) + '%';
+        document.getElementById(`rendimento-medio-${sectionIndex}`).textContent = Formatters.formatDecimal3(trendData.rendimentoMedio * 100) + '%';
+        document.getElementById(`rendimento-massimo-${sectionIndex}`).textContent = Formatters.formatDecimal3(trendData.rendimentoMassimo * 100) + '%';
     }
     
     /**
      * Aggiorna la tabella dei titoli
      * 
-     * @param {Array} titoli - Array di titoli
+     * @param {Array} titoli - Array di titoli con rendimenti
      * @param {number} sectionIndex - L'indice della sezione (1, 2, 3)
      */
     function updateTitoliTable(titoli, sectionIndex) {
@@ -192,100 +151,16 @@ window.TrendsController = (function() {
         titoli.forEach(titolo => {
             const row = document.createElement('tr');
             
-            // Calcola i rendimenti del titolo
-            const rendimentoTrimestrale = calcolaRendimentoTrimestrale(titolo);
-            const rendimentoAnnuale = calcolaRendimentoAnnuale(titolo);
-            
             row.innerHTML = `
                 <td>${titolo.nome}</td>
-                <td>${Formatters.formatDecimal(rendimentoTrimestrale)}%</td>
-                <td>${Formatters.formatDecimal(rendimentoAnnuale)}%</td>
+                <td>${Formatters.formatDecimal3(titolo.rendimentoBolloMensile * 100)}%</td>
+                <td>${Formatters.formatDecimal3(titolo.rendimentoBolloAnnuale * 100)}%</td>
             `;
             
             titoliList.appendChild(row);
         });
     }
     
-    /**
-     * Calcola e visualizza i rendimenti minimi, medi e massimi
-     * 
-     * @param {Array} titoli - Array di titoli
-     * @param {number} sectionIndex - L'indice della sezione (1, 2, 3)
-     */
-    function updateRendimentiStats(titoli, sectionIndex) {
-        // Se non ci sono titoli, imposta i rendimenti a 0
-        if (!titoli || titoli.length === 0) {
-            document.getElementById(`rendimento-minimo-${sectionIndex}`).textContent = '0.00%';
-            document.getElementById(`rendimento-medio-${sectionIndex}`).textContent = '0.00%';
-            document.getElementById(`rendimento-massimo-${sectionIndex}`).textContent = '0.00%';
-            return;
-        }
-        
-        // Calcola i rendimenti annuali di tutti i titoli
-        const rendimenti = titoli.map(titolo => calcolaRendimentoAnnuale(titolo));
-        
-        // Calcola il rendimento minimo
-        const rendimentoMinimo = Math.min(...rendimenti);
-        document.getElementById(`rendimento-minimo-${sectionIndex}`).textContent = Formatters.formatDecimal(rendimentoMinimo) + '%';
-        
-        // Calcola il rendimento medio
-        const rendimentoMedio = rendimenti.reduce((a, b) => a + b, 0) / rendimenti.length;
-        document.getElementById(`rendimento-medio-${sectionIndex}`).textContent = Formatters.formatDecimal(rendimentoMedio) + '%';
-        
-        // Calcola il rendimento massimo
-        const rendimentoMassimo = Math.max(...rendimenti);
-        document.getElementById(`rendimento-massimo-${sectionIndex}`).textContent = Formatters.formatDecimal(rendimentoMassimo) + '%';
-    }
-    
-    /**
-     * Calcola il rendimento trimestrale di un titolo (solo interessi e plusvalenze/minusvalenze, escluse commissioni e spese)
-     * 
-     * @param {Object} titolo - Il titolo
-     * @returns {number} Il rendimento trimestrale
-     */
-    function calcolaRendimentoTrimestrale(titolo) {
-        // Calcolo del rendimento trimestrale basato solo su interessi e plusvalenze/minusvalenze
-        // In un'implementazione reale, questo calcolo sarebbe più complesso e terrebbe conto
-        // di tutti i fattori che influenzano il rendimento
-        
-        // Rendimento base (tasso nominale)
-        const tassoNominale = titolo.tassoNominale || 0;
-        
-        // Calcolo degli interessi trimestrali (25% degli interessi annuali)
-        const interessiTrimestrali = tassoNominale * 0.25;
-        
-        // Calcolo della plusvalenza/minusvalenza (semplificato)
-        // In un'implementazione reale, questo dipenderebbe dal prezzo di acquisto e dal prezzo attuale
-        const plusvalenza = 0; // Semplificato per questo esempio
-        
-        // Rendimento trimestrale = interessi + plusvalenza (escluse commissioni e spese)
-        return interessiTrimestrali + plusvalenza;
-    }
-    
-    /**
-     * Calcola il rendimento annuale di un titolo (solo interessi e plusvalenze/minusvalenze, escluse commissioni e spese)
-     * 
-     * @param {Object} titolo - Il titolo
-     * @returns {number} Il rendimento annuale
-     */
-    function calcolaRendimentoAnnuale(titolo) {
-        // Calcolo del rendimento annuale basato solo su interessi e plusvalenze/minusvalenze
-        // In un'implementazione reale, questo calcolo sarebbe più complesso e terrebbe conto
-        // di tutti i fattori che influenzano il rendimento
-        
-        // Rendimento base (tasso nominale)
-        const tassoNominale = titolo.tassoNominale || 0;
-        
-        // Calcolo degli interessi annuali
-        const interessiAnnuali = tassoNominale;
-        
-        // Calcolo della plusvalenza/minusvalenza (semplificato)
-        // In un'implementazione reale, questo dipenderebbe dal prezzo di acquisto e dal prezzo attuale
-        const plusvalenza = 0; // Semplificato per questo esempio
-        
-        // Rendimento annuale = interessi + plusvalenza (escluse commissioni e spese)
-        return interessiAnnuali + plusvalenza;
-    }
     
     // API pubblica
     return {

@@ -3,7 +3,9 @@ package com.example.rendimento.controllers;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +28,8 @@ import com.example.rendimento.dto.RisultatoRendimentoAdvancedDTO;
 import com.example.rendimento.dto.RisultatoSimulazioneDTO;
 import com.example.rendimento.dto.SimulazioneDTO;
 import com.example.rendimento.dto.TitoloDTO;
+import com.example.rendimento.dto.TrendRendimentiDTO;
+import com.example.rendimento.dto.TrendRendimentiDTO.TitoloRendimentoDTO;
 import com.example.rendimento.dto.UtenteResponseDTO;
 import com.example.rendimento.model.Titolo;
 import com.example.rendimento.repository.TitoloRepository;
@@ -459,5 +463,167 @@ public class SimulazioneController {
         
         log.info("Risposta per GET /api/simulazioni/{}/calcolo-dettagliato: {}", id, risultato);
         return ResponseEntity.ok(risultato);
+    }
+    
+    /**
+     * Endpoint per il recupero dei dati di trend dei rendimenti per un determinato periodo.
+     * Questo endpoint restituisce un oggetto TrendRendimentiDTO con i dati statistici
+     * (rendimento minimo, medio, massimo) e la lista dei titoli con i loro rendimenti.
+     *
+     * @param periodo il periodo di scadenza (trimestrali, semestrali, annuali, triennali, tutti)
+     * @return i dati di trend dei rendimenti
+     */
+    @GetMapping("/trends/{periodo}")
+    public ResponseEntity<TrendRendimentiDTO> getTrendRendimenti(@PathVariable String periodo) {
+        log.info("Ricevuta richiesta GET /api/simulazioni/trends/{} con periodo: {}", "periodo", periodo);
+        
+        // Ottieni l'utente corrente
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        
+        // Ottieni l'ID dell'utente corrente
+        Integer utenteId = utenteService.findByUsername(username)
+                .map(UtenteResponseDTO::getIdUtente)
+                .orElseThrow(() -> new IllegalStateException("Utente non autenticato"));
+        
+        // Recupera tutti i titoli con data di scadenza futura che appartengono all'utente corrente
+        List<Titolo> titoliValidi = titoloRepository.findByDataScadenzaAfterAndUtente_IdUtente(LocalDate.now(), utenteId);
+        log.info("Trovati {} titoli con scadenza futura per l'utente ID: {}", titoliValidi.size(), utenteId);
+        
+        // Filtra i titoli in base al periodo di scadenza specificato
+        List<Titolo> titoliFiltrati = filtraTitoliPerPeriodo(titoliValidi, periodo);
+        log.info("Filtrati {} titoli per il periodo: {}", titoliFiltrati.size(), periodo);
+        
+        // Ordina i titoli per data di scadenza crescente
+        titoliFiltrati.sort(Comparator.comparing(Titolo::getDataScadenza));
+        log.info("Titoli ordinati per data di scadenza crescente");
+        
+        // Recupera le simulazioni più recenti per i titoli filtrati
+        List<SimulazioneDTO> simulazioni = new ArrayList<>();
+        for (Titolo titolo : titoliFiltrati) {
+            try {
+                SimulazioneDTO simulazione = simulazioneService.getLatestSimulazioneByTitoloId(titolo.getIdTitolo());
+                simulazioni.add(simulazione);
+            } catch (EntityNotFoundException e) {
+                // Se non esiste una simulazione per il titolo, lo ignoriamo
+                log.warn("Nessuna simulazione trovata per il titolo ID: {}", titolo.getIdTitolo());
+            }
+        }
+        
+        // Calcola i rendimenti per ogni titolo
+        List<TitoloRendimentoDTO> titoliRendimento = new ArrayList<>();
+        List<BigDecimal> rendimentiBolloAnnuale = new ArrayList<>();
+        
+        for (SimulazioneDTO simulazione : simulazioni) {
+            try {
+                // Recupera il titolo associato
+                Titolo titolo = titoloRepository.findById(simulazione.getIdTitolo())
+                        .orElseThrow(() -> new EntityNotFoundException("Titolo non trovato con ID: " + simulazione.getIdTitolo()));
+                
+                // Calcola i rendimenti dettagliati
+                RisultatoRendimentoAdvancedDTO risultato = simulazioneService.calcolaRendimentoAdvanced(
+                        titolo,
+                        simulazione.getPrezzoAcquisto(),
+                        simulazione.getNominale() != null ? simulazione.getNominale() : new BigDecimal("10000"),
+                        simulazione.getDataAcquisto()
+                );
+                
+                // Crea un oggetto TitoloRendimentoDTO con i dati del titolo e i rendimenti calcolati
+                TitoloRendimentoDTO titoloRendimento = new TitoloRendimentoDTO(
+                        titolo.getIdTitolo(),
+                        titolo.getNome(),
+                        titolo.getCodiceIsin(),
+                        risultato.getRendimentoConCommissioniEBolloMensile(),
+                        risultato.getRendimentoConCommissioniEBolloAnnuale()
+                );
+                
+                titoliRendimento.add(titoloRendimento);
+                rendimentiBolloAnnuale.add(risultato.getRendimentoConCommissioniEBolloAnnuale());
+            } catch (Exception e) {
+                log.error("Errore nel calcolo dei rendimenti per il titolo ID: {}, Errore: {}", 
+                        simulazione.getIdTitolo(), e.getMessage());
+            }
+        }
+        
+        // Calcola i rendimenti minimi, medi e massimi
+        BigDecimal rendimentoMinimo = BigDecimal.ZERO;
+        BigDecimal rendimentoMedio = BigDecimal.ZERO;
+        BigDecimal rendimentoMassimo = BigDecimal.ZERO;
+        
+        if (!rendimentiBolloAnnuale.isEmpty()) {
+            rendimentoMinimo = rendimentiBolloAnnuale.stream()
+                    .min(Comparator.naturalOrder())
+                    .orElse(BigDecimal.ZERO);
+            
+            rendimentoMassimo = rendimentiBolloAnnuale.stream()
+                    .max(Comparator.naturalOrder())
+                    .orElse(BigDecimal.ZERO);
+            
+            rendimentoMedio = rendimentiBolloAnnuale.stream()
+                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                    .divide(new BigDecimal(rendimentiBolloAnnuale.size()), 4, BigDecimal.ROUND_HALF_UP);
+        }
+        
+        // Crea l'oggetto TrendRendimentiDTO con i dati calcolati
+        TrendRendimentiDTO trendRendimenti = new TrendRendimentiDTO(
+                rendimentoMinimo,
+                rendimentoMedio,
+                rendimentoMassimo,
+                titoliRendimento
+        );
+        
+        log.info("Risposta per GET /api/simulazioni/trends/{}: {} titoli con rendimenti", periodo, titoliRendimento.size());
+        return ResponseEntity.ok(trendRendimenti);
+    }
+    
+    /**
+     * Filtra i titoli in base al periodo di scadenza specificato.
+     * 
+     * @param titoli la lista di titoli da filtrare
+     * @param periodo il periodo di scadenza (trimestrali, semestrali, annuali, triennali, tutti)
+     * @return la lista di titoli filtrati
+     */
+    private List<Titolo> filtraTitoliPerPeriodo(List<Titolo> titoli, String periodo) {
+        if (periodo.equals("tutti")) {
+            return titoli;
+        }
+        
+        LocalDate oggi = LocalDate.now();
+        LocalDate dataMinima;
+        LocalDate dataMassima;
+        
+        switch (periodo) {
+            case "trimestrali":
+                // Titoli in scadenza tra 2 e 3 mesi
+                dataMinima = oggi.plusMonths(2);
+                dataMassima = oggi.plusMonths(3);
+                break;
+            case "semestrali":
+                // Titoli in scadenza tra 5 e 6 mesi
+                dataMinima = oggi.plusMonths(5);
+                dataMassima = oggi.plusMonths(6);
+                break;
+            case "annuali":
+                // Titoli in scadenza tra 11 e 12 mesi
+                dataMinima = oggi.plusMonths(11);
+                dataMassima = oggi.plusMonths(12);
+                break;
+            case "triennali":
+                // Titoli in scadenza tra 30 e 36 mesi (2 anni e mezzo - 3 anni)
+                dataMinima = oggi.plusMonths(30);
+                dataMassima = oggi.plusMonths(36);
+                break;
+            default:
+                return titoli;
+        }
+        
+        return titoli.stream()
+                .filter(titolo -> {
+                    LocalDate dataScadenza = titolo.getDataScadenza();
+                    return dataScadenza != null && 
+                           dataScadenza.isAfter(dataMinima.minusDays(1)) && 
+                           dataScadenza.isBefore(dataMassima.plusDays(1));
+                })
+                .collect(Collectors.toList());
     }
 }
