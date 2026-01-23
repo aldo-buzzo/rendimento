@@ -160,14 +160,25 @@
                             <span id="lista-titoli-tipo" class="fw-bold"></span>
                             <span id="lista-titoli-count" class="ms-2 text-muted"></span>
                         </div>
-                        <div class="spinner-border text-primary" role="status" id="lista-titoli-loading">
-                            <span class="visually-hidden">Caricamento...</span>
+                        <div class="d-flex align-items-center">
+                            <button type="button" class="btn btn-primary me-2" id="aggiungi-selezionati-btn-top" disabled>
+                                Aggiungi selezionati (<span id="titoli-selezionati-count-top">0</span>)
+                            </button>
+                            <div class="spinner-border text-primary" role="status" id="lista-titoli-loading">
+                                <span class="visually-hidden">Caricamento...</span>
+                            </div>
                         </div>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-striped table-hover" id="lista-titoli-table">
                             <thead>
                                     <tr>
+                                        <th>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="select-all-titoli">
+                                                <label class="form-check-label" for="select-all-titoli">Tutti</label>
+                                            </div>
+                                        </th>
                                         <th>ISIN</th>
                                         <th>Nome</th>
                                         <th>Scadenza</th>
@@ -201,7 +212,9 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                    <button type="button" class="btn btn-primary" id="aggiungi-selezionati-btn" disabled>
+                        Aggiungi selezionati (<span id="titoli-selezionati-count">0</span>)
+                    </button>
                 </div>
             </div>
         </div>

@@ -87,7 +87,8 @@ window.Simulazione = {
             rendimentoConBolloMensile: risultatoCalcolo.rendimentoConCommissioniEBolloMensile,
             bolloTotaleMensile: risultatoCalcolo.bolloTotaleMensile,
             rendimentoConBolloAnnuale: risultatoCalcolo.rendimentoConCommissioniEBolloAnnuale,
-            bolloTotaleAnnuale: risultatoCalcolo.bolloTotaleAnnuale
+            bolloTotaleAnnuale: risultatoCalcolo.bolloTotaleAnnuale,
+            rendimentoPlusvalenzaEsente: risultatoCalcolo.rendimentoPlusvalenzaEsente
         };
     },
     
@@ -122,7 +123,8 @@ window.Simulazione = {
             rendimentoConBolloMensile: dto.rendimentoConBolloMensile * 100, // Converti da decimale a percentuale
             bolloTotaleMensile: dto.bolloTotaleMensile,
             rendimentoConBolloAnnuale: dto.rendimentoConBolloAnnuale * 100, // Converti da decimale a percentuale
-            bolloTotaleAnnuale: dto.bolloTotaleAnnuale
+            bolloTotaleAnnuale: dto.bolloTotaleAnnuale,
+            rendimentoPlusvalenzaEsente: dto.rendimentoPlusvalenzaEsente ? dto.rendimentoPlusvalenzaEsente * 100 : null // Converti da decimale a percentuale
         };
     },
     
@@ -157,7 +159,8 @@ window.Simulazione = {
             rendimentoConBolloMensile: simulazione.rendimentoConBolloMensile / 100, // Converti da percentuale a decimale
             bolloTotaleMensile: simulazione.bolloTotaleMensile,
             rendimentoConBolloAnnuale: simulazione.rendimentoConBolloAnnuale / 100, // Converti da percentuale a decimale
-            bolloTotaleAnnuale: simulazione.bolloTotaleAnnuale
+            bolloTotaleAnnuale: simulazione.bolloTotaleAnnuale,
+            rendimentoPlusvalenzaEsente: simulazione.rendimentoPlusvalenzaEsente ? simulazione.rendimentoPlusvalenzaEsente / 100 : null // Converti da percentuale a decimale
         };
     }
 };

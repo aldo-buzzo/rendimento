@@ -25,6 +25,13 @@ public class RisultatoRendimentoAdvancedDTO extends RisultatoSimulazioneDTO {
     private BigDecimal rendimentoConCommissioni;
     private BigDecimal rendimentoConCommissioniEBolloAnnuale;
     private BigDecimal rendimentoConCommissioniEBolloMensile;
+    private BigDecimal rendimentoPlusvalenzaEsente;
+    
+    // Valori finali teorici per le diverse combinazioni
+    private BigDecimal valoreBolloAnnualePlusvalenzaNonEsente;  // Valore finale con bollo annuale e plusvalenza non esente
+    private BigDecimal valoreBolloAnnualePlusvalenzaEsente;     // Valore finale con bollo annuale e plusvalenza esente (solo per BTP)
+    private BigDecimal valoreBolloMensilePlusvalenzaNonEsente;  // Valore finale con bollo mensile e plusvalenza non esente
+    private BigDecimal valoreBolloMensilePlusvalenzaEsente;     // Valore finale con bollo mensile e plusvalenza esente (solo per BTP)
 
     public RisultatoRendimentoAdvancedDTO() {
         super();
@@ -95,6 +102,21 @@ public class RisultatoRendimentoAdvancedDTO extends RisultatoSimulazioneDTO {
 
     public BigDecimal getRendimentoConCommissioniEBolloMensile() { return rendimentoConCommissioniEBolloMensile; }
     public void setRendimentoConCommissioniEBolloMensile(BigDecimal rendimentoConCommissioniEBolloMensile) { this.rendimentoConCommissioniEBolloMensile = rendimentoConCommissioniEBolloMensile; }
+    
+    public BigDecimal getRendimentoPlusvalenzaEsente() { return rendimentoPlusvalenzaEsente; }
+    public void setRendimentoPlusvalenzaEsente(BigDecimal rendimentoPlusvalenzaEsente) { this.rendimentoPlusvalenzaEsente = rendimentoPlusvalenzaEsente; }
+    
+    public BigDecimal getValoreBolloAnnualePlusvalenzaNonEsente() { return valoreBolloAnnualePlusvalenzaNonEsente; }
+    public void setValoreBolloAnnualePlusvalenzaNonEsente(BigDecimal valoreBolloAnnualePlusvalenzaNonEsente) { this.valoreBolloAnnualePlusvalenzaNonEsente = valoreBolloAnnualePlusvalenzaNonEsente; }
+
+    public BigDecimal getValoreBolloAnnualePlusvalenzaEsente() { return valoreBolloAnnualePlusvalenzaEsente; }
+    public void setValoreBolloAnnualePlusvalenzaEsente(BigDecimal valoreBolloAnnualePlusvalenzaEsente) { this.valoreBolloAnnualePlusvalenzaEsente = valoreBolloAnnualePlusvalenzaEsente; }
+
+    public BigDecimal getValoreBolloMensilePlusvalenzaNonEsente() { return valoreBolloMensilePlusvalenzaNonEsente; }
+    public void setValoreBolloMensilePlusvalenzaNonEsente(BigDecimal valoreBolloMensilePlusvalenzaNonEsente) { this.valoreBolloMensilePlusvalenzaNonEsente = valoreBolloMensilePlusvalenzaNonEsente; }
+
+    public BigDecimal getValoreBolloMensilePlusvalenzaEsente() { return valoreBolloMensilePlusvalenzaEsente; }
+    public void setValoreBolloMensilePlusvalenzaEsente(BigDecimal valoreBolloMensilePlusvalenzaEsente) { this.valoreBolloMensilePlusvalenzaEsente = valoreBolloMensilePlusvalenzaEsente; }
 
     public BigDecimal getValoreRimborso() { return valoreRimborso != null ? valoreRimborso : BigDecimal.valueOf(100); }
     public void setValoreRimborso(BigDecimal valoreRimborso) { this.valoreRimborso = valoreRimborso; }

@@ -64,6 +64,7 @@ public class SimulazioneMapper {
         dto.setBolloTotaleMensile(simulazione.getBolloTotaleMensile());
         dto.setRendimentoConBolloAnnuale(simulazione.getRendimentoConBolloAnnuale());
         dto.setBolloTotaleAnnuale(simulazione.getBolloTotaleAnnuale());
+        dto.setRendimentoPlusvalenzaEsente(simulazione.getRendimentoPlusvalenzaEsente());
         
         // Aggiungi il titolo al DTO
         if (simulazione.getTitolo() != null) {
@@ -128,6 +129,7 @@ public class SimulazioneMapper {
         simulazione.setBolloTotaleMensile(dto.getBolloTotaleMensile());
         simulazione.setRendimentoConBolloAnnuale(dto.getRendimentoConBolloAnnuale());
         simulazione.setBolloTotaleAnnuale(dto.getBolloTotaleAnnuale());
+        simulazione.setRendimentoPlusvalenzaEsente(dto.getRendimentoPlusvalenzaEsente());
 
         return simulazione;
     }

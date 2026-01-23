@@ -35,6 +35,7 @@ import com.example.rendimento.model.Titolo;
 import com.example.rendimento.repository.TitoloRepository;
 import com.example.rendimento.service.BorsaItalianaService;
 import com.example.rendimento.service.SimulazioneService;
+import com.example.rendimento.service.TrendService;
 import com.example.rendimento.service.UtenteService;
 import com.example.rendimento.service.factory.BorsaItalianaServiceFactory;
 
@@ -53,6 +54,7 @@ public class SimulazioneController {
     private final TitoloRepository titoloRepository;
     private final BorsaItalianaServiceFactory borsaItalianaServiceFactory;
     private final UtenteService utenteService;
+    private final TrendService trendService;
 
     /**
      * Costruttore con parametri per l'iniezione delle dipendenze.
@@ -61,11 +63,34 @@ public class SimulazioneController {
      */
     @Autowired
     public SimulazioneController(SimulazioneService simulazioneService, TitoloRepository titoloRepository, 
-                                BorsaItalianaServiceFactory borsaItalianaServiceFactory, UtenteService utenteService) {
+                                BorsaItalianaServiceFactory borsaItalianaServiceFactory, UtenteService utenteService,
+                                TrendService trendService) {
         this.simulazioneService = simulazioneService;
         this.titoloRepository = titoloRepository;
         this.borsaItalianaServiceFactory = borsaItalianaServiceFactory;
         this.utenteService = utenteService;
+        this.trendService = trendService;
+    }
+    
+    /**
+     * Classe interna per contenere i risultati dell'elaborazione della simulazione.
+     */
+    private static class ElaborazioneRisultato {
+        private final SimulazioneDTO simulazione;
+        private final RisultatoRendimentoAdvancedDTO risultatoDettagliato;
+        
+        public ElaborazioneRisultato(SimulazioneDTO simulazione, RisultatoRendimentoAdvancedDTO risultatoDettagliato) {
+            this.simulazione = simulazione;
+            this.risultatoDettagliato = risultatoDettagliato;
+        }
+        
+        public SimulazioneDTO getSimulazione() {
+            return simulazione;
+        }
+        
+        public RisultatoRendimentoAdvancedDTO getRisultatoDettagliato() {
+            return risultatoDettagliato;
+        }
     }
 
     /**
@@ -346,63 +371,28 @@ public class SimulazioneController {
         // Per ogni titolo, calcola e salva una simulazione
         for (Titolo titolo : titoliValidi) {
             try {
-                // Ottieni il prezzo attuale del titolo tramite BorsaItalianaService
-                BigDecimal prezzoAcquisto = null;
-                
-                try {
-                    // Ottieni il servizio appropriato in base al tipo di titolo
-                    BorsaItalianaService borsaItalianaService = borsaItalianaServiceFactory.getBorsaItalianaService(titolo.getTipoTitolo());
-                    
-                    // Ottieni direttamente il corso (prezzo) del titolo
-                    prezzoAcquisto = borsaItalianaService.getCorsoByIsin(titolo.getCodiceIsin());
-                    
-                    if (prezzoAcquisto != null) {
-                        log.info("Prezzo attuale ottenuto per il titolo {}: {}", titolo.getCodiceIsin(), prezzoAcquisto);
-                    } else {
-                        log.warn("Prezzo non disponibile per il titolo {}, simulazione saltata", titolo.getCodiceIsin());
-                        continue; // Salta questo titolo e passa al prossimo
-                    }
-                } catch (Exception e) {
-                    log.error("Errore nel recupero del prezzo per il titolo {}: {}", titolo.getCodiceIsin(), e.getMessage());
+                // Ottieni il prezzo attuale del titolo
+                BigDecimal prezzoAcquisto = getPrezzoAcquistoPerTitolo(titolo);
+                if (prezzoAcquisto == null) {
                     continue; // Salta questo titolo e passa al prossimo
                 }
                 
-                // Verifica se esiste già una simulazione per questo titolo nella stessa giornata
-                LocalDate oggi = LocalDate.now();
-                List<SimulazioneDTO> simulazioniOggi = simulazioneService.findByTitoloIdAndDataAcquisto(titolo.getIdTitolo(), oggi);
-                SimulazioneDTO simulazione;
-                
-                if (!simulazioniOggi.isEmpty()) {
-                    // Aggiorna la simulazione esistente della giornata corrente
-                    SimulazioneDTO simulazioneEsistente = simulazioniOggi.get(0);
-                    log.info("Trovata simulazione esistente per il titolo ID: {}, ISIN: {} nella data odierna, aggiornamento in corso", 
-                            titolo.getIdTitolo(), titolo.getCodiceIsin());
-                    
-                    // Calcola i nuovi valori
-                    RisultatoSimulazioneDTO risultato = simulazioneService.calcolaRendimento(
-                        titolo.getIdTitolo(),
-                        prezzoAcquisto,
-                        RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE
-                    );
-                    
-                    // Aggiorna la simulazione esistente utilizzando il nuovo metodo
-                    // che garantisce che tutti i campi siano aggiornati correttamente
-                    simulazione = simulazioneService.aggiornaSimulazione(simulazioneEsistente, risultato, RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE);
-                    log.info("Simulazione aggiornata per il titolo ID: {}, ISIN: {}", 
-                            titolo.getIdTitolo(), titolo.getCodiceIsin());
-                } else {
-                    // Crea una nuova simulazione
-                    simulazione = simulazioneService.calcolaESalvaSimulazione(
-                        titolo.getIdTitolo(),
-                        prezzoAcquisto,
-                        RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE,
-                        LocalDate.now()
-                    );
-                    log.info("Nuova simulazione creata per il titolo ID: {}, ISIN: {}", 
-                            titolo.getIdTitolo(), titolo.getCodiceIsin());
+                // Elabora la simulazione e ottieni il risultato dettagliato
+                ElaborazioneRisultato risultatoElaborazione = elaboraSimulazionePerTitolo(titolo, prezzoAcquisto);
+                if (risultatoElaborazione == null || risultatoElaborazione.getSimulazione() == null) {
+                    continue; // Salta questo titolo se l'elaborazione ha fallito
                 }
                 
-                simulazioniSalvate.add(simulazione);
+                // Salva il trend per il titolo utilizzando il rendimento senza costi
+                trendService.salvaTrendPerTitolo(
+                    titolo,
+                    prezzoAcquisto,
+                    risultatoElaborazione.getRisultatoDettagliato().getRendimentoSenzaCosti()
+                );
+                log.info("Trend salvato per il titolo ID: {}, ISIN: {}", 
+                        titolo.getIdTitolo(), titolo.getCodiceIsin());
+                
+                simulazioniSalvate.add(risultatoElaborazione.getSimulazione());
             } catch (Exception e) {
                 log.error("Errore nel calcolo della simulazione per il titolo ID: {}, ISIN: {}, Errore: {}", 
                         titolo.getIdTitolo(), titolo.getCodiceIsin(), e.getMessage());
@@ -574,6 +564,85 @@ public class SimulazioneController {
         
         log.info("Risposta per GET /api/simulazioni/trends/{}: {} titoli con rendimenti", periodo, titoliRendimento.size());
         return ResponseEntity.ok(trendRendimenti);
+    }
+    
+    /**
+     * Ottiene il prezzo di acquisto per un titolo utilizzando il servizio appropriato.
+     * 
+     * @param titolo il titolo per cui ottenere il prezzo
+     * @return il prezzo di acquisto o null se non disponibile
+     */
+    private BigDecimal getPrezzoAcquistoPerTitolo(Titolo titolo) {
+        try {
+            // Ottieni il servizio appropriato in base al tipo di titolo
+            BorsaItalianaService borsaItalianaService = borsaItalianaServiceFactory.getBorsaItalianaService(titolo.getTipoTitolo());
+            
+            // Ottieni direttamente il corso (prezzo) del titolo
+            BigDecimal prezzoAcquisto = borsaItalianaService.getCorsoByIsin(titolo.getCodiceIsin());
+            
+            if (prezzoAcquisto != null) {
+                log.info("Prezzo attuale ottenuto per il titolo {}: {}", titolo.getCodiceIsin(), prezzoAcquisto);
+                return prezzoAcquisto;
+            } else {
+                log.warn("Prezzo non disponibile per il titolo {}, simulazione saltata", titolo.getCodiceIsin());
+                return null;
+            }
+        } catch (Exception e) {
+            log.error("Errore nel recupero del prezzo per il titolo {}: {}", titolo.getCodiceIsin(), e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Elabora la simulazione per un titolo.
+     * 
+     * @param titolo il titolo per cui elaborare la simulazione
+     * @param prezzoAcquisto il prezzo di acquisto del titolo
+     * @return un oggetto contenente la simulazione elaborata e il risultato dettagliato, o null in caso di errore
+     */
+    private ElaborazioneRisultato elaboraSimulazionePerTitolo(Titolo titolo, BigDecimal prezzoAcquisto) {
+        try {
+            // Calcola i rendimenti dettagliati per il titolo
+            LocalDate oggi = LocalDate.now();
+            RisultatoRendimentoAdvancedDTO risultatoDettagliato = simulazioneService.calcolaRendimentoAdvanced(
+                titolo,
+                prezzoAcquisto,
+                RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE,
+                oggi
+            );
+            
+            // Verifica se esiste già una simulazione per questo titolo nella stessa giornata
+            List<SimulazioneDTO> simulazioniOggi = simulazioneService.findByTitoloIdAndDataAcquisto(titolo.getIdTitolo(), oggi);
+            SimulazioneDTO simulazione;
+            
+            if (!simulazioniOggi.isEmpty()) {
+                // Aggiorna la simulazione esistente della giornata corrente
+                SimulazioneDTO simulazioneEsistente = simulazioniOggi.get(0);
+                log.info("Trovata simulazione esistente per il titolo ID: {}, ISIN: {} nella data odierna, aggiornamento in corso", 
+                        titolo.getIdTitolo(), titolo.getCodiceIsin());
+                
+                // Aggiorna la simulazione esistente utilizzando direttamente il risultato dettagliato già calcolato
+                simulazione = simulazioneService.aggiornaSimulazione(simulazioneEsistente, risultatoDettagliato, RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE);
+                log.info("Simulazione aggiornata per il titolo ID: {}, ISIN: {}", 
+                        titolo.getIdTitolo(), titolo.getCodiceIsin());
+            } else {
+                // Crea una nuova simulazione
+                simulazione = simulazioneService.calcolaESalvaSimulazione(
+                    titolo.getIdTitolo(),
+                    prezzoAcquisto,
+                    RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE,
+                    oggi
+                );
+                log.info("Nuova simulazione creata per il titolo ID: {}, ISIN: {}", 
+                        titolo.getIdTitolo(), titolo.getCodiceIsin());
+            }
+            
+            return new ElaborazioneRisultato(simulazione, risultatoDettagliato);
+        } catch (Exception e) {
+            log.error("Errore nell'elaborazione della simulazione per il titolo ID: {}, ISIN: {}, Errore: {}", 
+                    titolo.getIdTitolo(), titolo.getCodiceIsin(), e.getMessage());
+            return null;
+        }
     }
     
     /**

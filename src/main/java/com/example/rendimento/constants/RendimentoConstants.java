@@ -32,8 +32,9 @@ public final class RendimentoConstants {
      * Numero di giorni in un anno.
      * <p>
      * Utilizzato per calcoli di annualizzazione.
+     * Usa 365.25 per tenere conto degli anni bisestili.
      */
-    public static final BigDecimal TIME_DAYS_IN_YEAR = new BigDecimal("365");
+    public static final BigDecimal TIME_DAYS_IN_YEAR = new BigDecimal("365.25");
     
     /**
      * Numero di mesi in un anno.

@@ -89,6 +89,9 @@ public class Simulazione {
 
     @Column(name = "bollo_totale_annuale", precision = 10, scale = 4)
     private BigDecimal bolloTotaleAnnuale;
+    
+    @Column(name = "rendimento_plusvalenza_esente", precision = 10, scale = 6)
+    private BigDecimal rendimentoPlusvalenzaEsente;
 
     /**
      * Costruttore predefinito richiesto da JPA.
@@ -321,6 +324,14 @@ public class Simulazione {
     public void setBolloTotaleAnnuale(BigDecimal bolloTotaleAnnuale) {
         this.bolloTotaleAnnuale = bolloTotaleAnnuale;
     }
+    
+    public BigDecimal getRendimentoPlusvalenzaEsente() {
+        return rendimentoPlusvalenzaEsente;
+    }
+
+    public void setRendimentoPlusvalenzaEsente(BigDecimal rendimentoPlusvalenzaEsente) {
+        this.rendimentoPlusvalenzaEsente = rendimentoPlusvalenzaEsente;
+    }
 
     @Override
     public String toString() {
@@ -348,6 +359,7 @@ public class Simulazione {
                 ", rendimentoConBolloAnnuale=" + rendimentoConBolloAnnuale +
                 ", bolloTotaleMensile=" + bolloTotaleMensile +
                 ", bolloTotaleAnnuale=" + bolloTotaleAnnuale +
+                ", rendimentoPlusvalenzaEsente=" + rendimentoPlusvalenzaEsente +
                 ", version=" + version +
                 '}';
     }

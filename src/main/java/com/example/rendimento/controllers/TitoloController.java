@@ -1,6 +1,7 @@
 package com.example.rendimento.controllers;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.rendimento.constants.AppMessages;
+import com.example.rendimento.dto.TitoloImportDTO;
 import com.example.rendimento.dto.TitoloDTO;
 import com.example.rendimento.dto.UtenteResponseDTO;
 import com.example.rendimento.service.TitoloService;
@@ -318,5 +320,95 @@ public class TitoloController {
             log.info("Risposta per POST /api/titolo (creazione): {}", savedTitolo);
             return ResponseEntity.status(HttpStatus.CREATED)
                 .body(savedTitolo);
+        }
+        
+        /**
+         * Importa più titoli contemporaneamente da Borsa Italiana.
+         * 
+         * @param titoliImport lista di DTO contenenti codice ISIN e tipo titolo
+         * @return lista dei titoli importati e salvati
+         */
+        @PostMapping("/importa-multipli")
+        public ResponseEntity<?> importaTitoliMultipli(@RequestBody List<TitoloImportDTO> titoliImport) {
+            log.info("Ricevuta richiesta POST /api/titolo/importa-multipli con {} titoli", titoliImport.size());
+            
+            try {
+                // Ottieni l'utente corrente
+                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+                String username = authentication.getName();
+                
+                // Ottieni l'ID dell'utente corrente
+                Integer utenteId = utenteService.findByUsername(username)
+                        .map(UtenteResponseDTO::getIdUtente)
+                        .orElseThrow(() -> new IllegalStateException("Utente non autenticato"));
+                
+                List<TitoloDTO> titoliSalvati = new ArrayList<>();
+                List<String> errori = new ArrayList<>();
+                
+                // Importa ogni titolo nella lista
+                for (TitoloImportDTO titoloImport : titoliImport) {
+                    try {
+                        String codiceIsin = titoloImport.getCodiceIsin();
+                        String tipoTitolo = titoloImport.getTipoTitolo();
+                        
+                        log.info("Importazione titolo con ISIN: {}, tipo: {}", codiceIsin, tipoTitolo);
+                        
+                        // Verifica se esiste già un titolo con lo stesso codice ISIN
+                        if (titoloService.existsByCodiceIsin(codiceIsin)) {
+                            // Recupera il titolo esistente
+                            TitoloDTO esistente = titoloService.findByCodiceIsin(codiceIsin);
+                            
+                            // Verifica che il titolo appartenga all'utente corrente
+                            if (!utenteId.equals(esistente.getUtenteId())) {
+                                errori.add("Non sei autorizzato a modificare il titolo con ISIN: " + codiceIsin);
+                                continue;
+                            }
+                            
+                            // Importa il titolo da Borsa Italiana (questo aggiornerà i dati)
+                            TitoloDTO updatedTitolo = titoloService.importaTitoloDaBorsaItaliana(codiceIsin, tipoTitolo);
+                            
+                            // Assicurati che il titolo sia associato all'utente corrente
+                            updatedTitolo.setUtenteId(utenteId);
+                            updatedTitolo = titoloService.saveTitolo(updatedTitolo);
+                            
+                            titoliSalvati.add(updatedTitolo);
+                        } else {
+                            // Se non esiste, importa e crea un nuovo titolo
+                            TitoloDTO savedTitolo = titoloService.importaTitoloDaBorsaItaliana(codiceIsin, tipoTitolo);
+                            
+                            // Assicurati che il titolo sia associato all'utente corrente
+                            savedTitolo.setUtenteId(utenteId);
+                            savedTitolo = titoloService.saveTitolo(savedTitolo);
+                            
+                            titoliSalvati.add(savedTitolo);
+                        }
+                    } catch (Exception e) {
+                        log.error("Errore nell'importazione del titolo con ISIN: {}: {}", 
+                                titoloImport.getCodiceIsin(), e.getMessage());
+                        errori.add("Errore nell'importazione del titolo con ISIN: " + 
+                                titoloImport.getCodiceIsin() + ": " + e.getMessage());
+                    }
+                }
+                
+                // Prepara la risposta
+                Map<String, Object> response = new LinkedHashMap<>();
+                response.put("titoli", titoliSalvati);
+                response.put("totale", titoliSalvati.size());
+                
+                if (!errori.isEmpty()) {
+                    response.put("errori", errori);
+                }
+                
+                log.info("Risposta per POST /api/titolo/importa-multipli: {} titoli importati, {} errori", 
+                        titoliSalvati.size(), errori.size());
+                
+                return ResponseEntity.ok(response);
+                
+            } catch (Exception e) {
+                log.error("Errore interno nella richiesta POST /api/titolo/importa-multipli: {}", e.getMessage());
+                Map<String, String> errorResponse = Collections.singletonMap("error", 
+                        "Errore durante l'importazione multipla dei titoli: " + e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            }
         }
 }

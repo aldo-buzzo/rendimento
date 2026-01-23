@@ -189,5 +189,35 @@ window.Titolo = {
                 console.error(`Errore nel caricamento dei dettagli per il titolo ${isin}:`, error);
                 throw error;
             });
+    },
+    
+    /**
+     * Importa più titoli contemporaneamente da Borsa Italiana
+     * @param {Array} titoliImport - Array di oggetti {codiceIsin, tipoTitolo}
+     * @returns {Promise} - Promise che risolve con la lista dei titoli importati
+     */
+    importaTitoliMultipli: function(titoliImport) {
+        console.log(`Importazione multipla di ${titoliImport.length} titoli`);
+        
+        return ApiService.post(`${ApiService.baseUrl}/titolo/importa-multipli`, titoliImport)
+            .then(response => {
+                console.log(`Risposta importazione multipla:`, response);
+                
+                // Se ci sono titoli importati, convertili in oggetti per il frontend
+                if (response && response.titoli) {
+                    const titoliConvertiti = response.titoli.map(dto => this.convertFromDTO(dto));
+                    return {
+                        titoli: titoliConvertiti,
+                        totale: response.totale,
+                        errori: response.errori
+                    };
+                }
+                
+                return response;
+            })
+            .catch(error => {
+                console.error(`Errore nell'importazione multipla dei titoli:`, error);
+                throw error;
+            });
     }
 };

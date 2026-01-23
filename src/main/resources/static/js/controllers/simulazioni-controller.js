@@ -274,6 +274,9 @@ class SimulazioniController {
                 <td>${Formatters.formatDecimal(simulazione.rendimentoConCommissioni || 0)}%</td>
                 <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloMensile || 0)}%</td>
                 <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloAnnuale || 0)}%</td>
+                <td>${titolo.tipoTitolo === 'BTP' && simulazione.rendimentoPlusvalenzaEsente != null ? 
+                    Formatters.formatDecimal(simulazione.rendimentoPlusvalenzaEsente) + '%' : 
+                    '-'}</td>
                 <td>
                     ${Formatters.formatDecimal(valoreFinaleTeorico)}
                     <a href="#" class="info-icon" data-simulazione-id="${simulazione.id}" data-rendimento-tipo="bolloAnnuale">

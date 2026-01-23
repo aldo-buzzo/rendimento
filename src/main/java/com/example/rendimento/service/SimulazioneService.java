@@ -140,6 +140,18 @@ public interface SimulazioneService {
     SimulazioneDTO aggiornaSimulazione(SimulazioneDTO simulazioneEsistente, RisultatoSimulazioneDTO risultato, BigDecimal importo);
     
     /**
+     * Aggiorna una simulazione esistente con i risultati di un nuovo calcolo di rendimento avanzato.
+     * Questo metodo è una versione ottimizzata che accetta direttamente un RisultatoRendimentoAdvancedDTO,
+     * evitando la conversione inutile quando si ha già un risultato dettagliato.
+     * 
+     * @param simulazioneEsistente la simulazione esistente da aggiornare
+     * @param risultatoAdvanced il risultato dettagliato del calcolo di rendimento
+     * @param importo l'importo dell'investimento
+     * @return la simulazione aggiornata e salvata
+     */
+    SimulazioneDTO aggiornaSimulazione(SimulazioneDTO simulazioneEsistente, RisultatoRendimentoAdvancedDTO risultatoAdvanced, BigDecimal importo);
+    
+    /**
      * Recupera tutte le simulazioni associate ai titoli di un utente specifico,
      * ordinate per data di scadenza crescente.
      * 

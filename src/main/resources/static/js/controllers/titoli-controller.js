@@ -5,6 +5,9 @@
 
 // Namespace per il modulo TitoliController
 window.TitoliController = {
+    // Variabile per tenere traccia dei titoli selezionati
+    titoliSelezionati: [],
+    
     /**
      * Inizializza il controller
      */
@@ -37,6 +40,24 @@ window.TitoliController = {
         // Event listeners per i pulsanti "Lista BTP" e "Lista BOT"
         document.getElementById('lista-btp-btn').addEventListener('click', () => this.showListaTitoli('BTP'));
         document.getElementById('lista-bot-btn').addEventListener('click', () => this.showListaTitoli('BOT'));
+        
+        // Event listener per il checkbox "Seleziona tutti"
+        const selectAllCheckbox = document.getElementById('select-all-titoli');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', () => this.toggleSelectAll());
+        }
+        
+        // Event listener per i pulsanti "Aggiungi selezionati" (in alto e in basso nel modal)
+        const aggiungiSelezionatiBtn = document.getElementById('aggiungi-selezionati-btn');
+        const aggiungiSelezionatiBtnTop = document.getElementById('aggiungi-selezionati-btn-top');
+        
+        if (aggiungiSelezionatiBtn) {
+            aggiungiSelezionatiBtn.addEventListener('click', () => this.aggiungiTitoliSelezionati());
+        }
+        
+        if (aggiungiSelezionatiBtnTop) {
+            aggiungiSelezionatiBtnTop.addEventListener('click', () => this.aggiungiTitoliSelezionati());
+        }
         
         // Event listeners per i pulsanti di paginazione
         document.getElementById('prev-page-btn').addEventListener('click', () => {
@@ -560,6 +581,16 @@ window.TitoliController = {
                         // Crea la riga per la tabella
                         const row = document.createElement('tr');
                         row.innerHTML = `
+                            <td>
+                                <div class="form-check">
+                                    <input class="form-check-input titolo-checkbox" type="checkbox" 
+                                           value="${titoloDTO.codiceIsin}" 
+                                           data-tipo="${this.currentTipoTitolo}"
+                                           id="checkbox-${titoloDTO.codiceIsin}"
+                                           ${isInList ? 'disabled' : ''}
+                                           onchange="TitoliController.toggleTitoloSelection('${titoloDTO.codiceIsin}', '${this.currentTipoTitolo}')">
+                                </div>
+                            </td>
                             <td>${titoloDTO.codiceIsin || ''}</td>
                             <td>${titoloDTO.nome || ''}</td>
                             <td>${titoloDTO.dataScadenza ? Formatters.formatDate(titoloDTO.dataScadenza) : ''}</td>
@@ -567,7 +598,8 @@ window.TitoliController = {
                             <td>${titoloDTO.corso ? Formatters.formatDecimal(titoloDTO.corso) + ' €' : ''}</td>
                             <td>
                                 <button class="btn btn-sm ${isInList ? 'btn-success' : 'btn-primary'}" 
-                                        onclick="TitoliController.aggiungiTitoloAllaLista('${titoloDTO.codiceIsin}', '${this.currentTipoTitolo}')">
+                                        onclick="TitoliController.aggiungiTitoloAllaLista('${titoloDTO.codiceIsin}', '${this.currentTipoTitolo}')"
+                                        ${isInList ? 'disabled' : ''}>
                                     ${isInList ? 'Già in lista' : 'Aggiungi alla lista'}
                                 </button>
                             </td>
@@ -713,7 +745,194 @@ window.TitoliController = {
             button.classList.remove('btn-primary');
             button.classList.add('btn-success');
             button.textContent = 'Già in lista';
+            button.disabled = true;
         });
+        
+        // Disabilita anche il checkbox corrispondente
+        const checkbox = document.getElementById(`checkbox-${isin}`);
+        if (checkbox) {
+            checkbox.disabled = true;
+            checkbox.checked = false;
+        }
+        
+        // Rimuovi il titolo dalla lista dei selezionati se presente
+        this.titoliSelezionati = this.titoliSelezionati.filter(t => t.codiceIsin !== isin);
+        
+        // Aggiorna il contatore e lo stato del pulsante "Aggiungi selezionati"
+        this.updateSelectionCounter();
+    },
+    
+    /**
+     * Gestisce la selezione/deselezione di un titolo
+     * @param {string} isin - Il codice ISIN del titolo
+     * @param {string} tipo - Il tipo di titolo (BTP o BOT)
+     */
+    toggleTitoloSelection: function(isin, tipo) {
+        const checkbox = document.getElementById(`checkbox-${isin}`);
+        
+        if (checkbox.checked) {
+            // Aggiungi il titolo alla lista dei selezionati
+            this.titoliSelezionati.push({ codiceIsin: isin, tipoTitolo: tipo });
+        } else {
+            // Rimuovi il titolo dalla lista dei selezionati
+            this.titoliSelezionati = this.titoliSelezionati.filter(t => t.codiceIsin !== isin);
+        }
+        
+        // Aggiorna il contatore e lo stato del pulsante "Aggiungi selezionati"
+        this.updateSelectionCounter();
+    },
+    
+    /**
+     * Gestisce la selezione/deselezione di tutti i titoli
+     */
+    toggleSelectAll: function() {
+        const selectAllCheckbox = document.getElementById('select-all-titoli');
+        const checkboxes = document.querySelectorAll('.titolo-checkbox:not([disabled])');
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = selectAllCheckbox.checked;
+            
+            const isin = checkbox.value;
+            const tipo = checkbox.getAttribute('data-tipo');
+            
+            if (selectAllCheckbox.checked) {
+                // Aggiungi il titolo alla lista dei selezionati se non è già presente
+                if (!this.titoliSelezionati.some(t => t.codiceIsin === isin)) {
+                    this.titoliSelezionati.push({ codiceIsin: isin, tipoTitolo: tipo });
+                }
+            } else {
+                // Rimuovi il titolo dalla lista dei selezionati
+                this.titoliSelezionati = this.titoliSelezionati.filter(t => t.codiceIsin !== isin);
+            }
+        });
+        
+        // Aggiorna il contatore e lo stato del pulsante "Aggiungi selezionati"
+        this.updateSelectionCounter();
+    },
+    
+    /**
+     * Aggiorna il contatore dei titoli selezionati e lo stato del pulsante "Aggiungi selezionati"
+     */
+    updateSelectionCounter: function() {
+        const countElement = document.getElementById('titoli-selezionati-count');
+        const countElementTop = document.getElementById('titoli-selezionati-count-top');
+        const aggiungiSelezionatiBtn = document.getElementById('aggiungi-selezionati-btn');
+        const aggiungiSelezionatiBtnTop = document.getElementById('aggiungi-selezionati-btn-top');
+        
+        // Aggiorna il contatore in entrambi i pulsanti
+        if (countElement) {
+            countElement.textContent = this.titoliSelezionati.length;
+        }
+        
+        if (countElementTop) {
+            countElementTop.textContent = this.titoliSelezionati.length;
+        }
+        
+        // Abilita/disabilita entrambi i pulsanti
+        if (aggiungiSelezionatiBtn) {
+            aggiungiSelezionatiBtn.disabled = this.titoliSelezionati.length === 0;
+        }
+        
+        if (aggiungiSelezionatiBtnTop) {
+            aggiungiSelezionatiBtnTop.disabled = this.titoliSelezionati.length === 0;
+        }
+    },
+    
+    /**
+     * Aggiunge i titoli selezionati alla lista
+     */
+    aggiungiTitoliSelezionati: function() {
+        if (this.titoliSelezionati.length === 0) {
+            alert('Nessun titolo selezionato');
+            return;
+        }
+        
+        console.log(`Aggiungendo ${this.titoliSelezionati.length} titoli selezionati alla lista...`);
+        
+        // Mostra un indicatore di caricamento
+        DomUtils.toggleLoading(true);
+        
+        // Importa i titoli selezionati
+        Titolo.importaTitoliMultipli(this.titoliSelezionati)
+            .then(response => {
+                console.log('Risposta importazione multipla:', response);
+                
+                if (response.titoli && response.titoli.length > 0) {
+                    // Aggiungi i titoli importati alla lista locale
+                    response.titoli.forEach(titolo => {
+                        const existingIndex = window.titoli.findIndex(t => t.codiceIsin === titolo.codiceIsin);
+                        if (existingIndex !== -1) {
+                            window.titoli[existingIndex] = titolo;
+                        } else {
+                            window.titoli.push(titolo);
+                        }
+                        
+                        // Aggiorna i pulsanti e i checkbox nella tabella del modal
+                        this.updateButtonsInModal(titolo.codiceIsin, titolo.tipoTitolo);
+                    });
+                    
+                    // Aggiorna le viste
+                    this.updateTitoliTable();
+                    this.updateTitoliSelect();
+                    
+                    // Ricalcola i rendimenti di tutti i titoli
+                    ApiService.calcolaRendimentiTuttiTitoli()
+                        .then(data => {
+                            console.log('Rendimenti ricalcolati con successo:', data);
+                            
+                            // Nascondi l'indicatore di caricamento
+                            DomUtils.toggleLoading(false);
+                            
+                            // Mostra un messaggio di successo
+                            let message = `${response.titoli.length} titoli aggiunti con successo!`;
+                            if (response.errori && response.errori.length > 0) {
+                                message += ` (${response.errori.length} errori)`;
+                            }
+                            DomUtils.showAlert(message, 'success');
+                            
+                            // Se simulazioniController esiste, ricarica le simulazioni
+                            if (window.simulazioniController) {
+                                window.simulazioniController.loadSimulazioniFromServer();
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Errore nel ricalcolo dei rendimenti:', error);
+                            
+                            // Nascondi l'indicatore di caricamento
+                            DomUtils.toggleLoading(false);
+                            
+                            // Mostra un messaggio di successo per l'aggiunta dei titoli
+                            let message = `${response.titoli.length} titoli aggiunti con successo, ma si è verificato un errore nel ricalcolo dei rendimenti.`;
+                            if (response.errori && response.errori.length > 0) {
+                                message += ` (${response.errori.length} errori)`;
+                            }
+                            DomUtils.showAlert(message, 'warning');
+                        });
+                } else {
+                    // Nascondi l'indicatore di caricamento
+                    DomUtils.toggleLoading(false);
+                    
+                    // Mostra un messaggio di errore
+                    let message = 'Nessun titolo aggiunto.';
+                    if (response.errori && response.errori.length > 0) {
+                        message += ` (${response.errori.length} errori)`;
+                    }
+                    DomUtils.showAlert(message, 'warning');
+                }
+                
+                // Resetta la lista dei titoli selezionati
+                this.titoliSelezionati = [];
+                this.updateSelectionCounter();
+            })
+            .catch(error => {
+                console.error('Errore nell\'importazione multipla dei titoli:', error);
+                
+                // Nascondi l'indicatore di caricamento
+                DomUtils.toggleLoading(false);
+                
+                // Mostra un messaggio di errore
+                DomUtils.showAlert('Si è verificato un errore nell\'importazione multipla dei titoli.', 'danger');
+            });
     }
 };
 
