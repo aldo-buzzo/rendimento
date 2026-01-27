@@ -329,7 +329,10 @@ function loadSimulazioneDetails(simulazioneId, tipoRendimento) {
                         </tbody>
                     </table>
                     
-                    <h6 class="mt-4">Incassi per Nominale:</h6>
+                    <h6 class="mt-4 d-flex justify-content-between">
+                        <span>Risultati</span>
+                        <span>Valori Finali</span>
+                    </h6>
                     <table class="table table-sm">
                         <thead>
                             <tr>
@@ -342,14 +345,14 @@ function loadSimulazioneDetails(simulazioneId, tipoRendimento) {
                         </thead>
                         <tbody>
                             <tr>
-                                <td>Con Bollo Annuale e Plusvalenza Tassata</td>
+                                <td>Bollo Annuo Plusv Tassata</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 3)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 5)}€</td>
                                 <td>Valore finale con bollo annuale e plusvalenza tassata al 12.5%</td>
                             </tr>
                             <tr>
-                                <td>Con Bollo Mensile e Plusvalenza Tassata</td>
+                                <td>Bollo Mese Plusv. Tassata</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 3)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 5)}€</td>
@@ -357,20 +360,35 @@ function loadSimulazioneDetails(simulazioneId, tipoRendimento) {
                             </tr>
                             ${isBTP ? `
                             <tr>
-                                <td>Con Bollo Annuale e Plusvalenza Esente</td>
+                                <td>Bollo Annuo Plusv Esente</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente * 3)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente * 5)}€</td>
                                 <td>Valore finale con bollo annuale e plusvalenza esente (solo BTP)</td>
                             </tr>
                             <tr>
-                                <td>Con Bollo Mensile e Plusvalenza Esente</td>
+                                <td>Bollo Mese Plusv. Esente</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente * 3)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente * 5)}€</td>
                                 <td>Valore finale con bollo mensile e plusvalenza esente (solo BTP)</td>
                             </tr>
-                            ` : ''}
+                            ` : `
+                            <tr>
+                                <td>Bollo Annuo Plusv Esente</td>
+                                <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente)}€</td>
+                                <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 3)}€</td>
+                                <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 5)}€</td>
+                                <td>Valore finale con bollo annuale (non BTP)</td>
+                            </tr>
+                            <tr>
+                                <td>Bollo Mese Plusv. Esente</td>
+                                <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente)}€</td>
+                                <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 3)}€</td>
+                                <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 5)}€</td>
+                                <td>Valore finale con bollo mensile (non BTP)</td>
+                            </tr>
+                            `}
                         </tbody>
                     </table>
                 </div>
@@ -463,7 +481,10 @@ function loadSimulazioneDetails(simulazioneId, tipoRendimento) {
                         </tbody>
                     </table>
                     
-                    <h6 class="mt-4">Incassi per Nominale:</h6>
+                    <h6 class="mt-4 d-flex justify-content-between">
+                        <span>Risultati</span>
+                        <span>Valori Finali</span>
+                    </h6>
                     <table class="table table-sm">
                         <thead>
                             <tr>
@@ -476,14 +497,14 @@ function loadSimulazioneDetails(simulazioneId, tipoRendimento) {
                         </thead>
                         <tbody>
                             <tr>
-                                <td>Con Bollo Annuale e Plusvalenza Tassata</td>
+                                <td>Bollo Annuo Plusv Tassata</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 3)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 5)}€</td>
                                 <td>Valore finale con bollo annuale e plusvalenza tassata al 12.5%</td>
                             </tr>
                             <tr>
-                                <td>Con Bollo Mensile e Plusvalenza Tassata</td>
+                                <td>Bollo Mese Plusv. Tassata</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 3)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 5)}€</td>
@@ -491,20 +512,35 @@ function loadSimulazioneDetails(simulazioneId, tipoRendimento) {
                             </tr>
                             ${isBTP ? `
                             <tr>
-                                <td>Con Bollo Annuale e Plusvalenza Esente</td>
+                                <td>Bollo Annuo Plusv Esente</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente * 3)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente * 5)}€</td>
                                 <td>Valore finale con bollo annuale e plusvalenza esente (solo BTP)</td>
                             </tr>
                             <tr>
-                                <td>Con Bollo Mensile e Plusvalenza Esente</td>
+                                <td>Bollo Mese Plusv. Esente</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente * 3)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente * 5)}€</td>
                                 <td>Valore finale con bollo mensile e plusvalenza esente (solo BTP)</td>
                             </tr>
-                            ` : ''}
+                            ` : `
+                            <tr>
+                                <td>Bollo Annuo Plusv Esente</td>
+                                <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente)}€</td>
+                                <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 3)}€</td>
+                                <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 5)}€</td>
+                                <td>Valore finale con bollo annuale (non BTP)</td>
+                            </tr>
+                            <tr>
+                                <td>Bollo Mese Plusv. Esente</td>
+                                <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente)}€</td>
+                                <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 3)}€</td>
+                                <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 5)}€</td>
+                                <td>Valore finale con bollo mensile (non BTP)</td>
+                            </tr>
+                            `}
                         </tbody>
                     </table>
                 </div>
@@ -610,7 +646,10 @@ function loadSimulazioneDetails(simulazioneId, tipoRendimento) {
                         </tbody>
                     </table>
                     
-                    <h6 class="mt-4">Incassi per Nominale:</h6>
+                    <h6 class="mt-4 d-flex justify-content-between">
+                        <span>Risultati</span>
+                        <span>Valori Finali</span>
+                    </h6>
                     <table class="table table-sm">
                         <thead>
                             <tr>
@@ -623,14 +662,14 @@ function loadSimulazioneDetails(simulazioneId, tipoRendimento) {
                         </thead>
                         <tbody>
                             <tr>
-                                <td>Con Bollo Annuale e Plusvalenza Tassata</td>
+                                <td>Bollo Annuo Plusv Tassata</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 3)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 5)}€</td>
                                 <td>Valore finale con bollo annuale e plusvalenza tassata al 12.5%</td>
                             </tr>
                             <tr>
-                                <td>Con Bollo Mensile e Plusvalenza Tassata</td>
+                                <td>Bollo Mese Plusv. Tassata</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 3)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 5)}€</td>
@@ -638,20 +677,35 @@ function loadSimulazioneDetails(simulazioneId, tipoRendimento) {
                             </tr>
                             ${isBTP ? `
                             <tr>
-                                <td>Con Bollo Annuale e Plusvalenza Esente</td>
+                                <td>Bollo Annuo Plusv Esente</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente * 3)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente * 5)}€</td>
                                 <td>Valore finale con bollo annuale e plusvalenza esente (solo BTP)</td>
                             </tr>
                             <tr>
-                                <td>Con Bollo Mensile e Plusvalenza Esente</td>
+                                <td>Bollo Mese Plusv. Esente</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente * 3)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente * 5)}€</td>
                                 <td>Valore finale con bollo mensile e plusvalenza esente (solo BTP)</td>
                             </tr>
-                            ` : ''}
+                            ` : `
+                            <tr>
+                                <td>Bollo Annuo Plusv Esente</td>
+                                <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente)}€</td>
+                                <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 3)}€</td>
+                                <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 5)}€</td>
+                                <td>Valore finale con bollo annuale (non BTP)</td>
+                            </tr>
+                            <tr>
+                                <td>Bollo Mese Plusv. Esente</td>
+                                <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente)}€</td>
+                                <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 3)}€</td>
+                                <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 5)}€</td>
+                                <td>Valore finale con bollo mensile (non BTP)</td>
+                            </tr>
+                            `}
                         </tbody>
                     </table>
                 </div>
@@ -765,7 +819,10 @@ function loadSimulazioneDetails(simulazioneId, tipoRendimento) {
                         </tbody>
                     </table>
                     
-                    <h6 class="mt-4">Incassi per Nominale:</h6>
+                    <h6 class="mt-4 d-flex justify-content-between">
+                        <span>Risultati</span>
+                        <span>Valori Finali</span>
+                    </h6>
                     <table class="table table-sm">
                         <thead>
                             <tr>
@@ -778,14 +835,14 @@ function loadSimulazioneDetails(simulazioneId, tipoRendimento) {
                         </thead>
                         <tbody>
                             <tr>
-                                <td>Con Bollo Annuale e Plusvalenza Tassata</td>
+                                <td>Bollo Annuo Plusv Tassata</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 3)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 5)}€</td>
                                 <td>Valore finale con bollo annuale e plusvalenza tassata al 12.5%</td>
                             </tr>
                             <tr>
-                                <td>Con Bollo Mensile e Plusvalenza Tassata</td>
+                                <td>Bollo Mese Plusv. Tassata</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 3)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 5)}€</td>
@@ -793,20 +850,35 @@ function loadSimulazioneDetails(simulazioneId, tipoRendimento) {
                             </tr>
                             ${isBTP ? `
                             <tr>
-                                <td>Con Bollo Annuale e Plusvalenza Esente</td>
+                                <td>Bollo Annuo Plusv Esente</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente * 3)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente * 5)}€</td>
                                 <td>Valore finale con bollo annuale e plusvalenza esente (solo BTP)</td>
                             </tr>
                             <tr>
-                                <td>Con Bollo Mensile e Plusvalenza Esente</td>
+                                <td>Bollo Mese Plusv. Esente</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente * 3)}€</td>
                                 <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente * 5)}€</td>
                                 <td>Valore finale con bollo mensile e plusvalenza esente (solo BTP)</td>
                             </tr>
-                            ` : ''}
+                            ` : `
+                            <tr>
+                                <td>Bollo Annuo Plusv Esente</td>
+                                <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente)}€</td>
+                                <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 3)}€</td>
+                                <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 5)}€</td>
+                                <td>Valore finale con bollo annuale (non BTP)</td>
+                            </tr>
+                            <tr>
+                                <td>Bollo Mese Plusv. Esente</td>
+                                <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente)}€</td>
+                                <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 3)}€</td>
+                                <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 5)}€</td>
+                                <td>Valore finale con bollo mensile (non BTP)</td>
+                            </tr>
+                            `}
                         </tbody>
                     </table>
                 </div>

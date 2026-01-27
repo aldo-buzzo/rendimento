@@ -63,6 +63,9 @@ window.Simulazione = {
      * @returns {Object} - L'oggetto simulazione pronto per essere salvato
      */
     creaSimulazione: function(titoloId, prezzoAcquisto, dataAcquisto, commissioniAcquisto, risultatoCalcolo) {
+        // Aggiungiamo un log per vedere i valori che arrivano dal backend
+        console.log("Risultato calcolo per creare simulazione:", risultatoCalcolo);
+        
         return {
             titoloId: parseInt(titoloId),
             prezzoAcquisto: prezzoAcquisto,
@@ -82,13 +85,18 @@ window.Simulazione = {
             capitaleConCommissioni: risultatoCalcolo.capitaleConCommissioni,
             cedoleNetteAnnue: risultatoCalcolo.cedoleNetteAnnue,
             guadagnoNettoSenzaCosti: risultatoCalcolo.guadagnoNettoSenzaCosti,
-            rendimentoSenzaCosti: risultatoCalcolo.rendimentoSenzaCosti,
-            rendimentoConCommissioni: risultatoCalcolo.rendimentoConCommissioni,
-            rendimentoConBolloMensile: risultatoCalcolo.rendimentoConCommissioniEBolloMensile,
+            rendimentoSenzaCosti: risultatoCalcolo.rendimentoSenzaCosti * 100, // Converti da decimale a percentuale
+            rendimentoConCommissioni: risultatoCalcolo.rendimentoConCommissioni * 100, // Converti da decimale a percentuale
+            rendimentoConBolloMensile: risultatoCalcolo.rendimentoConCommissioniEBolloMensile * 100, // Converti da decimale a percentuale
             bolloTotaleMensile: risultatoCalcolo.bolloTotaleMensile,
-            rendimentoConBolloAnnuale: risultatoCalcolo.rendimentoConCommissioniEBolloAnnuale,
+            rendimentoConBolloAnnuale: risultatoCalcolo.rendimentoConCommissioniEBolloAnnuale * 100, // Converti da decimale a percentuale
             bolloTotaleAnnuale: risultatoCalcolo.bolloTotaleAnnuale,
-            rendimentoPlusvalenzaEsente: risultatoCalcolo.rendimentoPlusvalenzaEsente
+            rendimentoPlusvalenzaEsente: risultatoCalcolo.rendimentoPlusvalenzaEsente ? risultatoCalcolo.rendimentoPlusvalenzaEsente * 100 : null, // Converti da decimale a percentuale
+            // Aggiungiamo i campi per i valori finali
+            valoreBolloAnnualePlusvalenzaNonEsente: risultatoCalcolo.valoreBolloAnnualePlusvalenzaNonEsente,
+            valoreBolloMensilePlusvalenzaNonEsente: risultatoCalcolo.valoreBolloMensilePlusvalenzaNonEsente,
+            valoreBolloAnnualePlusvalenzaEsente: risultatoCalcolo.valoreBolloAnnualePlusvalenzaEsente,
+            valoreBolloMensilePlusvalenzaEsente: risultatoCalcolo.valoreBolloMensilePlusvalenzaEsente
         };
     },
     
@@ -98,6 +106,9 @@ window.Simulazione = {
      * @returns {Object} - L'oggetto convertito per il frontend
      */
     convertFromDTO: function(dto) {
+        // Aggiungiamo un log per vedere i valori che arrivano dal backend
+        console.log("DTO ricevuto dal backend:", dto);
+        
         return {
             id: dto.idSimulazione,
             titoloId: dto.idTitolo,
@@ -124,7 +135,12 @@ window.Simulazione = {
             bolloTotaleMensile: dto.bolloTotaleMensile,
             rendimentoConBolloAnnuale: dto.rendimentoConBolloAnnuale * 100, // Converti da decimale a percentuale
             bolloTotaleAnnuale: dto.bolloTotaleAnnuale,
-            rendimentoPlusvalenzaEsente: dto.rendimentoPlusvalenzaEsente ? dto.rendimentoPlusvalenzaEsente * 100 : null // Converti da decimale a percentuale
+            rendimentoPlusvalenzaEsente: dto.rendimentoPlusvalenzaEsente ? dto.rendimentoPlusvalenzaEsente * 100 : null, // Converti da decimale a percentuale
+            // Aggiungiamo i campi per i valori finali
+            valoreBolloAnnualePlusvalenzaNonEsente: dto.valoreBolloAnnualePlusvalenzaNonEsente,
+            valoreBolloMensilePlusvalenzaNonEsente: dto.valoreBolloMensilePlusvalenzaNonEsente,
+            valoreBolloAnnualePlusvalenzaEsente: dto.valoreBolloAnnualePlusvalenzaEsente,
+            valoreBolloMensilePlusvalenzaEsente: dto.valoreBolloMensilePlusvalenzaEsente
         };
     },
     
@@ -160,7 +176,12 @@ window.Simulazione = {
             bolloTotaleMensile: simulazione.bolloTotaleMensile,
             rendimentoConBolloAnnuale: simulazione.rendimentoConBolloAnnuale / 100, // Converti da percentuale a decimale
             bolloTotaleAnnuale: simulazione.bolloTotaleAnnuale,
-            rendimentoPlusvalenzaEsente: simulazione.rendimentoPlusvalenzaEsente ? simulazione.rendimentoPlusvalenzaEsente / 100 : null // Converti da percentuale a decimale
+            rendimentoPlusvalenzaEsente: simulazione.rendimentoPlusvalenzaEsente ? simulazione.rendimentoPlusvalenzaEsente / 100 : null, // Converti da percentuale a decimale
+            // Aggiungiamo i campi per i valori finali
+            valoreBolloAnnualePlusvalenzaNonEsente: simulazione.valoreBolloAnnualePlusvalenzaNonEsente,
+            valoreBolloMensilePlusvalenzaNonEsente: simulazione.valoreBolloMensilePlusvalenzaNonEsente,
+            valoreBolloAnnualePlusvalenzaEsente: simulazione.valoreBolloAnnualePlusvalenzaEsente,
+            valoreBolloMensilePlusvalenzaEsente: simulazione.valoreBolloMensilePlusvalenzaEsente
         };
     }
 };

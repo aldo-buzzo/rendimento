@@ -177,7 +177,12 @@ class SimulazioniController {
                 rendimentoSenzaCosti: 2.75,
                 rendimentoConCommissioni: 2.31,
                 rendimentoConBolloMensile: 2.25,
-                rendimentoConBolloAnnuale: 2.05
+                rendimentoConBolloAnnuale: 2.05,
+                // Aggiungiamo i valori finali per i dati di esempio
+                valoreBolloAnnualePlusvalenzaNonEsente: 10175.50,
+                valoreBolloMensilePlusvalenzaNonEsente: 10180.25,
+                valoreBolloAnnualePlusvalenzaEsente: 10200.75,
+                valoreBolloMensilePlusvalenzaEsente: 10205.50
             },
             { 
                 id: 2, 
@@ -189,9 +194,17 @@ class SimulazioniController {
                 rendimentoSenzaCosti: 1.95,
                 rendimentoConCommissioni: 1.64,
                 rendimentoConBolloMensile: 1.60,
-                rendimentoConBolloAnnuale: 1.40
+                rendimentoConBolloAnnuale: 1.40,
+                // Aggiungiamo i valori finali per i dati di esempio
+                valoreBolloAnnualePlusvalenzaNonEsente: 20280.00,
+                valoreBolloMensilePlusvalenzaNonEsente: 20320.00,
+                valoreBolloAnnualePlusvalenzaEsente: null,
+                valoreBolloMensilePlusvalenzaEsente: null
             }
         ];
+        
+        // Aggiungiamo un log per verificare i dati di esempio
+        console.log("Dati di esempio caricati:", this.simulazioni);
     }
     
     /**
@@ -240,6 +253,7 @@ class SimulazioniController {
             const titolo = window.titoli.find(t => t && t.id == simulazione.titoloId);
             if (!titolo) return;
             
+            // Prima riga: dati principali del titolo
             const row = document.createElement('tr');
             
             // Aggiungi attributo data-titolo-id per il doppio click
@@ -251,11 +265,6 @@ class SimulazioniController {
             
             // Determina la classe CSS in base al rendimento netto
             const rendimentoClass = (simulazione.rendimentoConBolloAnnuale || 0) >= 0 ? 'rendimento-positivo' : 'rendimento-negativo';
-            
-            // Calcola il valore finale
-            const importoNominale = simulazione.importoNominale || 0;
-            const rendimentoNettoBollo = simulazione.rendimentoConBolloAnnuale || 0;
-            const valoreFinaleTeorico = importoNominale * (1 + (rendimentoNettoBollo / 100));
             
             // Crea l'icona di informazioni
             const infoIconSvg = `
@@ -278,7 +287,17 @@ class SimulazioniController {
                     Formatters.formatDecimal(simulazione.rendimentoPlusvalenzaEsente) + '%' : 
                     '-'}</td>
                 <td>
-                    ${Formatters.formatDecimal(valoreFinaleTeorico)}
+                    <span 
+                        class="value-with-popover"
+                        data-simulazione-id="${simulazione.id}"
+                        data-valore-bollo-annuale-plusvalenza-non-esente="${simulazione.valoreBolloAnnualePlusvalenzaNonEsente || 0}"
+                        data-valore-bollo-mensile-plusvalenza-non-esente="${simulazione.valoreBolloMensilePlusvalenzaNonEsente || 0}"
+                        data-valore-bollo-annuale-plusvalenza-esente="${simulazione.valoreBolloAnnualePlusvalenzaEsente || 0}"
+                        data-valore-bollo-mensile-plusvalenza-esente="${simulazione.valoreBolloMensilePlusvalenzaEsente || 0}"
+                        data-tipo-titolo="${titolo.tipoTitolo || ''}"
+                    >
+                        ${Formatters.formatDecimal(simulazione.valoreBolloAnnualePlusvalenzaNonEsente || 0)}
+                    </span>
                     <a href="#" class="info-icon" data-simulazione-id="${simulazione.id}" data-rendimento-tipo="bolloAnnuale">
                         ${infoIconSvg}
                     </a>
@@ -294,10 +313,340 @@ class SimulazioniController {
             });
             
             tbody.appendChild(row);
+            
+            // Seconda riga: valori finali per diversi importi e tipi di rendimento
+            const valoriRow = document.createElement('tr');
+            valoriRow.classList.add('valori-finali-row', rendimentoClass);
+            
+            // Crea la visualizzazione in linea dei valori finali
+            let valoriHtml = `
+                <td colspan="9" class="valori-finali-inline">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center">
+                        <div class="valori-finali-label">
+                            <strong>Valori finali:</strong>
+                        </div>
+                        <div class="valori-finali-values">
+                            <span class="valor-tipo">Bollo Annuo Plusv Tassata:</span> 
+                            <span class="valor-value">${Formatters.formatDecimal(simulazione.valoreBolloAnnualePlusvalenzaNonEsente || 0)}€</span>
+                            
+                            <span class="valor-tipo ms-3">Bollo Mese Plusv. Tassata:</span> 
+                            <span class="valor-value">${Formatters.formatDecimal(simulazione.valoreBolloMensilePlusvalenzaNonEsente || 0)}€</span>
+                            
+                            ${titolo.tipoTitolo === 'BTP' ? `
+                                <span class="valor-tipo ms-3">Bollo Annuo Plusv Esente:</span> 
+                                <span class="valor-value">${Formatters.formatDecimal(simulazione.valoreBolloAnnualePlusvalenzaEsente || 0)}€</span>
+                                
+                                <span class="valor-tipo ms-3">Bollo Mese Plusv. Esente:</span> 
+                                <span class="valor-value">${Formatters.formatDecimal(simulazione.valoreBolloMensilePlusvalenzaEsente || 0)}€</span>
+                            ` : `
+                                <span class="valor-tipo ms-3">Bollo Annuo Plusv Esente:</span> 
+                                <span class="valor-value">N/A</span>
+                                
+                                <span class="valor-tipo ms-3">Bollo Mese Plusv. Esente:</span> 
+                                <span class="valor-value">N/A</span>
+                            `}
+                        </div>
+                    </div>
+                </td>
+            `;
+            
+            valoriRow.innerHTML = valoriHtml;
+            tbody.appendChild(valoriRow);
         });
         
         // Aggiungi event listener per le icone di informazioni
         this.setupInfoIconListeners();
+        
+        // Aggiungi stile CSS per la tabella dei valori finali
+        this.addValoriFinaliStyles();
+        
+        // Inizializza i popover
+        this.initializePopovers();
+    }
+    
+    /**
+     * Inizializza i popover per la tabella dei valori finali
+     */
+    initializePopovers() {
+        console.log('Inizializzazione popover con approccio manuale...');
+        
+        // Rimuovi eventuali listener precedenti
+        document.querySelectorAll('.value-with-popover').forEach(el => {
+            el.removeEventListener('click', this.showPopupTable);
+        });
+        
+        // Aggiungi nuovi listener per il click
+        document.querySelectorAll('.value-with-popover').forEach(el => {
+            el.addEventListener('click', this.showPopupTable);
+            // Aggiungi stile per indicare che è cliccabile
+            el.style.cursor = 'pointer';
+            el.style.textDecoration = 'underline';
+            el.title = 'Clicca per vedere i dettagli';
+        });
+        
+        // Aggiungi listener per chiudere il popup quando si clicca altrove
+        document.addEventListener('click', (event) => {
+            const popup = document.getElementById('valori-popup');
+            if (popup && !popup.contains(event.target) && !event.target.classList.contains('value-with-popover')) {
+                popup.remove();
+            }
+        });
+        
+        console.log('Listener popover aggiunti a', document.querySelectorAll('.value-with-popover').length, 'elementi');
+    }
+    
+    /**
+     * Mostra la tabella popup al click
+     * @param {Event} event - L'evento click
+     */
+    showPopupTable(event) {
+        event.stopPropagation(); // Previene la propagazione dell'evento click
+        
+        // Rimuovi eventuali popup esistenti
+        const existingPopup = document.getElementById('valori-popup');
+        if (existingPopup) {
+            existingPopup.remove();
+            return; // Se c'era già un popup, lo rimuove e basta (toggle)
+        }
+        
+        const target = event.currentTarget;
+        const rect = target.getBoundingClientRect();
+        
+        // Recupera i dati dal target
+        const valoreBolloAnnualePlusvalenzaNonEsente = parseFloat(target.getAttribute('data-valore-bollo-annuale-plusvalenza-non-esente') || 0);
+        const valoreBolloMensilePlusvalenzaNonEsente = parseFloat(target.getAttribute('data-valore-bollo-mensile-plusvalenza-non-esente') || 0);
+        const valoreBolloAnnualePlusvalenzaEsente = parseFloat(target.getAttribute('data-valore-bollo-annuale-plusvalenza-esente') || 0);
+        const valoreBolloMensilePlusvalenzaEsente = parseFloat(target.getAttribute('data-valore-bollo-mensile-plusvalenza-esente') || 0);
+        const tipoTitolo = target.getAttribute('data-tipo-titolo') || '';
+        
+        // Crea il popup
+        const popup = document.createElement('div');
+        popup.id = 'valori-popup';
+        popup.className = 'modal-style-popup';
+        
+        // Crea il contenuto HTML con pulsante di chiusura
+        let contentHtml = `
+            <div class="popup-header">
+                <h5>Dettaglio Valori Finali</h5>
+                <button type="button" class="close-button" aria-label="Chiudi">×</button>
+            </div>
+            <div class="popup-body">
+                <table class="table table-sm popup-table">
+                    <thead>
+                        <tr>
+                            <th class="scenario-column">Scenario</th>
+                            <th>10.000€</th>
+                            <th>30.000€</th>
+                            <th>50.000€</th>
+                            <th>100.000€</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="scenario-column">Bollo Annuo Plusv Tassata</td>
+                            <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente)}€</td>
+                            <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 3)}€</td>
+                            <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 5)}€</td>
+                            <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 10)}€</td>
+                        </tr>
+                        <tr>
+                            <td class="scenario-column">Bollo Mese Plusv. Tassata</td>
+                            <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente)}€</td>
+                            <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 3)}€</td>
+                            <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 5)}€</td>
+                            <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 10)}€</td>
+                        </tr>`;
+                        
+        if (tipoTitolo === 'BTP') {
+            contentHtml += `
+                <tr>
+                    <td class="scenario-column">Bollo Annuo Plusv Esente</td>
+                    <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente)}€</td>
+                    <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente * 3)}€</td>
+                    <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente * 5)}€</td>
+                    <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente * 10)}€</td>
+                </tr>
+                <tr>
+                    <td class="scenario-column">Bollo Mese Plusv. Esente</td>
+                    <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente)}€</td>
+                    <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente * 3)}€</td>
+                    <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente * 5)}€</td>
+                    <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente * 10)}€</td>
+                </tr>`;
+        } else {
+            contentHtml += `
+                <tr>
+                    <td class="scenario-column">Bollo Annuo Plusv Esente</td>
+                    <td>N/A</td>
+                    <td>N/A</td>
+                    <td>N/A</td>
+                    <td>N/A</td>
+                </tr>
+                <tr>
+                    <td class="scenario-column">Bollo Mese Plusv. Esente</td>
+                    <td>N/A</td>
+                    <td>N/A</td>
+                    <td>N/A</td>
+                    <td>N/A</td>
+                </tr>`;
+        }
+        
+        contentHtml += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        popup.innerHTML = contentHtml;
+        
+        // Posiziona il popup al centro della pagina
+        popup.style.position = 'fixed';
+        popup.style.top = '50%';
+        popup.style.left = '50%';
+        popup.style.transform = 'translate(-50%, -50%)';
+        
+        // Aggiungi il popup al DOM
+        document.body.appendChild(popup);
+        
+        // Aggiungi event listener per il pulsante di chiusura
+        const closeButton = popup.querySelector('.close-button');
+        if (closeButton) {
+            closeButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                popup.remove();
+            });
+        }
+        
+        // Previeni la propagazione del click all'interno del popup
+        popup.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        
+        // Aggiungi una classe per l'animazione di fade-in
+        setTimeout(() => {
+            popup.classList.add('popup-visible');
+        }, 10);
+    }
+    
+    /**
+     * Aggiunge stili CSS per la visualizzazione dei valori finali
+     */
+    addValoriFinaliStyles() {
+        // Verifica se lo stile è già stato aggiunto
+        if (document.getElementById('valori-finali-styles')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'valori-finali-styles';
+        style.textContent = `
+            .valori-finali-row {
+                background-color: #f8f9fa;
+                border-bottom: 1px solid #dee2e6;
+            }
+            .valori-finali-inline {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
+            .valori-finali-label {
+                margin-right: 1rem;
+            }
+            .valori-finali-values {
+                flex-grow: 1;
+                text-align: right;
+            }
+            .valor-tipo {
+                font-weight: 600;
+                color: #495057;
+            }
+            .valor-value {
+                font-weight: 500;
+                color: #0d6efd;
+            }
+            
+            /* Stili per il popup in stile modale */
+            .modal-style-popup {
+                position: fixed;
+                z-index: 1060;
+                background-color: white;
+                border-radius: 0.3rem;
+                box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
+                width: 90%;
+                max-width: 600px;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            .modal-style-popup.popup-visible {
+                opacity: 1;
+            }
+            .popup-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 1rem;
+                border-bottom: 1px solid #dee2e6;
+                background-color: #f8f9fa;
+                border-top-left-radius: 0.3rem;
+                border-top-right-radius: 0.3rem;
+            }
+            .popup-header h5 {
+                margin: 0;
+                font-size: 1.1rem;
+                font-weight: 500;
+            }
+            .close-button {
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                font-weight: 700;
+                line-height: 1;
+                color: #000;
+                text-shadow: 0 1px 0 #fff;
+                opacity: 0.5;
+                cursor: pointer;
+                padding: 0;
+                margin-left: 1rem;
+            }
+            .close-button:hover {
+                opacity: 0.75;
+            }
+            .popup-body {
+                padding: 1rem;
+                max-height: 70vh;
+                overflow-y: auto;
+            }
+            .popup-table {
+                width: 100%;
+                margin-bottom: 0;
+                border-collapse: collapse;
+            }
+            .popup-table th, .popup-table td {
+                padding: 0.5rem;
+                text-align: center;
+                border: 1px solid #dee2e6;
+            }
+            .popup-table th {
+                background-color: #f8f9fa;
+                font-weight: 600;
+                font-size: 0.9rem;
+            }
+            .popup-table td {
+                font-size: 0.9rem;
+            }
+            .scenario-column {
+                text-align: left !important;
+                font-weight: 600;
+                min-width: 180px; /* Larghezza minima per evitare sovrapposizioni */
+                width: 30%;
+            }
+            .value-with-popover {
+                color: #0d6efd;
+                cursor: pointer;
+            }
+            .value-with-popover:hover {
+                text-decoration: underline;
+            }
+        `;
+        
+        document.head.appendChild(style);
     }
     
     /**

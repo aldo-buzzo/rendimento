@@ -52,6 +52,40 @@ h2 {
     font-weight: 600;
 }
 
+/* Stile per rendere fissa la testata della tabella */
+.table-responsive {
+    max-height: 400px;  /* Altezza massima del contenitore, regolabile in base alle esigenze */
+    overflow-y: auto;   /* Abilita lo scorrimento verticale */
+}
+
+#simulazioni-table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f8f9fa;  /* Mantiene lo stesso colore di sfondo */
+    z-index: 1;                 /* Assicura che l'intestazione sia sopra il contenuto */
+    border-bottom: 2px solid #dee2e6;  /* Aggiunge un bordo più evidente */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);  /* Aggiunge un'ombra sottile */
+}
+
+/* Stili per il popover con la tabella dei valori finali */
+.popover {
+    max-width: 500px; /* Aumenta la larghezza massima del popover */
+}
+
+.popover-table {
+    margin-bottom: 0;
+    font-size: 0.8rem;
+}
+
+.popover-table th, .popover-table td {
+    padding: 0.25rem 0.5rem;
+}
+
+.value-with-popover {
+    cursor: pointer;
+    border-bottom: 1px dotted #007bff;
+}
+
 .btn-primary {
     background-color: #0d6efd;
     border-color: #0d6efd;
@@ -106,6 +140,40 @@ h2 {
 
 .simulazione-row:hover {
     background-color: #f0f8ff;
+}
+
+/* Stili per la riga dei valori finali */
+.valori-finali-row {
+    background-color: #f0f7ff;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.valori-finali-inline {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+.valori-finali-label {
+    margin-right: 1rem;
+    font-size: 0.85rem;
+    color: #495057;
+}
+
+.valori-finali-values {
+    flex-grow: 1;
+    text-align: right;
+}
+
+.valor-tipo {
+    font-weight: 600;
+    color: #495057;
+    margin-right: 0.2rem;
+}
+
+.valor-value {
+    font-weight: 500;
+    color: #0d6efd;
+    margin-right: 0.5rem;
 }
 
 /* Responsive */
