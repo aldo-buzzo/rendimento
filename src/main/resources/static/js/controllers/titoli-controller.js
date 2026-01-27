@@ -14,6 +14,11 @@ window.TitoliController = {
     init: function() {
         console.log('Inizializzazione TitoliController');
         
+        // Inizializza window.titoli come array vuoto se non esiste
+        if (!window.titoli) {
+            window.titoli = [];
+        }
+        
         // Carica i titoli dal server
         this.loadTitoli();
         
@@ -93,14 +98,22 @@ window.TitoliController = {
      * Carica i titoli dal server
      */
     loadTitoli: function() {
+        console.log('Caricamento titoli dal server...');
         Titolo.load()
             .then(data => {
+                console.log('Titoli caricati con successo:', data);
                 // Memorizza i titoli
                 window.titoli = data;
                 
                 // Aggiorna le viste
                 this.updateTitoliTable();
                 this.updateTitoliSelect();
+                
+                // Se simulazioniController esiste, ricarica le simulazioni
+                if (window.simulazioniController) {
+                    console.log('Ricaricamento simulazioni dopo caricamento titoli...');
+                    window.simulazioniController.loadSimulazioniFromServer();
+                }
             })
             .catch(error => {
                 console.error('Errore nel caricamento dei titoli:', error);
@@ -110,6 +123,12 @@ window.TitoliController = {
                 // Aggiorna le viste con i dati di esempio
                 this.updateTitoliTable();
                 this.updateTitoliSelect();
+                
+                // Se simulazioniController esiste, ricarica le simulazioni
+                if (window.simulazioniController) {
+                    console.log('Ricaricamento simulazioni dopo caricamento dati di esempio...');
+                    window.simulazioniController.loadSimulazioniFromServer();
+                }
             });
     },
     
@@ -168,18 +187,36 @@ window.TitoliController = {
      */
     updateTitoliTable: function() {
         const tbody = document.getElementById('titoli-list');
+        if (!tbody) {
+            console.log('Elemento titoli-list non trovato nel DOM, potrebbe essere una pagina diversa');
+            return;
+        }
+        
         tbody.innerHTML = '';
         
         window.titoli.forEach(titolo => {
             const row = document.createElement('tr');
+            
             // Verifica se titolo.prezzo è definito prima di chiamare toFixed
             const prezzoFormattato = titolo.prezzo !== undefined && titolo.prezzo !== null 
                 ? `${titolo.prezzo.toFixed(2)} €` 
                 : 'N/D';
+                
+            // Verifica se titolo.tassoNominale è definito prima di formattarlo
+            const tassoFormattato = titolo.tassoNominale !== undefined && titolo.tassoNominale !== null 
+                ? `${Formatters.formatDecimal(titolo.tassoNominale)} %` 
+                : 'N/D';
+                
+            // Formatta la data di scadenza
+            const dataScadenzaFormattata = titolo.dataScadenza 
+                ? Formatters.formatDate(titolo.dataScadenza) 
+                : 'N/D';
             
             row.innerHTML = `
-                <td>${titolo.codiceIsin}</td>
-                <td>${titolo.nome}</td>
+                <td>${titolo.codiceIsin || ''}</td>
+                <td>${titolo.nome || ''}</td>
+                <td>${dataScadenzaFormattata}</td>
+                <td>${tassoFormattato}</td>
                 <td>${prezzoFormattato}</td>
                 <td>
                     <button class="btn btn-sm btn-outline-primary me-1" onclick="TitoliController.editTitolo(${titolo.id})">Modifica</button>
@@ -188,6 +225,8 @@ window.TitoliController = {
             `;
             tbody.appendChild(row);
         });
+        
+        console.log(`Tabella titoli aggiornata con ${window.titoli.length} titoli`);
     },
     
     /**
@@ -195,6 +234,12 @@ window.TitoliController = {
      */
     updateTitoliSelect: function() {
         const select = document.getElementById('titolo-select');
+        
+        // Verifica se l'elemento select esiste
+        if (!select) {
+            console.log('Elemento titolo-select non trovato nel DOM, potrebbe essere una pagina diversa');
+            return;
+        }
         
         // Mantieni solo la prima opzione
         select.innerHTML = '<option value="">Seleziona un titolo</option>';

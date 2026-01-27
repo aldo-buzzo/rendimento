@@ -10,6 +10,9 @@ class SimulazioniController {
         
         // Inizializzazione
         this.init();
+        
+        // Log per debug
+        console.log('SimulazioniController costruito');
     }
     
     /**
@@ -130,14 +133,25 @@ class SimulazioniController {
      * Carica le simulazioni dal server
      */
     loadSimulazioniFromServer() {
+        console.log('Caricamento simulazioni dal server...');
+        
         // Assicurati che window.titoli esista
         if (!window.titoli) {
             console.log('window.titoli non è ancora definito, inizializzazione come array vuoto');
             window.titoli = [];
         }
         
+        // Verifica se la tabella simulazioni-list esiste
+        const tbody = document.getElementById('simulazioni-list');
+        if (!tbody) {
+            console.log('Elemento simulazioni-list non trovato nel DOM, potrebbe essere una pagina diversa');
+            return;
+        }
+        
         Simulazione.load(true)
             .then(data => {
+                console.log('Simulazioni caricate con successo:', data);
+                
                 // Assegna le simulazioni convertite alla variabile di stato
                 this.simulazioni = data;
                 
@@ -150,6 +164,7 @@ class SimulazioniController {
                 console.error('Errore nel caricamento delle simulazioni:', error);
                 // In caso di errore, se non ci sono già simulazioni caricate, carica i dati di esempio
                 if (!this.simulazioniCaricate && this.simulazioni.length === 0) {
+                    console.log('Caricamento dati di esempio per le simulazioni...');
                     this.loadSampleData();
                     this.updateSimulazioniTable();
                 }
@@ -211,8 +226,13 @@ class SimulazioniController {
      * Aggiorna la tabella delle simulazioni
      */
     updateSimulazioniTable() {
+        console.log('Aggiornamento tabella simulazioni...');
+        
         const tbody = document.getElementById('simulazioni-list');
-        if (!tbody) return;
+        if (!tbody) {
+            console.log('Elemento simulazioni-list non trovato nel DOM, potrebbe essere una pagina diversa');
+            return;
+        }
         
         tbody.innerHTML = '';
         
@@ -231,6 +251,14 @@ class SimulazioniController {
             console.error('window.titoli non è definito o non è un array');
             return;
         }
+        
+        // Verifica che ci siano simulazioni da mostrare
+        if (!this.simulazioni || this.simulazioni.length === 0) {
+            console.log('Nessuna simulazione da mostrare');
+            return;
+        }
+        
+        console.log(`Aggiornamento tabella con ${this.simulazioni.length} simulazioni`);
         
         // Ordina le simulazioni per data di scadenza crescente
         this.simulazioni.sort((a, b) => {

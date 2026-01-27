@@ -58,7 +58,7 @@ h2 {
     overflow-y: auto;   /* Abilita lo scorrimento verticale */
 }
 
-#simulazioni-table thead th {
+#simulazioni-table thead th, #titoli-table thead th {
     position: sticky;
     top: 0;
     background-color: #f8f9fa;  /* Mantiene lo stesso colore di sfondo */

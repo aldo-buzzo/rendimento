@@ -1,6 +1,7 @@
 package com.example.rendimento.service.impl;
 
 import com.example.rendimento.dto.RendimentiDTO;
+import com.example.rendimento.dto.SimulazioneDTO;
 import com.example.rendimento.dto.TitoloDTO;
 import com.example.rendimento.dto.UtenteResponseDTO;
 import com.example.rendimento.enums.PeriodoScadenza;
@@ -12,6 +13,7 @@ import com.example.rendimento.model.Utente;
 import com.example.rendimento.repository.TitoloRepository;
 import com.example.rendimento.repository.UtenteRepository;
 import com.example.rendimento.service.BorsaItalianaService;
+import com.example.rendimento.service.SimulazioneService;
 import com.example.rendimento.service.TitoloService;
 import com.example.rendimento.service.UtenteService;
 import com.example.rendimento.service.factory.BorsaItalianaServiceFactory;
@@ -54,17 +56,60 @@ public class TitoloServiceImpl implements TitoloService {
     
     @Autowired
     private UtenteService utenteService;
+    
+    @Autowired
+    private SimulazioneService simulazioneService;
 
     @Override
     public List<TitoloDTO> getAllTitoli() {
         List<Titolo> titoli = titoloRepository.findAll();
-        return titoloMapper.toDtoList(titoli);
+        List<TitoloDTO> titoloDTOs = titoloMapper.toDtoList(titoli);
+        
+        // Per ogni titolo, recupera la simulazione più recente e imposta il campo corso
+        for (TitoloDTO titoloDTO : titoloDTOs) {
+            try {
+                // Recupera la simulazione più recente per il titolo
+                SimulazioneDTO simulazione = simulazioneService.getLatestSimulazioneByTitoloId(titoloDTO.getIdTitolo());
+                
+                // Se esiste una simulazione, imposta il campo corso con il prezzo di acquisto
+                if (simulazione != null) {
+                    titoloDTO.setCorso(simulazione.getPrezzoAcquisto());
+                    log.debug("Corso impostato a {} per il titolo ID: {} (ISIN: {})", 
+                            simulazione.getPrezzoAcquisto(), titoloDTO.getIdTitolo(), titoloDTO.getCodiceIsin());
+                }
+            } catch (Exception e) {
+                // Se non esiste una simulazione per il titolo, lascia il campo corso invariato
+                log.debug("Nessuna simulazione trovata per il titolo ID: {}", titoloDTO.getIdTitolo());
+            }
+        }
+        
+        return titoloDTOs;
     }
     
     @Override
     public List<TitoloDTO> getTitoliByUtenteId(Integer utenteId) {
         List<Titolo> titoli = titoloRepository.findByUtente_IdUtente(utenteId);
-        return titoloMapper.toDtoList(titoli);
+        List<TitoloDTO> titoloDTOs = titoloMapper.toDtoList(titoli);
+        
+        // Per ogni titolo, recupera la simulazione più recente e imposta il campo corso
+        for (TitoloDTO titoloDTO : titoloDTOs) {
+            try {
+                // Recupera la simulazione più recente per il titolo
+                SimulazioneDTO simulazione = simulazioneService.getLatestSimulazioneByTitoloId(titoloDTO.getIdTitolo());
+                
+                // Se esiste una simulazione, imposta il campo corso con il prezzo di acquisto
+                if (simulazione != null) {
+                    titoloDTO.setCorso(simulazione.getPrezzoAcquisto());
+                    log.debug("Corso impostato a {} per il titolo ID: {} (ISIN: {})", 
+                            simulazione.getPrezzoAcquisto(), titoloDTO.getIdTitolo(), titoloDTO.getCodiceIsin());
+                }
+            } catch (Exception e) {
+                // Se non esiste una simulazione per il titolo, lascia il campo corso invariato
+                log.debug("Nessuna simulazione trovata per il titolo ID: {}", titoloDTO.getIdTitolo());
+            }
+        }
+        
+        return titoloDTOs;
     }
 
     @Override
@@ -198,15 +243,53 @@ public class TitoloServiceImpl implements TitoloService {
 
     @Override
     public TitoloDTO findById(Integer id) {
-        return titoloRepository.findById(id)
+        TitoloDTO titoloDTO = titoloRepository.findById(id)
                 .map(titoloMapper::toDto)
                 .orElse(null);
+        
+        if (titoloDTO != null) {
+            try {
+                // Recupera la simulazione più recente per il titolo
+                SimulazioneDTO simulazione = simulazioneService.getLatestSimulazioneByTitoloId(titoloDTO.getIdTitolo());
+                
+                // Se esiste una simulazione, imposta il campo corso con il prezzo di acquisto
+                if (simulazione != null) {
+                    titoloDTO.setCorso(simulazione.getPrezzoAcquisto());
+                    log.debug("Corso impostato a {} per il titolo ID: {} (ISIN: {})", 
+                            simulazione.getPrezzoAcquisto(), titoloDTO.getIdTitolo(), titoloDTO.getCodiceIsin());
+                }
+            } catch (Exception e) {
+                // Se non esiste una simulazione per il titolo, lascia il campo corso invariato
+                log.debug("Nessuna simulazione trovata per il titolo ID: {}", titoloDTO.getIdTitolo());
+            }
+        }
+        
+        return titoloDTO;
     }
     
     @Override
     public TitoloDTO findByCodiceIsin(String codiceIsin) {
         Titolo titolo = titoloRepository.findByCodiceIsin(codiceIsin);
-        return titoloMapper.toDto(titolo);
+        TitoloDTO titoloDTO = titoloMapper.toDto(titolo);
+        
+        if (titoloDTO != null) {
+            try {
+                // Recupera la simulazione più recente per il titolo
+                SimulazioneDTO simulazione = simulazioneService.getLatestSimulazioneByTitoloId(titoloDTO.getIdTitolo());
+                
+                // Se esiste una simulazione, imposta il campo corso con il prezzo di acquisto
+                if (simulazione != null) {
+                    titoloDTO.setCorso(simulazione.getPrezzoAcquisto());
+                    log.debug("Corso impostato a {} per il titolo ID: {} (ISIN: {})", 
+                            simulazione.getPrezzoAcquisto(), titoloDTO.getIdTitolo(), titoloDTO.getCodiceIsin());
+                }
+            } catch (Exception e) {
+                // Se non esiste una simulazione per il titolo, lascia il campo corso invariato
+                log.debug("Nessuna simulazione trovata per il titolo ID: {}", titoloDTO.getIdTitolo());
+            }
+        }
+        
+        return titoloDTO;
     }
 
     @Override
@@ -227,7 +310,28 @@ public class TitoloServiceImpl implements TitoloService {
         List<Titolo> titoliFiltered = titoli.stream()
                 .filter(titolo -> titolo.getDataScadenza().isBefore(dataScadenza) || titolo.getDataScadenza().isEqual(dataScadenza))
                 .toList();
-        return titoloMapper.toDtoList(titoliFiltered);
+        
+        List<TitoloDTO> titoloDTOs = titoloMapper.toDtoList(titoliFiltered);
+        
+        // Per ogni titolo, recupera la simulazione più recente e imposta il campo corso
+        for (TitoloDTO titoloDTO : titoloDTOs) {
+            try {
+                // Recupera la simulazione più recente per il titolo
+                SimulazioneDTO simulazione = simulazioneService.getLatestSimulazioneByTitoloId(titoloDTO.getIdTitolo());
+                
+                // Se esiste una simulazione, imposta il campo corso con il prezzo di acquisto
+                if (simulazione != null) {
+                    titoloDTO.setCorso(simulazione.getPrezzoAcquisto());
+                    log.debug("Corso impostato a {} per il titolo ID: {} (ISIN: {})", 
+                            simulazione.getPrezzoAcquisto(), titoloDTO.getIdTitolo(), titoloDTO.getCodiceIsin());
+                }
+            } catch (Exception e) {
+                // Se non esiste una simulazione per il titolo, lascia il campo corso invariato
+                log.debug("Nessuna simulazione trovata per il titolo ID: {}", titoloDTO.getIdTitolo());
+            }
+        }
+        
+        return titoloDTOs;
     }
     
     @Override
