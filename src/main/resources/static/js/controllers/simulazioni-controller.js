@@ -295,6 +295,8 @@ class SimulazioniController {
                         data-valore-bollo-annuale-plusvalenza-esente="${simulazione.valoreBolloAnnualePlusvalenzaEsente || 0}"
                         data-valore-bollo-mensile-plusvalenza-esente="${simulazione.valoreBolloMensilePlusvalenzaEsente || 0}"
                         data-tipo-titolo="${titolo.tipoTitolo || ''}"
+                        data-titolo-nome="${titolo.nome || ''}"
+                        data-titolo-isin="${titolo.codiceIsin || ''}"
                     >
                         ${Formatters.formatDecimal(simulazione.valoreBolloAnnualePlusvalenzaNonEsente || 0)}
                     </span>
@@ -313,45 +315,6 @@ class SimulazioniController {
             });
             
             tbody.appendChild(row);
-            
-            // Seconda riga: valori finali per diversi importi e tipi di rendimento
-            const valoriRow = document.createElement('tr');
-            valoriRow.classList.add('valori-finali-row', rendimentoClass);
-            
-            // Crea la visualizzazione in linea dei valori finali
-            let valoriHtml = `
-                <td colspan="9" class="valori-finali-inline">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center">
-                        <div class="valori-finali-label">
-                            <strong>Valori finali:</strong>
-                        </div>
-                        <div class="valori-finali-values">
-                            <span class="valor-tipo">Bollo Annuo Plusv Tassata:</span> 
-                            <span class="valor-value">${Formatters.formatDecimal(simulazione.valoreBolloAnnualePlusvalenzaNonEsente || 0)}€</span>
-                            
-                            <span class="valor-tipo ms-3">Bollo Mese Plusv. Tassata:</span> 
-                            <span class="valor-value">${Formatters.formatDecimal(simulazione.valoreBolloMensilePlusvalenzaNonEsente || 0)}€</span>
-                            
-                            ${titolo.tipoTitolo === 'BTP' ? `
-                                <span class="valor-tipo ms-3">Bollo Annuo Plusv Esente:</span> 
-                                <span class="valor-value">${Formatters.formatDecimal(simulazione.valoreBolloAnnualePlusvalenzaEsente || 0)}€</span>
-                                
-                                <span class="valor-tipo ms-3">Bollo Mese Plusv. Esente:</span> 
-                                <span class="valor-value">${Formatters.formatDecimal(simulazione.valoreBolloMensilePlusvalenzaEsente || 0)}€</span>
-                            ` : `
-                                <span class="valor-tipo ms-3">Bollo Annuo Plusv Esente:</span> 
-                                <span class="valor-value">N/A</span>
-                                
-                                <span class="valor-tipo ms-3">Bollo Mese Plusv. Esente:</span> 
-                                <span class="valor-value">N/A</span>
-                            `}
-                        </div>
-                    </div>
-                </td>
-            `;
-            
-            valoriRow.innerHTML = valoriHtml;
-            tbody.appendChild(valoriRow);
         });
         
         // Aggiungi event listener per le icone di informazioni
@@ -424,10 +387,14 @@ class SimulazioniController {
         popup.id = 'valori-popup';
         popup.className = 'modal-style-popup';
         
+        // Recupera il nome e l'ISIN del titolo
+        const titoloNome = target.getAttribute('data-titolo-nome') || '';
+        const titoloIsin = target.getAttribute('data-titolo-isin') || '';
+        
         // Crea il contenuto HTML con pulsante di chiusura
         let contentHtml = `
-            <div class="popup-header">
-                <h5>Dettaglio Valori Finali</h5>
+            <div class="popup-header" id="valori-popup-header">
+                <h5>Dettaglio Valori Finali - ${titoloNome} (${titoloIsin})</h5>
                 <button type="button" class="close-button" aria-label="Chiudi">×</button>
             </div>
             <div class="popup-body">

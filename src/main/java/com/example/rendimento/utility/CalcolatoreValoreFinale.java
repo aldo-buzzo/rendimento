@@ -148,13 +148,22 @@ public class CalcolatoreValoreFinale {
                 tipoValore, nominale, interessiNetti, plusvalenza, costiTotali, valoreFinale);
         } else {
             // Formula per titoli con durata superiore o uguale a 365 giorni
-            BigDecimal rendimentoDecimale = rendimentoPercentuale.divide(RendimentoConstants.PERCENT_100, 10, RoundingMode.HALF_UP);
-            valoreFinale = nominale.multiply(
-                BigDecimal.ONE.add(rendimentoDecimale.multiply(anniResidui))
+            // Nuova formula: ValoreFinaleEquivalente = Nominale × (1 + (RendimentoTotale / anni))
+            // dove RendimentoTotale = CedoleNetteTotali + PlusvalenzaNetta − CostiTotali
+            
+            // Calcolo del rendimento totale in valore assoluto
+            BigDecimal rendimentoTotale = interessiNetti.add(plusvalenza).subtract(costiTotali);
+            
+            // Calcolo del fattore (1 + (RendimentoTotale / anni))
+            BigDecimal fattore = BigDecimal.ONE.add(
+                rendimentoTotale.divide(nominale.multiply(anniResidui), 10, RoundingMode.HALF_UP)
             );
             
-            log.debug("Calcolo valore finale {} per titolo con scadenza >= 1 anno: nominale={}, rendimentoPercentuale={}, anniResidui={}, valoreFinale={}",
-                tipoValore, nominale, rendimentoPercentuale, anniResidui, valoreFinale);
+            // Calcolo del valore finale
+            valoreFinale = nominale.multiply(fattore);
+            
+            log.debug("Calcolo valore finale {} per titolo con scadenza >= 1 anno: nominale={}, interessiNetti={}, plusvalenza={}, costiTotali={}, anniResidui={}, rendimentoTotale={}, valoreFinale={}",
+                tipoValore, nominale, interessiNetti, plusvalenza, costiTotali, anniResidui, rendimentoTotale, valoreFinale);
         }
         
         // Arrotonda a 2 decimali
