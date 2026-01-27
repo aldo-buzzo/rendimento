@@ -126,4 +126,12 @@ public interface SimulazioneRepository extends JpaRepository<Simulazione, Intege
            "s.dataAcquisto = (SELECT MAX(s2.dataAcquisto) FROM Simulazione s2 WHERE s2.titolo.idTitolo = t.idTitolo) " +
            "ORDER BY t.dataScadenza ASC")
     List<Simulazione> findLatestByUtenteIdAndNotExpiredOrderByScadenzaAsc(@Param("utenteId") Integer utenteId, @Param("dataOdierna") LocalDate dataOdierna);
+    
+    /**
+     * Elimina tutte le simulazioni associate a un titolo specifico tramite il suo ID.
+     * Questo metodo è più efficiente rispetto a recuperare prima le simulazioni e poi eliminarle.
+     * 
+     * @param idTitolo l'ID del titolo per cui eliminare le simulazioni
+     */
+    void deleteByTitolo_IdTitolo(Integer idTitolo);
 }

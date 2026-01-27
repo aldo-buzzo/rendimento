@@ -8,8 +8,10 @@ import com.example.rendimento.enums.PeriodoScadenza;
 import com.example.rendimento.enums.TipoTitolo;
 import com.example.rendimento.exception.ConflittoModificaException;
 import com.example.rendimento.mapper.TitoloMapper;
+import com.example.rendimento.model.Simulazione;
 import com.example.rendimento.model.Titolo;
 import com.example.rendimento.model.Utente;
+import com.example.rendimento.repository.SimulazioneRepository;
 import com.example.rendimento.repository.TitoloRepository;
 import com.example.rendimento.repository.UtenteRepository;
 import com.example.rendimento.service.BorsaItalianaService;
@@ -59,6 +61,9 @@ public class TitoloServiceImpl implements TitoloService {
     
     @Autowired
     private SimulazioneService simulazioneService;
+    
+    @Autowired
+    private SimulazioneRepository simulazioneRepository;
 
     @Override
     public List<TitoloDTO> getAllTitoli() {
@@ -88,7 +93,8 @@ public class TitoloServiceImpl implements TitoloService {
     
     @Override
     public List<TitoloDTO> getTitoliByUtenteId(Integer utenteId) {
-        List<Titolo> titoli = titoloRepository.findByUtente_IdUtente(utenteId);
+        // Utilizza il metodo che ordina i titoli per data di scadenza
+        List<Titolo> titoli = titoloRepository.findByUtente_IdUtenteOrderByDataScadenzaAsc(utenteId);
         List<TitoloDTO> titoloDTOs = titoloMapper.toDtoList(titoli);
         
         // Per ogni titolo, recupera la simulazione più recente e imposta il campo corso
@@ -300,7 +306,17 @@ public class TitoloServiceImpl implements TitoloService {
     @Override
     @Transactional
     public void deleteTitolo(Integer id) {
+        // Prima di eliminare il titolo, elimina tutte le simulazioni associate
+        log.info("Eliminazione del titolo con ID: {} - Eliminazione simulazioni associate", id);
+        
+        // Elimina direttamente tutte le simulazioni associate al titolo
+        // Questo è più efficiente rispetto a recuperarle prima e poi eliminarle
+        simulazioneRepository.deleteByTitolo_IdTitolo(id);
+        log.info("Eliminate le simulazioni associate al titolo ID: {}", id);
+        
+        // Ora elimina il titolo
         titoloRepository.deleteById(id);
+        log.info("Titolo con ID: {} eliminato con successo", id);
     }
     
     @Override

@@ -54,6 +54,9 @@ public class TitoloController {
     public List<TitoloDTO> getAllTitoli() {
         log.info("Ricevuta richiesta GET /api/titolo");
         
+        // Inizia il conteggio del tempo
+        long startTime = System.currentTimeMillis();
+        
         // Ottieni l'utente corrente
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
@@ -65,7 +68,13 @@ public class TitoloController {
         
         // Usa il metodo che filtra per utente
         List<TitoloDTO> result = titoloService.getTitoliByUtenteId(utenteId);
-        log.info("Risposta per GET /api/titolo: {} titoli trovati per l'utente ID: {}", result.size(), utenteId);
+        
+        // Calcola il tempo di esecuzione in secondi
+        long endTime = System.currentTimeMillis();
+        double executionTimeInSeconds = (endTime - startTime) / 1000.0;
+        
+        log.info("Risposta per GET /api/titolo: {} titoli trovati per l'utente ID: {} - Tempo di esecuzione: {} secondi", 
+                result.size(), utenteId, executionTimeInSeconds);
         return result;
     }
 
@@ -184,14 +193,17 @@ public class TitoloController {
      * Elimina un titolo per ID.
      * 
      * @param id l'ID del titolo da eliminare
-     * @return 204 No Content se l'eliminazione è avvenuta con successo
+     * @return 200 OK con un messaggio di successo
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTitolo(@PathVariable Integer id) {
+    public ResponseEntity<Map<String, String>> deleteTitolo(@PathVariable Integer id) {
         log.info("Ricevuta richiesta DELETE /api/titolo/{} con id: {}", "id", id);
         titoloService.deleteTitolo(id);
         log.info("Risposta per DELETE /api/titolo/{}: Titolo eliminato con successo", id);
-        return ResponseEntity.noContent().build();
+        
+        // Restituisci un codice 200 OK con un messaggio di successo
+        Map<String, String> response = Collections.singletonMap("message", "Titolo eliminato con successo");
+        return ResponseEntity.ok(response);
     }
 
     /**

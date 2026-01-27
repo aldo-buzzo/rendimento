@@ -246,11 +246,7 @@ class SimulazioniController {
             }
         }
         
-        // Verifica che window.titoli esista prima di usarlo
-        if (!window.titoli || !Array.isArray(window.titoli)) {
-            console.error('window.titoli non è definito o non è un array');
-            return;
-        }
+        // Verifica che ci siano simulazioni da mostrare
         
         // Verifica che ci siano simulazioni da mostrare
         if (!this.simulazioni || this.simulazioni.length === 0) {
@@ -262,8 +258,9 @@ class SimulazioniController {
         
         // Ordina le simulazioni per data di scadenza crescente
         this.simulazioni.sort((a, b) => {
-            const titoloA = window.titoli.find(t => t && t.id == a.titoloId);
-            const titoloB = window.titoli.find(t => t && t.id == b.titoloId);
+            // Usa direttamente l'oggetto titolo dal DTO della simulazione
+            const titoloA = a.titolo;
+            const titoloB = b.titolo;
             
             if (!titoloA || !titoloA.dataScadenza) return -1;
             if (!titoloB || !titoloB.dataScadenza) return 1;
@@ -275,11 +272,12 @@ class SimulazioniController {
         });
         
         this.simulazioni.forEach(simulazione => {
-            // Verifica che simulazione.titoloId esista
-            if (!simulazione.titoloId) return;
-            
-            const titolo = window.titoli.find(t => t && t.id == simulazione.titoloId);
-            if (!titolo) return;
+            // Usa direttamente l'oggetto titolo dal DTO della simulazione
+            const titolo = simulazione.titolo;
+            if (!titolo) {
+                console.warn('Simulazione senza titolo associato:', simulazione);
+                return;
+            }
             
             // Prima riga: dati principali del titolo
             const row = document.createElement('tr');

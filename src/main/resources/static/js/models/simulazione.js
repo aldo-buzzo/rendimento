@@ -112,6 +112,7 @@ window.Simulazione = {
         return {
             id: dto.idSimulazione,
             titoloId: dto.idTitolo,
+            titolo: dto.titolo, // Aggiungiamo l'oggetto titolo dal DTO
             prezzoAcquisto: dto.prezzoAcquisto,
             dataAcquisto: dto.dataAcquisto,
             importoNominale: dto.importoNominale || 10000, // Valore di default se non presente

@@ -60,4 +60,12 @@ public interface TitoloRepository extends JpaRepository<Titolo, Integer> {
      * @return lista di titoli che appartengono all'utente specificato
      */
     java.util.List<Titolo> findByUtente_IdUtente(Integer utenteId);
+    
+    /**
+     * Trova tutti i titoli che appartengono all'utente specificato, ordinati per data di scadenza.
+     * 
+     * @param utenteId l'ID dell'utente proprietario dei titoli
+     * @return lista di titoli che appartengono all'utente specificato, ordinati per data di scadenza crescente
+     */
+    java.util.List<Titolo> findByUtente_IdUtenteOrderByDataScadenzaAsc(Integer utenteId);
 }

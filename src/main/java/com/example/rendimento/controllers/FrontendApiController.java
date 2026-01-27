@@ -115,6 +115,9 @@ public class FrontendApiController {
     public List<SimulazioneDTO> getLatestSimulazioniPerTitolo() {
         log.info("Ricevuta richiesta GET /api/frontend/simulazioni/latest");
         
+        // Inizia il conteggio del tempo
+        long startTime = System.currentTimeMillis();
+        
         // Ottieni l'utente corrente
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
@@ -126,7 +129,14 @@ public class FrontendApiController {
         
         // Usa il metodo ottimizzato che filtra direttamente nel database
         List<SimulazioneDTO> result = simulazioneService.getSimulazioniByUtenteId(utenteId, true);
-        log.info("Risposta per GET /api/frontend/simulazioni/latest: {} simulazioni trovate per l'utente ID: {}", result.size(), utenteId);
+        
+        // Calcola il tempo di esecuzione in secondi
+        long endTime = System.currentTimeMillis();
+        double executionTimeInSeconds = (endTime - startTime) / 1000.0;
+        
+        log.info("Risposta per GET /api/frontend/simulazioni/latest: {} simulazioni trovate per l'utente ID: {} - Tempo di esecuzione: {} secondi", 
+                result.size(), utenteId, executionTimeInSeconds);
+        
         return result;
     }
     

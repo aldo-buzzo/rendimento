@@ -779,6 +779,9 @@ public class SimulazioneServiceImpl implements SimulazioneService {
         @Override
         public List<SimulazioneDTO> getSimulazioniByUtenteId(Integer utenteId, boolean latest) {
                 log.info("Recupero simulazioni per utente ID: {} (latest: {})", utenteId, latest);
+                
+                // Inizia il conteggio del tempo
+                long startTime = System.currentTimeMillis();
 
                 List<Simulazione> simulazioni;
                 if (latest) {
@@ -792,6 +795,11 @@ public class SimulazioneServiceImpl implements SimulazioneService {
                         simulazioni = simulazioneRepository.findByUtenteId(utenteId);
                         log.info("Trovate {} simulazioni totali per l'utente ID: {}", simulazioni.size(), utenteId);
                 }
+                
+                // Misura il tempo per il recupero delle simulazioni dal database
+                long dbQueryTime = System.currentTimeMillis();
+                double dbQueryTimeInSeconds = (dbQueryTime - startTime) / 1000.0;
+                log.info("Tempo per recupero simulazioni dal database: {} secondi", dbQueryTimeInSeconds);
 
                 // Converti le simulazioni in DTO
                 List<SimulazioneDTO> simulazioniDTO = simulazioni.stream()
