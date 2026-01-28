@@ -1,6 +1,7 @@
 package com.example.rendimento.service.impl;
 
 import com.example.rendimento.constants.RendimentoConstants;
+import com.example.rendimento.dto.ElaborazioneRisultatoDTO;
 import com.example.rendimento.enums.TipoTitolo;
 import com.example.rendimento.utility.CalcolatoreValoreFinale;
 import com.example.rendimento.dto.RisultatoRendimentoAdvancedDTO;
@@ -779,7 +780,7 @@ public class SimulazioneServiceImpl implements SimulazioneService {
         @Override
         public List<SimulazioneDTO> getSimulazioniByUtenteId(Integer utenteId, boolean latest) {
                 log.info("Recupero simulazioni per utente ID: {} (latest: {})", utenteId, latest);
-                
+
                 // Inizia il conteggio del tempo
                 long startTime = System.currentTimeMillis();
 
@@ -795,7 +796,7 @@ public class SimulazioneServiceImpl implements SimulazioneService {
                         simulazioni = simulazioneRepository.findByUtenteId(utenteId);
                         log.info("Trovate {} simulazioni totali per l'utente ID: {}", simulazioni.size(), utenteId);
                 }
-                
+
                 // Misura il tempo per il recupero delle simulazioni dal database
                 long dbQueryTime = System.currentTimeMillis();
                 double dbQueryTimeInSeconds = (dbQueryTime - startTime) / 1000.0;
@@ -908,22 +909,37 @@ public class SimulazioneServiceImpl implements SimulazioneService {
                 return simulazioniDTO;
         }
 
-        @Override
+        /**
+         * Nuovo metodo che calcola internamente il risultato dettagliato utilizzando
+         * calcolaRendimentoAdvanced.
+         * Questo metodo è ottimizzato per essere utilizzato da
+         * elaboraSimulazionePerTitolo.
+         * 
+         * @param simulazioneEsistente la simulazione esistente da aggiornare
+         * @param titolo               il titolo per cui calcolare il rendimento
+         * @param prezzo               il prezzo del titolo
+         * @param importo              l'importo dell'investimento
+         * @param dataPrezzo           la data del prezzo (può essere null, in tal caso
+         *                             si usa la data della simulazione)
+         * @return la simulazione aggiornata e salvata
+         */
         public SimulazioneDTO aggiornaSimulazione(SimulazioneDTO simulazioneEsistente,
-                        RisultatoSimulazioneDTO risultato, BigDecimal importo) {
+                        Titolo titolo, BigDecimal prezzo, BigDecimal importo, LocalDate dataPrezzo) {
                 // Verifica che i parametri non siano null
-                if (simulazioneEsistente == null || risultato == null) {
+                if (simulazioneEsistente == null || titolo == null || prezzo == null || importo == null) {
                         throw new IllegalArgumentException(
-                                        "La simulazione esistente e il risultato non possono essere null");
+                                        "La simulazione esistente, il titolo, il prezzo e l'importo non possono essere null");
                 }
 
-                // Converti il risultato in un RisultatoRendimentoAdvancedDTO se necessario
-                RisultatoRendimentoAdvancedDTO risultatoAdvanced;
-                if (risultato instanceof RisultatoRendimentoAdvancedDTO) {
-                        risultatoAdvanced = (RisultatoRendimentoAdvancedDTO) risultato;
-                } else {
-                        risultatoAdvanced = new RisultatoRendimentoAdvancedDTO(risultato);
-                }
+                // Usa la data della simulazione se dataPrezzo è null
+                LocalDate dataEffettiva = dataPrezzo != null ? dataPrezzo : simulazioneEsistente.getDataAcquisto();
+
+                // Calcola il risultato dettagliato internamente
+                RisultatoRendimentoAdvancedDTO risultatoAdvanced = calcolaRendimentoAdvanced(
+                                titolo,
+                                prezzo,
+                                importo,
+                                dataEffettiva);
 
                 // Utilizza convertToSimulazioneDTO per aggiornare i campi della simulazione
                 SimulazioneDTO simulazioneAggiornata = convertToSimulazioneDTO(
@@ -942,39 +958,69 @@ public class SimulazioneServiceImpl implements SimulazioneService {
         }
 
         /**
-         * Metodo di convenienza che accetta direttamente un
-         * RisultatoRendimentoAdvancedDTO.
-         * Questo evita la conversione inutile quando si ha già un
-         * RisultatoRendimentoAdvancedDTO.
+         * Versione estesa del metodo elaboraSimulazionePerTitolo che accetta anche una
+         * data per il prezzo.
          * 
-         * @param simulazioneEsistente la simulazione esistente da aggiornare
-         * @param risultatoAdvanced    il risultato dettagliato del calcolo di
-         *                             rendimento
-         * @param importo              l'importo dell'investimento
-         * @return la simulazione aggiornata e salvata
+         * @param titolo     il titolo per cui elaborare la simulazione
+         * @param prezzo     il prezzo del titolo
+         * @param dataPrezzo la data del prezzo (può essere null, in tal caso si usa la
+         *                   data corrente)
+         * @return il risultato dell'elaborazione
          */
+        public ElaborazioneRisultatoDTO elaboraSimulazionePerTitolo(Titolo titolo, BigDecimal prezzo,
+                        LocalDate dataPrezzo) {
+                try {
+                        // Verifica che i parametri obbligatori non siano null
+                        if (titolo == null || prezzo == null || dataPrezzo == null) {
+                                throw new IllegalArgumentException(
+                                                "Il titolo, il prezzo e la data del prezzo non possono essere null");
+                        }
 
-        public SimulazioneDTO aggiornaSimulazione(SimulazioneDTO simulazioneEsistente,
-                        RisultatoRendimentoAdvancedDTO risultatoAdvanced, BigDecimal importo) {
-                // Verifica che i parametri non siano null
-                if (simulazioneEsistente == null || risultatoAdvanced == null) {
-                        throw new IllegalArgumentException(
-                                        "La simulazione esistente e il risultato non possono essere null");
+                        // Verifica se esiste già una simulazione per questo titolo nella stessa
+                        // giornata
+                        List<SimulazioneDTO> simulazioniOggi = findByTitoloIdAndDataAcquisto(titolo.getIdTitolo(),
+                                        dataPrezzo);
+                        SimulazioneDTO simulazione;
+
+                        // Calcola i rendimenti dettagliati per il titolo (necessario per il return)
+                        RisultatoRendimentoAdvancedDTO risultatoDettagliato = calcolaRendimentoAdvanced(
+                                        titolo,
+                                        prezzo,
+                                        RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE,
+                                        dataPrezzo);
+
+                        if (!simulazioniOggi.isEmpty()) {
+                                // Aggiorna la simulazione esistente della giornata corrente
+                                SimulazioneDTO simulazioneEsistente = simulazioniOggi.get(0);
+                                log.info("Trovata simulazione esistente per il titolo ID: {}, ISIN: {} nella data odierna, aggiornamento in corso",
+                                                titolo.getIdTitolo(), titolo.getCodiceIsin());
+
+                                // Aggiorna la simulazione esistente utilizzando il nuovo metodo che calcola
+                                // internamente il risultato
+                                simulazione = aggiornaSimulazione(
+                                                simulazioneEsistente,
+                                                titolo,
+                                                prezzo,
+                                                RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE,
+                                                dataPrezzo);
+                                log.info("Simulazione aggiornata per il titolo ID: {}, ISIN: {}",
+                                                titolo.getIdTitolo(), titolo.getCodiceIsin());
+                        } else {
+                                // Crea una nuova simulazione
+                                simulazione = calcolaESalvaSimulazione(
+                                                titolo.getIdTitolo(),
+                                                prezzo,
+                                                RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE,
+                                                dataPrezzo);
+                                log.info("Nuova simulazione creata per il titolo ID: {}, ISIN: {}",
+                                                titolo.getIdTitolo(), titolo.getCodiceIsin());
+                        }
+
+                        return new ElaborazioneRisultatoDTO(simulazione, risultatoDettagliato);
+                } catch (Exception e) {
+                        log.error("Errore nell'elaborazione della simulazione per il titolo ID: {}, ISIN: {}, Errore: {}",
+                                        titolo.getIdTitolo(), titolo.getCodiceIsin(), e.getMessage());
+                        return null;
                 }
-
-                // Utilizza convertToSimulazioneDTO per aggiornare i campi della simulazione
-                SimulazioneDTO simulazioneAggiornata = convertToSimulazioneDTO(
-                                risultatoAdvanced,
-                                simulazioneEsistente.getIdTitolo(),
-                                simulazioneEsistente.getDataAcquisto(),
-                                simulazioneEsistente.getPrezzoAcquisto(),
-                                importo);
-
-                // Mantieni l'ID e la versione della simulazione esistente
-                simulazioneAggiornata.setIdSimulazione(simulazioneEsistente.getIdSimulazione());
-                simulazioneAggiornata.setVersion(simulazioneEsistente.getVersion());
-
-                // Salva la simulazione aggiornata
-                return salvaSimulazione(simulazioneAggiornata);
         }
 }

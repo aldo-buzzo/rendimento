@@ -1,16 +1,20 @@
 package com.example.rendimento.controllers;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,7 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.rendimento.constants.RendimentoConstants;
+import com.example.rendimento.dto.ElaborazioneRisultatoDTO;
 import com.example.rendimento.dto.RisultatoRendimentoAdvancedDTO;
 import com.example.rendimento.dto.RisultatoSimulazioneDTO;
 import com.example.rendimento.dto.SimulazioneDTO;
@@ -31,13 +35,16 @@ import com.example.rendimento.dto.TitoloDTO;
 import com.example.rendimento.dto.TrendRendimentiDTO;
 import com.example.rendimento.dto.TrendRendimentiDTO.TitoloRendimentoDTO;
 import com.example.rendimento.dto.UtenteResponseDTO;
+import com.example.rendimento.enums.TipoTitolo;
 import com.example.rendimento.model.Titolo;
 import com.example.rendimento.repository.TitoloRepository;
 import com.example.rendimento.service.BorsaItalianaService;
+import com.example.rendimento.service.PrezzoStoricoService;
 import com.example.rendimento.service.SimulazioneService;
 import com.example.rendimento.service.TrendService;
 import com.example.rendimento.service.UtenteService;
 import com.example.rendimento.service.factory.BorsaItalianaServiceFactory;
+import com.example.rendimento.utility.ErrorResponseUtils;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -49,12 +56,13 @@ import jakarta.persistence.EntityNotFoundException;
 public class SimulazioneController {
 
     private static final Logger log = LoggerFactory.getLogger(SimulazioneController.class);
-    
+
     private final SimulazioneService simulazioneService;
     private final TitoloRepository titoloRepository;
     private final BorsaItalianaServiceFactory borsaItalianaServiceFactory;
     private final UtenteService utenteService;
     private final TrendService trendService;
+    private final PrezzoStoricoService prezzoStoricoService;
 
     /**
      * Costruttore con parametri per l'iniezione delle dipendenze.
@@ -62,43 +70,23 @@ public class SimulazioneController {
      * @param simulazioneService servizio per la gestione delle simulazioni
      */
     @Autowired
-    public SimulazioneController(SimulazioneService simulazioneService, TitoloRepository titoloRepository, 
-                                BorsaItalianaServiceFactory borsaItalianaServiceFactory, UtenteService utenteService,
-                                TrendService trendService) {
+    public SimulazioneController(SimulazioneService simulazioneService, TitoloRepository titoloRepository,
+            BorsaItalianaServiceFactory borsaItalianaServiceFactory, UtenteService utenteService,
+            TrendService trendService, PrezzoStoricoService prezzoStoricoService) {
         this.simulazioneService = simulazioneService;
         this.titoloRepository = titoloRepository;
         this.borsaItalianaServiceFactory = borsaItalianaServiceFactory;
         this.utenteService = utenteService;
         this.trendService = trendService;
-    }
-    
-    /**
-     * Classe interna per contenere i risultati dell'elaborazione della simulazione.
-     */
-    private static class ElaborazioneRisultato {
-        private final SimulazioneDTO simulazione;
-        private final RisultatoRendimentoAdvancedDTO risultatoDettagliato;
-        
-        public ElaborazioneRisultato(SimulazioneDTO simulazione, RisultatoRendimentoAdvancedDTO risultatoDettagliato) {
-            this.simulazione = simulazione;
-            this.risultatoDettagliato = risultatoDettagliato;
-        }
-        
-        public SimulazioneDTO getSimulazione() {
-            return simulazione;
-        }
-        
-        public RisultatoRendimentoAdvancedDTO getRisultatoDettagliato() {
-            return risultatoDettagliato;
-        }
+        this.prezzoStoricoService = prezzoStoricoService;
     }
 
     /**
      * Endpoint per il calcolo del rendimento di un titolo.
      *
-     * @param idTitolo ID del titolo
+     * @param idTitolo       ID del titolo
      * @param prezzoAcquisto prezzo di acquisto inserito dall'utente
-     * @param importo importo dell'investimento
+     * @param importo        importo dell'investimento
      * @return DTO contenente tutti i risultati del calcolo
      */
     @PostMapping("/calcola-rendimento")
@@ -106,13 +94,14 @@ public class SimulazioneController {
             @RequestParam Integer idTitolo,
             @RequestParam BigDecimal prezzoAcquisto,
             @RequestParam BigDecimal importo) {
-        
-        log.info("Ricevuta richiesta POST /api/simulazioni/calcola-rendimento con idTitolo: {}, prezzoAcquisto: {}, importo: {}", 
+
+        log.info(
+                "Ricevuta richiesta POST /api/simulazioni/calcola-rendimento con idTitolo: {}, prezzoAcquisto: {}, importo: {}",
                 idTitolo, prezzoAcquisto, importo);
-        
+
         RisultatoSimulazioneDTO risultato = simulazioneService.calcolaRendimento(
-            idTitolo, prezzoAcquisto, importo);
-        
+                idTitolo, prezzoAcquisto, importo);
+
         log.info("Risposta per POST /api/simulazioni/calcola-rendimento: {}", risultato);
         return ResponseEntity.ok(risultato);
     }
@@ -130,15 +119,16 @@ public class SimulazioneController {
         log.info("Risposta per POST /api/simulazioni: {}", savedSimulazione);
         return ResponseEntity.ok(savedSimulazione);
     }
-    
+
     /**
-     * Endpoint per il calcolo e il salvataggio di una simulazione in un'unica operazione.
+     * Endpoint per il calcolo e il salvataggio di una simulazione in un'unica
+     * operazione.
      * Questo endpoint ricalcola tutti i valori prima di salvare la simulazione.
      *
-     * @param idTitolo ID del titolo
+     * @param idTitolo       ID del titolo
      * @param prezzoAcquisto prezzo di acquisto inserito dall'utente
-     * @param importo importo dell'investimento
-     * @param dataAcquisto data di acquisto
+     * @param importo        importo dell'investimento
+     * @param dataAcquisto   data di acquisto
      * @return il DTO della simulazione salvata con ID aggiornato
      */
     @PostMapping("/calcola-e-salva")
@@ -147,43 +137,48 @@ public class SimulazioneController {
             @RequestParam BigDecimal prezzoAcquisto,
             @RequestParam BigDecimal importo,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataAcquisto) {
-        
-        log.info("Ricevuta richiesta POST /api/simulazioni/calcola-e-salva con idTitolo: {}, prezzoAcquisto: {}, importo: {}, dataAcquisto: {}", 
+
+        log.info(
+                "Ricevuta richiesta POST /api/simulazioni/calcola-e-salva con idTitolo: {}, prezzoAcquisto: {}, importo: {}, dataAcquisto: {}",
                 idTitolo, prezzoAcquisto, importo, dataAcquisto);
-        
+
         SimulazioneDTO savedSimulazione = simulazioneService.calcolaESalvaSimulazione(
-            idTitolo, prezzoAcquisto, importo, dataAcquisto);
-        
+                idTitolo, prezzoAcquisto, importo, dataAcquisto);
+
         log.info("Risposta per POST /api/simulazioni/calcola-e-salva: {}", savedSimulazione);
         return ResponseEntity.ok(savedSimulazione);
     }
 
     /**
      * Endpoint per il recupero di tutte le simulazioni.
-     * Se il parametro 'latest' è true, restituisce solo le simulazioni più recenti per ogni titolo.
+     * Se il parametro 'latest' è true, restituisce solo le simulazioni più recenti
+     * per ogni titolo.
      *
-     * @param latest se true, restituisce solo le simulazioni più recenti per ogni titolo
+     * @param latest se true, restituisce solo le simulazioni più recenti per ogni
+     *               titolo
      * @return lista di simulazioni
      */
     @GetMapping
     public ResponseEntity<List<SimulazioneDTO>> getAllSimulazioni(
             @RequestParam(required = false, defaultValue = "true") boolean latest) {
         log.info("Ricevuta richiesta GET /api/simulazioni con parametro latest: {}", latest);
-        
+
         // Ottieni l'utente corrente
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-        
+
         // Ottieni l'ID dell'utente corrente
         Integer utenteId = utenteService.findByUsername(username)
                 .map(UtenteResponseDTO::getIdUtente)
                 .orElseThrow(() -> new IllegalStateException("Utente non autenticato"));
-        
-        // Usa il metodo ottimizzato che filtra direttamente nel database e ordina per data di scadenza crescente
-        List<SimulazioneDTO> simulazioni = simulazioneService.getSimulazioniByUtenteIdOrderByScadenzaAsc(utenteId, latest);
-        log.info("Recuperate {} simulazioni per l'utente ID: {} (latest: {}) ordinate per data di scadenza crescente", 
+
+        // Usa il metodo ottimizzato che filtra direttamente nel database e ordina per
+        // data di scadenza crescente
+        List<SimulazioneDTO> simulazioni = simulazioneService.getSimulazioniByUtenteIdOrderByScadenzaAsc(utenteId,
+                latest);
+        log.info("Recuperate {} simulazioni per l'utente ID: {} (latest: {}) ordinate per data di scadenza crescente",
                 simulazioni.size(), utenteId, latest);
-        
+
         return ResponseEntity.ok(simulazioni);
     }
 
@@ -196,22 +191,22 @@ public class SimulazioneController {
     @GetMapping("/{id}")
     public ResponseEntity<SimulazioneDTO> getSimulazioneById(@PathVariable Integer id) {
         log.info("Ricevuta richiesta GET /api/simulazioni/{} con id: {}", "id", id);
-        
+
         // Ottieni l'utente corrente
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-        
+
         // Ottieni l'ID dell'utente corrente
         Integer utenteId = utenteService.findByUsername(username)
                 .map(UtenteResponseDTO::getIdUtente)
                 .orElse(null);
-        
+
         SimulazioneDTO simulazione = simulazioneService.findById(id);
-        
+
         // Verifica che la simulazione appartenga all'utente corrente
-        if (simulazione != null && simulazione.getTitolo() != null && 
-                (simulazione.getTitolo().getUtenteId() == null || 
-                 simulazione.getTitolo().getUtenteId().equals(utenteId))) {
+        if (simulazione != null && simulazione.getTitolo() != null &&
+                (simulazione.getTitolo().getUtenteId() == null ||
+                        simulazione.getTitolo().getUtenteId().equals(utenteId))) {
             log.info("Risposta per GET /api/simulazioni/{}: {}", id, simulazione);
             return ResponseEntity.ok(simulazione);
         } else {
@@ -233,40 +228,42 @@ public class SimulazioneController {
         log.info("Risposta per DELETE /api/simulazioni/{}: Simulazione eliminata con successo", id);
         return ResponseEntity.noContent().build();
     }
-    
+
     /**
      * Endpoint per il recupero dei dettagli di simulazione per un titolo specifico.
-     * Restituisce la simulazione più recente per il titolo specificato, con i dettagli del titolo inclusi.
+     * Restituisce la simulazione più recente per il titolo specificato, con i
+     * dettagli del titolo inclusi.
      *
      * @param idTitolo l'ID del titolo per cui recuperare i dettagli di simulazione
-     * @return la simulazione più recente per il titolo specificato, con i dettagli del titolo inclusi
+     * @return la simulazione più recente per il titolo specificato, con i dettagli
+     *         del titolo inclusi
      */
     @GetMapping("/titolo/{idTitolo}")
     public ResponseEntity<SimulazioneDTO> getSimulazioneByTitoloId(@PathVariable Integer idTitolo) {
         log.info("Ricevuta richiesta GET /api/simulazioni/titolo/{} con idTitolo: {}", "idTitolo", idTitolo);
-        
+
         // Ottieni l'utente corrente
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-        
+
         // Ottieni l'ID dell'utente corrente
         Integer utenteId = utenteService.findByUsername(username)
                 .map(UtenteResponseDTO::getIdUtente)
                 .orElse(null);
-        
+
         // Ottieni la simulazione più recente per il titolo specificato
         SimulazioneDTO simulazione = simulazioneService.getLatestSimulazioneByTitoloId(idTitolo);
-        
+
         // Ottieni i dettagli del titolo
         Titolo titolo = titoloRepository.findById(idTitolo)
-            .orElseThrow(() -> new EntityNotFoundException("Titolo non trovato con ID: " + idTitolo));
-        
+                .orElseThrow(() -> new EntityNotFoundException("Titolo non trovato con ID: " + idTitolo));
+
         // Verifica che il titolo appartenga all'utente corrente
         if (titolo.getUtente() != null && utenteId != null && !titolo.getUtente().getIdUtente().equals(utenteId)) {
             log.info("Risposta per GET /api/simulazioni/titolo/{}: Titolo non trovato o non autorizzato", idTitolo);
             return ResponseEntity.notFound().build();
         }
-        
+
         // Converti il titolo in DTO
         TitoloDTO titoloDTO = new TitoloDTO();
         titoloDTO.setIdTitolo(titolo.getIdTitolo());
@@ -278,17 +275,18 @@ public class SimulazioneController {
         titoloDTO.setPeriodicitaBollo(titolo.getPeriodicitaBollo().toString());
         titoloDTO.setTipoTitolo(titolo.getTipoTitolo());
         titoloDTO.setUtenteId(titolo.getUtente() != null ? titolo.getUtente().getIdUtente() : null);
-        
+
         // Imposta il titolo nella simulazione
         simulazione.setTitolo(titoloDTO);
-        
+
         log.info("Risposta per GET /api/simulazioni/titolo/{}: {}", idTitolo, simulazione);
         return ResponseEntity.ok(simulazione);
     }
-    
+
     /**
      * Endpoint per il recupero di tutte le simulazioni per un titolo specifico.
-     * Restituisce tutte le simulazioni per il titolo specificato, ordinate per data di acquisto decrescente.
+     * Restituisce tutte le simulazioni per il titolo specificato, ordinate per data
+     * di acquisto decrescente.
      *
      * @param idTitolo l'ID del titolo per cui recuperare le simulazioni
      * @return lista di tutte le simulazioni per il titolo specificato
@@ -296,34 +294,37 @@ public class SimulazioneController {
     @GetMapping("/titolo/{idTitolo}/all")
     public ResponseEntity<List<SimulazioneDTO>> getAllSimulazioniByTitoloId(@PathVariable Integer idTitolo) {
         log.info("Ricevuta richiesta GET /api/simulazioni/titolo/{}/all con idTitolo: {}", "idTitolo", idTitolo);
-        
+
         // Ottieni l'utente corrente
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-        
+
         // Ottieni l'ID dell'utente corrente
         Integer utenteId = utenteService.findByUsername(username)
                 .map(UtenteResponseDTO::getIdUtente)
                 .orElse(null);
-        
+
         // Verifica che il titolo appartenga all'utente corrente
         Titolo titolo = titoloRepository.findById(idTitolo).orElse(null);
-        if (titolo != null && titolo.getUtente() != null && utenteId != null && 
+        if (titolo != null && titolo.getUtente() != null && utenteId != null &&
                 !titolo.getUtente().getIdUtente().equals(utenteId)) {
             log.info("Risposta per GET /api/simulazioni/titolo/{}/all: Titolo non trovato o non autorizzato", idTitolo);
             return ResponseEntity.notFound().build();
         }
-        
+
         // Ottieni tutte le simulazioni per il titolo specificato
         List<SimulazioneDTO> simulazioni = simulazioneService.findByTitoloId(idTitolo);
-        
-        log.info("Risposta per GET /api/simulazioni/titolo/{}/all: {} simulazioni trovate", idTitolo, simulazioni.size());
+
+        log.info("Risposta per GET /api/simulazioni/titolo/{}/all: {} simulazioni trovate", idTitolo,
+                simulazioni.size());
         return ResponseEntity.ok(simulazioni);
     }
-    
+
     /**
-     * Endpoint per il recupero dei dettagli di una simulazione con i valori ricalcolati.
-     * Questo endpoint è utile per visualizzare i dettagli di una simulazione esistente
+     * Endpoint per il recupero dei dettagli di una simulazione con i valori
+     * ricalcolati.
+     * Questo endpoint è utile per visualizzare i dettagli di una simulazione
+     * esistente
      * con i valori ricalcolati in base ai parametri attuali.
      *
      * @param id l'ID della simulazione da ricalcolare
@@ -332,82 +333,89 @@ public class SimulazioneController {
     @GetMapping("/{id}/ricalcola")
     public ResponseEntity<RisultatoSimulazioneDTO> ricalcolaSimulazione(@PathVariable Integer id) {
         log.info("Ricevuta richiesta GET /api/simulazioni/{}/ricalcola con id: {}", "id", id);
-        
+
         // Ottieni la simulazione per ID
         SimulazioneDTO simulazione = simulazioneService.findById(id);
-        
+
         // Ricalcola i valori della simulazione
         RisultatoSimulazioneDTO risultato = simulazioneService.ricalcolaValoriSimulazione(simulazione);
-        
+
         log.info("Risposta per GET /api/simulazioni/{}/ricalcola: {}", id, risultato);
         return ResponseEntity.ok(risultato);
     }
-    
+
     /**
      * Endpoint per calcolare il rendimento di tutti i titoli con scadenza futura.
-     * Per ogni titolo viene calcolato il rendimento con un importo fisso di 10.000 euro.
+     * Per ogni titolo viene calcolato il rendimento con un importo fisso di 10.000
+     * euro.
      *
      * @return lista di simulazioni calcolate e salvate
      */
     @PostMapping("/calcola-rendimenti-tutti-titoli")
     public ResponseEntity<List<SimulazioneDTO>> calcolaRendimentiTuttiTitoli() {
         log.info("Ricevuta richiesta POST /api/simulazioni/calcola-rendimenti-tutti-titoli");
-        
+
         // Ottieni l'utente corrente
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-        
+
         // Ottieni l'ID dell'utente corrente
         Integer utenteId = utenteService.findByUsername(username)
                 .map(UtenteResponseDTO::getIdUtente)
                 .orElseThrow(() -> new IllegalStateException("Utente non autenticato"));
-        
-        // Recupera tutti i titoli con data di scadenza futura che appartengono all'utente corrente
-        List<Titolo> titoliValidi = titoloRepository.findByDataScadenzaAfterAndUtente_IdUtente(LocalDate.now(), utenteId);
+
+        // Recupera tutti i titoli con data di scadenza futura che appartengono
+        // all'utente corrente
+        List<Titolo> titoliValidi = titoloRepository.findByDataScadenzaAfterAndUtente_IdUtente(LocalDate.now(),
+                utenteId);
         log.info("Trovati {} titoli con scadenza futura per l'utente ID: {}", titoliValidi.size(), utenteId);
-        
+
         List<SimulazioneDTO> simulazioniSalvate = new ArrayList<>();
-        
+
         // Per ogni titolo, calcola e salva una simulazione
         for (Titolo titolo : titoliValidi) {
             try {
                 // Ottieni il prezzo attuale del titolo
                 BigDecimal prezzoAcquisto = getPrezzoAcquistoPerTitolo(titolo);
+                LocalDate oggi = LocalDate.now();
                 if (prezzoAcquisto == null) {
                     continue; // Salta questo titolo e passa al prossimo
                 }
-                
+
                 // Elabora la simulazione e ottieni il risultato dettagliato
-                ElaborazioneRisultato risultatoElaborazione = elaboraSimulazionePerTitolo(titolo, prezzoAcquisto);
+                com.example.rendimento.dto.ElaborazioneRisultatoDTO risultatoElaborazione = simulazioneService
+                        .elaboraSimulazionePerTitolo(titolo, prezzoAcquisto, oggi);
                 if (risultatoElaborazione == null || risultatoElaborazione.getSimulazione() == null) {
                     continue; // Salta questo titolo se l'elaborazione ha fallito
                 }
-                
+
                 // Salva il trend per il titolo utilizzando il rendimento senza costi
-                trendService.salvaTrendPerTitolo(
-                    titolo,
-                    prezzoAcquisto,
-                    risultatoElaborazione.getRisultatoDettagliato().getRendimentoSenzaCosti()
-                );
-                log.info("Trend salvato per il titolo ID: {}, ISIN: {}", 
+                trendService.salvaOAggiornaTrendPerTitolo(
+                        titolo,
+                        prezzoAcquisto,
+                        risultatoElaborazione.getRisultatoDettagliato().getRendimentoSenzaCosti(),
+                        null);
+                log.info("Trend salvato per il titolo ID: {}, ISIN: {}",
                         titolo.getIdTitolo(), titolo.getCodiceIsin());
-                
+
                 simulazioniSalvate.add(risultatoElaborazione.getSimulazione());
             } catch (Exception e) {
-                log.error("Errore nel calcolo della simulazione per il titolo ID: {}, ISIN: {}, Errore: {}", 
+                log.error("Errore nel calcolo della simulazione per il titolo ID: {}, ISIN: {}, Errore: {}",
                         titolo.getIdTitolo(), titolo.getCodiceIsin(), e.getMessage());
             }
         }
-        
-        log.info("Risposta per POST /api/simulazioni/calcola-rendimenti-tutti-titoli: {} simulazioni aggiornate/create", 
+
+        log.info("Risposta per POST /api/simulazioni/calcola-rendimenti-tutti-titoli: {} simulazioni aggiornate/create",
                 simulazioniSalvate.size());
         return ResponseEntity.ok(simulazioniSalvate);
     }
-    
+
     /**
      * Endpoint per il recupero dei dati dettagliati di calcolo per una simulazione.
-     * Questo endpoint restituisce un oggetto RisultatoRendimentoAdvancedDTO con tutti i dati
-     * necessari per visualizzare i calcoli dettagliati nella pagina info-titolo-rendimenti.html.
+     * Questo endpoint restituisce un oggetto RisultatoRendimentoAdvancedDTO con
+     * tutti i dati
+     * necessari per visualizzare i calcoli dettagliati nella pagina
+     * info-titolo-rendimenti.html.
      *
      * @param id l'ID della simulazione per cui recuperare i dati dettagliati
      * @return i dati dettagliati di calcolo
@@ -415,79 +423,85 @@ public class SimulazioneController {
     @GetMapping("/{id}/calcolo-dettagliato")
     public ResponseEntity<RisultatoRendimentoAdvancedDTO> getCalcoloDettagliato(@PathVariable Integer id) {
         log.info("Ricevuta richiesta GET /api/simulazioni/{}/calcolo-dettagliato con id: {}", "id", id);
-        
+
         // Ottieni l'utente corrente
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-        
+
         // Ottieni l'ID dell'utente corrente
         Integer utenteId = utenteService.findByUsername(username)
                 .map(UtenteResponseDTO::getIdUtente)
                 .orElse(null);
-        
+
         // Recupera la simulazione
         SimulazioneDTO simulazione = simulazioneService.findById(id);
         if (simulazione == null) {
             log.info("Risposta per GET /api/simulazioni/{}/calcolo-dettagliato: Simulazione non trovata", id);
             return ResponseEntity.notFound().build();
         }
-        
+
         // Verifica che la simulazione appartenga all'utente corrente
-        if (simulazione.getTitolo() != null && simulazione.getTitolo().getUtenteId() != null && 
+        if (simulazione.getTitolo() != null && simulazione.getTitolo().getUtenteId() != null &&
                 utenteId != null && !simulazione.getTitolo().getUtenteId().equals(utenteId)) {
             log.info("Risposta per GET /api/simulazioni/{}/calcolo-dettagliato: Simulazione non autorizzata", id);
             return ResponseEntity.notFound().build();
         }
-        
+
         // Recupera il titolo associato
         Titolo titolo = titoloRepository.findById(simulazione.getIdTitolo())
-                .orElseThrow(() -> new EntityNotFoundException("Titolo non trovato con ID: " + simulazione.getIdTitolo()));
-        
+                .orElseThrow(
+                        () -> new EntityNotFoundException("Titolo non trovato con ID: " + simulazione.getIdTitolo()));
+
         // Utilizza la logica esistente per calcolare i rendimenti dettagliati
         RisultatoRendimentoAdvancedDTO risultato = simulazioneService.calcolaRendimentoAdvanced(
                 titolo,
                 simulazione.getPrezzoAcquisto(),
                 simulazione.getNominale() != null ? simulazione.getNominale() : new BigDecimal("10000"),
-                simulazione.getDataAcquisto()
-        );
-        
+                simulazione.getDataAcquisto());
+
         log.info("Risposta per GET /api/simulazioni/{}/calcolo-dettagliato: {}", id, risultato);
         return ResponseEntity.ok(risultato);
     }
-    
+
     /**
-     * Endpoint per il recupero dei dati di trend dei rendimenti per un determinato periodo.
-     * Questo endpoint restituisce un oggetto TrendRendimentiDTO con i dati statistici
-     * (rendimento minimo, medio, massimo) e la lista dei titoli con i loro rendimenti.
+     * Endpoint per il recupero dei dati di trend dei rendimenti per un determinato
+     * periodo.
+     * Questo endpoint restituisce un oggetto TrendRendimentiDTO con i dati
+     * statistici
+     * (rendimento minimo, medio, massimo) e la lista dei titoli con i loro
+     * rendimenti.
      *
-     * @param periodo il periodo di scadenza (trimestrali, semestrali, annuali, triennali, tutti)
+     * @param periodo il periodo di scadenza (trimestrali, semestrali, annuali,
+     *                triennali, tutti)
      * @return i dati di trend dei rendimenti
      */
     @GetMapping("/trends/{periodo}")
     public ResponseEntity<TrendRendimentiDTO> getTrendRendimenti(@PathVariable String periodo) {
         log.info("Ricevuta richiesta GET /api/simulazioni/trends/{} con periodo: {}", "periodo", periodo);
-        
+
         // Ottieni l'utente corrente
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-        
+
         // Ottieni l'ID dell'utente corrente
         Integer utenteId = utenteService.findByUsername(username)
                 .map(UtenteResponseDTO::getIdUtente)
                 .orElseThrow(() -> new IllegalStateException("Utente non autenticato"));
-        
-        // Recupera tutti i titoli con data di scadenza futura che appartengono all'utente corrente
-        List<Titolo> titoliValidi = titoloRepository.findByDataScadenzaAfterAndUtente_IdUtente(LocalDate.now(), utenteId);
+
+        // Recupera tutti i titoli con data di scadenza futura che appartengono
+        // all'utente corrente
+        List<Titolo> titoliValidi = titoloRepository.findByDataScadenzaAfterAndUtente_IdUtente(LocalDate.now(),
+                utenteId);
         log.info("Trovati {} titoli con scadenza futura per l'utente ID: {}", titoliValidi.size(), utenteId);
-        
+
         // Filtra i titoli in base al periodo di scadenza specificato
         List<Titolo> titoliFiltrati = filtraTitoliPerPeriodo(titoliValidi, periodo);
         log.info("Filtrati {} titoli per il periodo: {}", titoliFiltrati.size(), periodo);
-        
+
         // Ordina i titoli per data di scadenza crescente
         titoliFiltrati.sort(Comparator.comparing(Titolo::getDataScadenza));
         log.info("Titoli ordinati per data di scadenza crescente");
-        
+
         // Recupera le simulazioni più recenti per i titoli filtrati
         List<SimulazioneDTO> simulazioni = new ArrayList<>();
         for (Titolo titolo : titoliFiltrati) {
@@ -499,75 +513,76 @@ public class SimulazioneController {
                 log.warn("Nessuna simulazione trovata per il titolo ID: {}", titolo.getIdTitolo());
             }
         }
-        
+
         // Calcola i rendimenti per ogni titolo
         List<TitoloRendimentoDTO> titoliRendimento = new ArrayList<>();
         List<BigDecimal> rendimentiBolloAnnuale = new ArrayList<>();
-        
+
         for (SimulazioneDTO simulazione : simulazioni) {
             try {
                 // Recupera il titolo associato
                 Titolo titolo = titoloRepository.findById(simulazione.getIdTitolo())
-                        .orElseThrow(() -> new EntityNotFoundException("Titolo non trovato con ID: " + simulazione.getIdTitolo()));
-                
+                        .orElseThrow(() -> new EntityNotFoundException(
+                                "Titolo non trovato con ID: " + simulazione.getIdTitolo()));
+
                 // Calcola i rendimenti dettagliati
                 RisultatoRendimentoAdvancedDTO risultato = simulazioneService.calcolaRendimentoAdvanced(
                         titolo,
                         simulazione.getPrezzoAcquisto(),
                         simulazione.getNominale() != null ? simulazione.getNominale() : new BigDecimal("10000"),
-                        simulazione.getDataAcquisto()
-                );
-                
-                // Crea un oggetto TitoloRendimentoDTO con i dati del titolo e i rendimenti calcolati
+                        simulazione.getDataAcquisto());
+
+                // Crea un oggetto TitoloRendimentoDTO con i dati del titolo e i rendimenti
+                // calcolati
                 TitoloRendimentoDTO titoloRendimento = new TitoloRendimentoDTO(
                         titolo.getIdTitolo(),
                         titolo.getNome(),
                         titolo.getCodiceIsin(),
                         risultato.getRendimentoConCommissioniEBolloMensile(),
-                        risultato.getRendimentoConCommissioniEBolloAnnuale()
-                );
-                
+                        risultato.getRendimentoConCommissioniEBolloAnnuale());
+
                 titoliRendimento.add(titoloRendimento);
                 rendimentiBolloAnnuale.add(risultato.getRendimentoConCommissioniEBolloAnnuale());
             } catch (Exception e) {
-                log.error("Errore nel calcolo dei rendimenti per il titolo ID: {}, Errore: {}", 
+                log.error("Errore nel calcolo dei rendimenti per il titolo ID: {}, Errore: {}",
                         simulazione.getIdTitolo(), e.getMessage());
             }
         }
-        
+
         // Calcola i rendimenti minimi, medi e massimi
         BigDecimal rendimentoMinimo = BigDecimal.ZERO;
         BigDecimal rendimentoMedio = BigDecimal.ZERO;
         BigDecimal rendimentoMassimo = BigDecimal.ZERO;
-        
+
         if (!rendimentiBolloAnnuale.isEmpty()) {
             rendimentoMinimo = rendimentiBolloAnnuale.stream()
                     .min(Comparator.naturalOrder())
                     .orElse(BigDecimal.ZERO);
-            
+
             rendimentoMassimo = rendimentiBolloAnnuale.stream()
                     .max(Comparator.naturalOrder())
                     .orElse(BigDecimal.ZERO);
-            
+
             rendimentoMedio = rendimentiBolloAnnuale.stream()
                     .reduce(BigDecimal.ZERO, BigDecimal::add)
                     .divide(new BigDecimal(rendimentiBolloAnnuale.size()), 4, BigDecimal.ROUND_HALF_UP);
         }
-        
+
         // Crea l'oggetto TrendRendimentiDTO con i dati calcolati
         TrendRendimentiDTO trendRendimenti = new TrendRendimentiDTO(
                 rendimentoMinimo,
                 rendimentoMedio,
                 rendimentoMassimo,
-                titoliRendimento
-        );
-        
-        log.info("Risposta per GET /api/simulazioni/trends/{}: {} titoli con rendimenti", periodo, titoliRendimento.size());
+                titoliRendimento);
+
+        log.info("Risposta per GET /api/simulazioni/trends/{}: {} titoli con rendimenti", periodo,
+                titoliRendimento.size());
         return ResponseEntity.ok(trendRendimenti);
     }
-    
+
     /**
-     * Ottiene il prezzo di acquisto per un titolo utilizzando il servizio appropriato.
+     * Ottiene il prezzo di acquisto per un titolo utilizzando il servizio
+     * appropriato.
      * 
      * @param titolo il titolo per cui ottenere il prezzo
      * @return il prezzo di acquisto o null se non disponibile
@@ -575,11 +590,12 @@ public class SimulazioneController {
     private BigDecimal getPrezzoAcquistoPerTitolo(Titolo titolo) {
         try {
             // Ottieni il servizio appropriato in base al tipo di titolo
-            BorsaItalianaService borsaItalianaService = borsaItalianaServiceFactory.getBorsaItalianaService(titolo.getTipoTitolo());
-            
+            BorsaItalianaService borsaItalianaService = borsaItalianaServiceFactory
+                    .getBorsaItalianaService(titolo.getTipoTitolo());
+
             // Ottieni direttamente il corso (prezzo) del titolo
             BigDecimal prezzoAcquisto = borsaItalianaService.getCorsoByIsin(titolo.getCodiceIsin());
-            
+
             if (prezzoAcquisto != null) {
                 log.info("Prezzo attuale ottenuto per il titolo {}: {}", titolo.getCodiceIsin(), prezzoAcquisto);
                 return prezzoAcquisto;
@@ -592,75 +608,196 @@ public class SimulazioneController {
             return null;
         }
     }
-    
+
     /**
-     * Elabora la simulazione per un titolo.
+     * Metodo privato per elaborare i prezzi storici di un titolo e salvare i trend.
+     * Questo metodo contiene la logica comune utilizzata da recuperaDati e
+     * recuperaDatiPerTitolo.
      * 
-     * @param titolo il titolo per cui elaborare la simulazione
-     * @param prezzoAcquisto il prezzo di acquisto del titolo
-     * @return un oggetto contenente la simulazione elaborata e il risultato dettagliato, o null in caso di errore
+     * @param titolo il titolo per cui elaborare i prezzi storici
+     * @param giorno il giorno della settimana per cui recuperare i prezzi
+     * @return lista di simulazioni elaborate con i prezzi storici
+     * @throws Exception se si verifica un errore durante l'elaborazione
      */
-    private ElaborazioneRisultato elaboraSimulazionePerTitolo(Titolo titolo, BigDecimal prezzoAcquisto) {
+    private List<SimulazioneDTO> elaboraPrezziStoriciETrend(Titolo titolo, String giorno) throws Exception {
+        List<SimulazioneDTO> simulazioniSalvate = new ArrayList<>();
+
+        // Estrai i prezzi storici degli ultimi 3 mesi per il giorno specificato
+        DayOfWeek giornoSettimana = DayOfWeek.valueOf(giorno);
+        List<Map<String, Object>> prezziMap;
         try {
-            // Calcola i rendimenti dettagliati per il titolo
-            LocalDate oggi = LocalDate.now();
-            RisultatoRendimentoAdvancedDTO risultatoDettagliato = simulazioneService.calcolaRendimentoAdvanced(
-                titolo,
-                prezzoAcquisto,
-                RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE,
-                oggi
-            );
-            
-            // Verifica se esiste già una simulazione per questo titolo nella stessa giornata
-            List<SimulazioneDTO> simulazioniOggi = simulazioneService.findByTitoloIdAndDataAcquisto(titolo.getIdTitolo(), oggi);
-            SimulazioneDTO simulazione;
-            
-            if (!simulazioniOggi.isEmpty()) {
-                // Aggiorna la simulazione esistente della giornata corrente
-                SimulazioneDTO simulazioneEsistente = simulazioniOggi.get(0);
-                log.info("Trovata simulazione esistente per il titolo ID: {}, ISIN: {} nella data odierna, aggiornamento in corso", 
-                        titolo.getIdTitolo(), titolo.getCodiceIsin());
-                
-                // Aggiorna la simulazione esistente utilizzando direttamente il risultato dettagliato già calcolato
-                simulazione = simulazioneService.aggiornaSimulazione(simulazioneEsistente, risultatoDettagliato, RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE);
-                log.info("Simulazione aggiornata per il titolo ID: {}, ISIN: {}", 
-                        titolo.getIdTitolo(), titolo.getCodiceIsin());
-            } else {
-                // Crea una nuova simulazione
-                simulazione = simulazioneService.calcolaESalvaSimulazione(
-                    titolo.getIdTitolo(),
-                    prezzoAcquisto,
-                    RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE,
-                    oggi
-                );
-                log.info("Nuova simulazione creata per il titolo ID: {}, ISIN: {}", 
-                        titolo.getIdTitolo(), titolo.getCodiceIsin());
-            }
-            
-            return new ElaborazioneRisultato(simulazione, risultatoDettagliato);
+            prezziMap = prezzoStoricoService.estraiPrezziUltimi3MesiMap(titolo, giornoSettimana);
+            log.info("Recuperati {} prezzi storici per il titolo {}", prezziMap.size(), titolo.getCodiceIsin());
         } catch (Exception e) {
-            log.error("Errore nell'elaborazione della simulazione per il titolo ID: {}, ISIN: {}, Errore: {}", 
+            log.error("Errore nel recupero dei prezzi storici per il titolo ID: {}, ISIN: {}, Errore: {}",
                     titolo.getIdTitolo(), titolo.getCodiceIsin(), e.getMessage());
-            return null;
+            throw new Exception("Errore nel recupero dei prezzi storici: " + e.getMessage(), e);
+        }
+
+        // Per ogni prezzo storico, elabora una simulazione
+        for (Map<String, Object> mappa : prezziMap) {
+            LocalDate data = (LocalDate) mappa.get("data");
+            BigDecimal prezzo = (BigDecimal) mappa.get("prezzo");
+
+            try {
+                // Elabora la simulazione e ottieni il risultato dettagliato
+                ElaborazioneRisultatoDTO risultatoElaborazione = simulazioneService
+                        .elaboraSimulazionePerTitolo(titolo, prezzo, data);
+
+                if (risultatoElaborazione == null || risultatoElaborazione.getSimulazione() == null) {
+                    log.warn("Elaborazione fallita per il titolo ID: {}, ISIN: {}, Data: {}",
+                            titolo.getIdTitolo(), titolo.getCodiceIsin(), data);
+                    continue; // Salta questo prezzo se l'elaborazione ha fallito
+                }
+
+                // Salva il trend per il titolo utilizzando il rendimento senza costi
+                trendService.salvaOAggiornaTrendPerTitolo(
+                        titolo,
+                        prezzo,
+                        risultatoElaborazione.getRisultatoDettagliato().getRendimentoSenzaCosti(),
+                        data);
+                log.info("Trend salvato per il titolo ID: {}, ISIN: {}, Data: {}, Prezzo: {}, Rendimento: {}",
+                        titolo.getIdTitolo(), titolo.getCodiceIsin(), data, prezzo,
+                        risultatoElaborazione.getRisultatoDettagliato().getRendimentoSenzaCosti());
+
+                simulazioniSalvate.add(risultatoElaborazione.getSimulazione());
+            } catch (Exception e) {
+                log.error(
+                        "Errore nell'elaborazione della simulazione per il titolo ID: {}, ISIN: {}, Data: {}, Errore: {}",
+                        titolo.getIdTitolo(), titolo.getCodiceIsin(), data, e.getMessage());
+                throw new Exception("Errore nell'elaborazione della simulazione per la data " + data + ": " + e.getMessage(), e);
+            }
+        }
+
+        return simulazioniSalvate;
+    }
+
+    /**
+     * Endpoint per recuperare i dati storici dei titoli BTP, elaborare simulazioni
+     * e salvare trend.
+     * Questo endpoint implementa la logica presente in TestPrezziStorici.
+     * Elabora tutti i titoli BTP di tutti gli utenti senza controlli di sicurezza.
+     * 
+     * @param giorno giorno della settimana per cui recuperare i prezzi (es. MONDAY,
+     *               FRIDAY)
+     * @return lista di simulazioni elaborate con i prezzi storici
+     */
+    @GetMapping("/recupera-dati")
+    public ResponseEntity<?> recuperaDati(
+            @RequestParam(required = false, defaultValue = "MONDAY") String giorno) {
+        log.info("Ricevuta richiesta GET /api/simulazioni/recupera-dati con giorno: {}", giorno);
+
+        try {
+            // Recupera tutti i titoli BTP con data di scadenza futura di tutti gli utenti
+            List<Titolo> titoliValidi = titoloRepository.findByDataScadenzaAfter(LocalDate.now())
+                    .stream()
+                    .filter(t -> t.getTipoTitolo() == TipoTitolo.BTP)
+                    .collect(Collectors.toList());
+
+            log.info("Trovati {} titoli BTP con scadenza futura per tutti gli utenti", titoliValidi.size());
+
+            List<SimulazioneDTO> simulazioniSalvate = new ArrayList<>();
+
+            // Per ogni titolo BTP, recupera i prezzi storici ed elabora simulazioni
+            for (Titolo titolo : titoliValidi) {
+                try {
+                    simulazioniSalvate.addAll(elaboraPrezziStoriciETrend(titolo, giorno));
+                } catch (Exception e) {
+                    log.error("Errore nell'elaborazione dei prezzi storici per il titolo ID: {}, ISIN: {}, Errore: {}",
+                            titolo.getIdTitolo(), titolo.getCodiceIsin(), e.getMessage());
+                    // Continua con il prossimo titolo
+                }
+            }
+
+            log.info("Risposta per GET /api/simulazioni/recupera-dati: {} simulazioni elaborate",
+                    simulazioniSalvate.size());
+            return ResponseEntity.ok(simulazioniSalvate);
+        } catch (Exception e) {
+            log.error("Errore imprevisto nel recupero dei dati: {}", e.getMessage());
+            return ErrorResponseUtils.createInternalServerErrorResponse(
+                "Si è verificato un errore durante l'elaborazione della richiesta: " + e.getMessage()
+            );
         }
     }
-    
+
+    /**
+     * Endpoint per recuperare i dati storici di un titolo specifico, elaborare
+     * simulazioni e salvare trend.
+     * Questo endpoint implementa la stessa logica di recupera-dati ma per un
+     * singolo titolo specificato dall'ID.
+     * 
+     * @param idTitolo ID del titolo per cui recuperare i dati
+     * @param giorno   giorno della settimana per cui recuperare i prezzi (es.
+     *                 MONDAY, FRIDAY)
+     * @return lista di simulazioni elaborate con i prezzi storici per il titolo
+     *         specificato
+     */
+    @GetMapping("/recupera-dati/{idTitolo}")
+    public ResponseEntity<?> recuperaDatiPerTitolo(
+            @PathVariable Integer idTitolo,
+            @RequestParam(required = false, defaultValue = "MONDAY") String giorno) {
+        log.info("Ricevuta richiesta GET /api/simulazioni/recupera-dati/{} con idTitolo: {} e giorno: {}",
+                "idTitolo", idTitolo, giorno);
+
+        try {
+            // Recupera il titolo specifico
+            Titolo titolo = titoloRepository.findById(idTitolo)
+                    .orElseThrow(() -> new EntityNotFoundException("Titolo non trovato con ID: " + idTitolo));
+
+            // Verifica che il titolo sia un BTP e abbia una data di scadenza futura
+            if (titolo.getTipoTitolo() != TipoTitolo.BTP) {
+                log.warn("Il titolo con ID: {} non è un BTP", idTitolo);
+                return ErrorResponseUtils.createBadRequestResponse(
+                    "Tipo titolo non supportato",
+                    "Il titolo con ID: " + idTitolo + " non è un BTP. Solo i titoli BTP sono supportati per questa operazione."
+                );
+            }
+
+            if (titolo.getDataScadenza().isBefore(LocalDate.now())) {
+                log.warn("Il titolo con ID: {} ha una data di scadenza passata", idTitolo);
+                return ErrorResponseUtils.createBadRequestResponse(
+                    "Data scadenza non valida",
+                    "Il titolo con ID: " + idTitolo + " ha una data di scadenza passata. Solo i titoli con scadenza futura sono supportati."
+                );
+            }
+
+            // Elabora i prezzi storici e salva i trend per il titolo specificato
+            List<SimulazioneDTO> simulazioniSalvate = elaboraPrezziStoriciETrend(titolo, giorno);
+
+            log.info("Risposta per GET /api/simulazioni/recupera-dati/{}: {} simulazioni elaborate",
+                    idTitolo, simulazioniSalvate.size());
+            return ResponseEntity.ok(simulazioniSalvate);
+        } catch (EntityNotFoundException e) {
+            log.error("Errore nel recupero del titolo con ID: {}: {}", idTitolo, e.getMessage());
+            return ErrorResponseUtils.createNotFoundResponse(
+                "Titolo non trovato", 
+                e.getMessage()
+            );
+        } catch (Exception e) {
+            log.error("Errore imprevisto nel recupero dei dati per il titolo con ID: {}: {}", idTitolo, e.getMessage());
+            return ErrorResponseUtils.createInternalServerErrorResponse(
+                "Si è verificato un errore durante l'elaborazione della richiesta: " + e.getMessage()
+            );
+        }
+    }
+
     /**
      * Filtra i titoli in base al periodo di scadenza specificato.
      * 
-     * @param titoli la lista di titoli da filtrare
-     * @param periodo il periodo di scadenza (trimestrali, semestrali, annuali, triennali, tutti)
+     * @param titoli  la lista di titoli da filtrare
+     * @param periodo il periodo di scadenza (trimestrali, semestrali, annuali,
+     *                triennali, tutti)
      * @return la lista di titoli filtrati
      */
     private List<Titolo> filtraTitoliPerPeriodo(List<Titolo> titoli, String periodo) {
         if (periodo.equals("tutti")) {
             return titoli;
         }
-        
+
         LocalDate oggi = LocalDate.now();
         LocalDate dataMinima;
         LocalDate dataMassima;
-        
+
         switch (periodo) {
             case "trimestrali":
                 // Titoli in scadenza tra 2 e 3 mesi
@@ -685,13 +822,13 @@ public class SimulazioneController {
             default:
                 return titoli;
         }
-        
+
         return titoli.stream()
                 .filter(titolo -> {
                     LocalDate dataScadenza = titolo.getDataScadenza();
-                    return dataScadenza != null && 
-                           dataScadenza.isAfter(dataMinima.minusDays(1)) && 
-                           dataScadenza.isBefore(dataMassima.plusDays(1));
+                    return dataScadenza != null &&
+                            dataScadenza.isAfter(dataMinima.minusDays(1)) &&
+                            dataScadenza.isBefore(dataMassima.plusDays(1));
                 })
                 .collect(Collectors.toList());
     }

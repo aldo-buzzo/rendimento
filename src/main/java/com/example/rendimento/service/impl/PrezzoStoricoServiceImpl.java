@@ -15,17 +15,20 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import com.example.rendimento.enums.TipoTitolo;
 import com.example.rendimento.model.PrezzoStorico;
 import com.example.rendimento.model.Titolo;
 import com.example.rendimento.service.PrezzoStoricoService;
 
+@Service
 public class PrezzoStoricoServiceImpl implements PrezzoStoricoService {
 
     private static final Logger log = LoggerFactory.getLogger(PrezzoStoricoServiceImpl.class);
     private static final DateTimeFormatter FORMATTER_DOT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final DateTimeFormatter FORMATTER_SLASH = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final int CONNECTION_TIMEOUT_MS = 60000; // 60 secondi di timeout per le connessioni HTTP
 
     public List<PrezzoStorico> estraiPrezziUltimi3Mesi(Titolo titolo, DayOfWeek giornoSettimana) throws Exception {
         List<PrezzoStorico> prezziStorici = new ArrayList<>();
@@ -36,10 +39,10 @@ public class PrezzoStoricoServiceImpl implements PrezzoStoricoService {
         log.info("Tentativo di accesso all'URL: {}", url);
 
         try {
-            // Fetch della pagina con gestione errori migliorata
+            // Fetch della pagina con gestione errori migliorata e timeout aumentato
             Document doc = Jsoup.connect(url)
                     .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0")
-                    .timeout(10000)
+                    .timeout(CONNECTION_TIMEOUT_MS)
                     .get();
 
             // Approccio 1: Cerca direttamente le celle con le classi specifiche fornite dall'utente

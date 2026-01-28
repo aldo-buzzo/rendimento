@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.example.rendimento.dto.ElaborazioneRisultatoDTO;
 import com.example.rendimento.dto.RisultatoRendimentoAdvancedDTO;
 import com.example.rendimento.dto.RisultatoSimulazioneDTO;
 import com.example.rendimento.dto.SimulazioneDTO;
@@ -126,31 +127,7 @@ public interface SimulazioneService {
      * @return lista di simulazioni associate ai titoli dell'utente
      */
     List<SimulazioneDTO> getSimulazioniByUtenteId(Integer utenteId, boolean latest);
-    
-    /**
-     * Aggiorna una simulazione esistente con i risultati di un nuovo calcolo di rendimento.
-     * Questo metodo utilizza internamente convertToSimulazioneDTO per garantire che tutti i campi
-     * siano aggiornati correttamente.
-     * 
-     * @param simulazioneEsistente la simulazione esistente da aggiornare
-     * @param risultato il risultato del nuovo calcolo di rendimento
-     * @param importo l'importo dell'investimento
-     * @return la simulazione aggiornata e salvata
-     */
-    SimulazioneDTO aggiornaSimulazione(SimulazioneDTO simulazioneEsistente, RisultatoSimulazioneDTO risultato, BigDecimal importo);
-    
-    /**
-     * Aggiorna una simulazione esistente con i risultati di un nuovo calcolo di rendimento avanzato.
-     * Questo metodo è una versione ottimizzata che accetta direttamente un RisultatoRendimentoAdvancedDTO,
-     * evitando la conversione inutile quando si ha già un risultato dettagliato.
-     * 
-     * @param simulazioneEsistente la simulazione esistente da aggiornare
-     * @param risultatoAdvanced il risultato dettagliato del calcolo di rendimento
-     * @param importo l'importo dell'investimento
-     * @return la simulazione aggiornata e salvata
-     */
-    SimulazioneDTO aggiornaSimulazione(SimulazioneDTO simulazioneEsistente, RisultatoRendimentoAdvancedDTO risultatoAdvanced, BigDecimal importo);
-    
+      
     /**
      * Recupera tutte le simulazioni associate ai titoli di un utente specifico,
      * ordinate per data di scadenza crescente.
@@ -178,4 +155,27 @@ public interface SimulazioneService {
             BigDecimal prezzoAcquisto,
             BigDecimal nominale,
             LocalDate dataAcquisto);
+            
+    /**
+     * Versione estesa del metodo elaboraSimulazionePerTitolo che accetta anche una data per il prezzo.
+     * 
+     * @param titolo     il titolo per cui elaborare la simulazione
+     * @param prezzo     il prezzo del titolo
+     * @param dataPrezzo la data del prezzo (può essere null, in tal caso si usa la data corrente)
+     * @return il risultato dell'elaborazione
+     */
+    ElaborazioneRisultatoDTO elaboraSimulazionePerTitolo(Titolo titolo, BigDecimal prezzo, LocalDate dataPrezzo);
+    
+    /**
+     * Aggiorna una simulazione esistente con i risultati di un nuovo calcolo di rendimento.
+     * Questo metodo calcola internamente il risultato dettagliato utilizzando calcolaRendimentoAdvanced.
+     * 
+     * @param simulazioneEsistente la simulazione esistente da aggiornare
+     * @param titolo               il titolo per cui calcolare il rendimento
+     * @param prezzo               il prezzo del titolo
+     * @param importo              l'importo dell'investimento
+     * @param dataPrezzo           la data del prezzo (può essere null, in tal caso si usa la data della simulazione)
+     * @return la simulazione aggiornata e salvata
+     */
+    SimulazioneDTO aggiornaSimulazione(SimulazioneDTO simulazioneEsistente, Titolo titolo, BigDecimal prezzo, BigDecimal importo, LocalDate dataPrezzo);
 }

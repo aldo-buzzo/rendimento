@@ -200,7 +200,8 @@ window.TitoliController = {
                 <td>${prezzoFormattato}</td>
                 <td>
                     <button class="btn btn-sm btn-outline-primary me-1" onclick="TitoliController.editTitolo(${titolo.id})">Modifica</button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="TitoliController.deleteTitolo(${titolo.id})">Elimina</button>
+                    <button class="btn btn-sm btn-outline-danger me-1" onclick="TitoliController.deleteTitolo(${titolo.id})">Elimina</button>
+                    <button class="btn btn-sm btn-outline-success" onclick="TitoliController.recuperaDati(${titolo.id})">Recupera Dati</button>
                 </td>
             `;
             tbody.appendChild(row);
@@ -762,6 +763,72 @@ window.TitoliController = {
             button.textContent = 'Già in lista';
             button.disabled = true;
         });
+    },
+    
+    /**
+     * Recupera i dati storici di un titolo e salva i trend
+     * @param {number} titoloId - L'ID del titolo per cui recuperare i dati
+     */
+    recuperaDati: function(titoloId) {
+        console.log(`Recuperando dati storici per il titolo ID: ${titoloId}...`);
+        
+        // Mostra un indicatore di caricamento
+        DomUtils.toggleLoading(true);
+        
+        // Esegui la chiamata AJAX all'endpoint recupera-dati
+        fetch(`/api/simulazioni/recupera-dati/${titoloId}`)
+            .then(response => {
+                // Verifica se la risposta è ok (status 200-299)
+                if (!response.ok) {
+                    // Se la risposta non è ok, prova a leggere il corpo dell'errore
+                    return response.text().then(errorText => {
+                        let errorMessage = `Errore ${response.status}: ${response.statusText}`;
+                        
+                        // Prova a parsare il testo come JSON per estrarre un messaggio di errore più dettagliato
+                        try {
+                            const errorJson = JSON.parse(errorText);
+                            if (errorJson.message) {
+                                errorMessage += ` - ${errorJson.message}`;
+                            } else if (errorJson.error) {
+                                errorMessage += ` - ${errorJson.error}`;
+                            } else if (typeof errorJson === 'string') {
+                                errorMessage += ` - ${errorJson}`;
+                            }
+                        } catch (e) {
+                            // Se non è JSON, usa il testo dell'errore se disponibile
+                            if (errorText && errorText.trim() !== '') {
+                                errorMessage += ` - ${errorText}`;
+                            }
+                        }
+                        
+                        throw new Error(errorMessage);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(`Dati recuperati con successo per il titolo ID: ${titoloId}`, data);
+                
+                // Nascondi l'indicatore di caricamento
+                DomUtils.toggleLoading(false);
+                
+                // Mostra un messaggio di successo con il numero di simulazioni elaborate
+                DomUtils.showAlert(`Dati storici recuperati con successo! Sono state elaborate ${data.length} simulazioni.`, 'success');
+                
+                // Se simulazioniController esiste, ricarica le simulazioni
+                if (window.simulazioniController) {
+                    window.simulazioniController.loadSimulazioniFromServer();
+                }
+            })
+            .catch(error => {
+                console.error(`Errore nel recupero dei dati per il titolo ID: ${titoloId}:`, error);
+                
+                // Nascondi l'indicatore di caricamento
+                DomUtils.toggleLoading(false);
+                
+                // Mostra un messaggio di errore
+                DomUtils.showAlert(`Si è verificato un errore nel recupero dei dati: ${error.message}`, 'danger');
+            });
     },
     
 };

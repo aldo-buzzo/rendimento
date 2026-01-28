@@ -306,17 +306,20 @@ public class TitoloServiceImpl implements TitoloService {
     @Override
     @Transactional
     public void deleteTitolo(Integer id) {
-        // Prima di eliminare il titolo, elimina tutte le simulazioni associate
+        // Prima di eliminare il titolo, conta e elimina tutte le simulazioni associate
         log.info("Eliminazione del titolo con ID: {} - Eliminazione simulazioni associate", id);
         
+        // Conta le simulazioni associate al titolo prima di eliminarle
+        List<Simulazione> simulazioniAssociate = simulazioneRepository.findByTitolo_IdTitolo(id);
+        int numeroSimulazioniAssociate = simulazioniAssociate.size();
+        
         // Elimina direttamente tutte le simulazioni associate al titolo
-        // Questo è più efficiente rispetto a recuperarle prima e poi eliminarle
         simulazioneRepository.deleteByTitolo_IdTitolo(id);
-        log.info("Eliminate le simulazioni associate al titolo ID: {}", id);
+        log.info("Eliminate {} simulazioni associate al titolo ID: {}", numeroSimulazioniAssociate, id);
         
         // Ora elimina il titolo
         titoloRepository.deleteById(id);
-        log.info("Titolo con ID: {} eliminato con successo", id);
+        log.info("Titolo con ID: {} eliminato con successo (1 riga cancellata)", id);
     }
     
     @Override

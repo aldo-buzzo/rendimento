@@ -38,6 +38,12 @@ public interface TrendRepository extends JpaRepository<TrendEntity, Long> {
      * (utile per pulizia o aggiornamenti).
      */
     void deleteByDataSnapshotBefore(LocalDate date);
+    
+    /**
+     * Trova un trend specifico per ISIN e data snapshot.
+     * Utilizzato per verificare se esiste già un trend per un titolo in una data specifica.
+     */
+    java.util.Optional<TrendEntity> findByIsinAndDataSnapshot(String isin, LocalDate dataSnapshot);
 
   @Query("""
         SELECT

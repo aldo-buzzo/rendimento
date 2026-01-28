@@ -1,6 +1,7 @@
 package com.example.rendimento.service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 import com.example.rendimento.model.Titolo;
 import com.example.rendimento.model.TrendEntity;
@@ -22,14 +23,15 @@ public interface TrendService {
     void aggiornaTrendGiornalieroPerUtente(Integer utenteId);
     
     /**
-     * Salva un trend per un titolo specifico utilizzando dati già calcolati.
-     * Questo metodo è utile quando si hanno già i dati necessari in memoria
-     * e si vuole evitare di ricalcolarli.
+     * Salva un nuovo trend o aggiorna un trend esistente per un titolo specifico.
+     * Se esiste già un trend per lo stesso ISIN e data snapshot, lo aggiorna.
+     * Altrimenti, crea un nuovo trend.
      * 
-     * @param titolo il titolo per cui salvare il trend
-     * @param prezzoAcquisto il prezzo di acquisto utilizzato per il calcolo
+     * @param titolo il titolo per cui salvare o aggiornare il trend
+     * @param prezzo il prezzo utilizzato per il calcolo
      * @param rendimentoCalcolato il rendimento già calcolato (con commissioni e bollo mensile)
-     * @return l'entità TrendEntity salvata
+     * @param dataSnapshot la data dello snapshot, se null viene utilizzata la data corrente
+     * @return l'entità TrendEntity salvata o aggiornata
      */
-    TrendEntity salvaTrendPerTitolo(Titolo titolo, BigDecimal prezzoAcquisto, BigDecimal rendimentoCalcolato);
+    TrendEntity salvaOAggiornaTrendPerTitolo(Titolo titolo, BigDecimal prezzo, BigDecimal rendimentoCalcolato, LocalDate dataSnapshot);
 }
