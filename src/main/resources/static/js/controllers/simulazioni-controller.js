@@ -673,7 +673,7 @@ class SimulazioniController {
             return;
         }
         
-        const titoloId = titoloSelect.value;
+        const titoloId = parseInt(titoloSelect.value);
         
         if (!titoloId || !dataAcquistoInput.value) {
             giorniAllaScadenzaInput.value = '';
@@ -689,7 +689,7 @@ class SimulazioniController {
             return;
         }
         
-        const titolo = window.titoli.find(t => t && t.id == titoloId);
+        const titolo = window.titoli.find(t => t && t.id === titoloId);
         if (!titolo || !titolo.dataScadenza) {
             giorniAllaScadenzaInput.value = '';
             tassoInteresseInput.value = '';
@@ -720,14 +720,14 @@ class SimulazioniController {
      * Ottiene il prezzo corrente di un titolo
      */
     getPrezzoCorrente() {
-        const titoloId = document.getElementById('titolo-select').value;
+        const titoloId = parseInt(document.getElementById('titolo-select').value);
         
         if (!titoloId) {
             alert('Seleziona un titolo');
             return;
         }
         
-        const titolo = window.titoli.find(t => t.id == titoloId);
+        const titolo = window.titoli.find(t => t.id === titoloId);
         if (!titolo) {
             alert('Titolo non trovato');
             return;
@@ -790,7 +790,7 @@ class SimulazioniController {
      * Crea una nuova simulazione
      */
     createSimulazione() {
-        const titoloId = document.getElementById('titolo-select').value;
+        const titoloId = parseInt(document.getElementById('titolo-select').value);
         const prezzoAcquistoText = document.getElementById('prezzo-acquisto').value;
         const importoText = document.getElementById('importo-nominale').value;
         const dataAcquistoInput = document.getElementById('data-acquisto');
@@ -866,7 +866,7 @@ class SimulazioniController {
             return;
         }
         
-        const titoloId = document.getElementById('titolo-select').value;
+        const titoloId = parseInt(document.getElementById('titolo-select').value);
         const prezzoAcquistoText = document.getElementById('prezzo-acquisto').value;
         const importoText = document.getElementById('importo-nominale').value;
         const dataAcquistoInput = document.getElementById('data-acquisto');

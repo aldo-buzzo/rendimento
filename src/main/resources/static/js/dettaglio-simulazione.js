@@ -32,7 +32,7 @@ function formatPercentage(value) {
 function getUrlParams() {
     const params = new URLSearchParams(window.location.search);
     return {
-        titoloId: params.get('titoloId')
+        titoloId: parseInt(params.get('titoloId'))
     };
 }
 
@@ -55,6 +55,9 @@ function caricaDettagliSimulazione(titoloId) {
         window.location.href = 'index.html';
         return;
     }
+    
+    // Assicurati che titoloId sia un numero
+    titoloId = parseInt(titoloId);
     
     // Mostra un indicatore di caricamento
     DomUtils.toggleLoading(true);
@@ -79,7 +82,7 @@ function caricaDettagliSimulazione(titoloId) {
     Simulazione.load(true)
         .then(simulazioni => {
             // Filtra le simulazioni per il titolo specificato
-            const simulazioneDelTitolo = simulazioni.find(s => s.titoloId == titoloId);
+            const simulazioneDelTitolo = simulazioni.find(s => s.titoloId === titoloId);
             
             if (!simulazioneDelTitolo) {
                 console.warn(`Nessuna simulazione trovata per il titolo ID ${titoloId}, utilizzando simulazione di fallback`);
@@ -154,13 +157,23 @@ function caricaDettagliSimulazione(titoloId) {
 function caricaStoricoSimulazioni(titoloId) {
     if (!titoloId) return;
     
-    // Utilizziamo il modello Simulazione per caricare i dati
-    Simulazione.load(false)
+    // Assicurati che titoloId sia un numero
+    titoloId = parseInt(titoloId);
+    
+    console.log("Caricamento simulazioni per il titolo ID:", titoloId);
+    
+    // Utilizziamo l'endpoint specifico per recuperare tutte le simulazioni di un titolo
+    ApiService.getSimulazioniByTitoloId(titoloId)
         .then(simulazioni => {
-            // Filtra le simulazioni per il titolo specificato
-            const simulazioniDelTitolo = simulazioni.filter(s => s.titoloId == titoloId);
+            console.log("Risposta API ricevuta:", simulazioni);
             
-            console.log("Simulazioni caricate:", simulazioniDelTitolo);
+            // Converti i DTO in oggetti per il frontend
+            const simulazioniDelTitolo = simulazioni.map(dto => {
+                console.log("Conversione DTO:", dto);
+                return Simulazione.convertFromDTO(dto);
+            });
+            
+            console.log("Simulazioni caricate per il titolo ID " + titoloId + ":", simulazioniDelTitolo);
             
             // Popola la tabella con le simulazioni
             popolaTabellaSimulazioni(simulazioniDelTitolo);
@@ -235,6 +248,9 @@ function ricalcolaValori(titoloId) {
         console.error("ID titolo non disponibile per il ricalcolo");
         return;
     }
+    
+    // Assicurati che titoloId sia un numero
+    titoloId = parseInt(titoloId);
     
     // Ottieni i dati necessari per il ricalcolo
     const prezzoAcquisto = parseNumericValue(document.getElementById('prezzo-acquisto').value);
@@ -323,7 +339,7 @@ function popolaCampi(simulazione, titolo) {
 
 // Carica i metadati dell'applicazione
 function loadAppMetadata() {
-    ApiService.getAppMetadata()
+    ApiService.getMetadata()
         .then(data => {
             document.getElementById('app-name').textContent = data.appName || 'Rendimento Titoli';
             document.getElementById('app-version').textContent = data.appVersion || 'N/A';

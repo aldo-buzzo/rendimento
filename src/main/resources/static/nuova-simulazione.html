@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuova Simulazione</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/css/bootstrap-datepicker.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <header class="mb-4">
+            <h1 class="text-center">Nuova Simulazione</h1>
+            <p class="text-center lead">Calcola il rendimento di un titolo</p>
+        </header>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card mb-4" id="nuova-simulazione-section-109">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h2>Nuova Simulazione</h2>
+                        <div>
+                            <a href="lista-titoli.html" class="btn btn-outline-secondary">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+                                </svg>
+                                Torna alla Lista Titoli
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body" id="nuova-simulazione-content-372">
+                        <form id="simulazione-form">
+                            <div class="mb-2">
+                                <div class="row align-items-center">
+                                    <div class="col-md-4">
+                                        <label for="titolo-select" class="form-label mb-0">Seleziona Titolo</label>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <select class="form-select" id="titolo-select" required>
+                                            <option value="">Seleziona un titolo</option>
+                                            <!-- Le opzioni verranno caricate dinamicamente -->
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="row align-items-center">
+                                    <div class="col-md-2">
+                                        <label for="prezzo-acquisto" class="form-label mb-0">Prezzo Acquisto (€)</label>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control" id="prezzo-acquisto" required>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label for="importo-nominale" class="form-label mb-0">Importo (€)</label>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control" id="importo-nominale" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="row align-items-center">
+                                    <div class="col-md-4">
+                                        <label for="data-acquisto" class="form-label mb-0">Data Acquisto</label>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control datepicker" id="data-acquisto" required placeholder="gg-mm-aaaa">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="input-group">
+                                            <span class="input-group-text">Giorni</span>
+                                            <input type="text" class="form-control" id="giorni-alla-scadenza" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="row align-items-center">
+                                    <div class="col-md-4">
+                                        <label for="tasso-interesse" class="form-label mb-0">Tasso d'interesse (%)</label>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <input type="text" class="form-control" id="tasso-interesse" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="row align-items-center">
+                                    <div class="col-md-4">
+                                        <label for="commissioni-acquisto" class="form-label mb-0">Commissioni Acquisto (%)</label>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <input type="text" class="form-control" id="commissioni-acquisto" value="0,09" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="row align-items-center">
+                                    <div class="col-md-4">
+                                        <label class="form-label mb-0">Modalità Calcolo Bollo</label>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="modalita-bollo" id="modalita-bollo-annuale" value="ANNUALE" checked>
+                                            <label class="form-check-label" for="modalita-bollo-annuale">Annuale</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="modalita-bollo" id="modalita-bollo-mensile" value="MENSILE">
+                                            <label class="form-check-label" for="modalita-bollo-mensile">Mensile</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="row align-items-center">
+                                    <div class="col-md-12 d-flex justify-content-center">
+                                        <button type="button" class="btn btn-info me-2" id="prezzo-corrente-btn">Prezzo Corrente</button>
+                                        <button type="submit" class="btn btn-success">Calcola Rendimento</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                        <hr class="my-4">
+                        <h5 class="mb-3" id="risultati-calcolo-header-845">Risultati Calcolo</h5>
+                        <div class="row mb-2" id="risultati-calcolo-content-631">
+                            <div class="col-md-2">
+                                <label class="form-label mb-0">Plusvalenza</label>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="plusvalenza-netta" readonly>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label mb-0">Interessi</label>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="interessi-netti" readonly>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-md-2">
+                                <label class="form-label mb-0">Commissioni</label>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="commissioni" readonly>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label mb-0">Imposta bollo</label>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="imposta-bollo" readonly>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-md-2">
+                                <label class="form-label mb-0">Guadagno Tot.</label>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="guadagno-totale" readonly>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label mb-0">G. Netto Comm.</label>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="guadagno-netto-commissioni" readonly>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-md-2">
+                                <label class="form-label mb-0">Tasso</label>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="tasso" readonly>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label mb-0">Tasso Netto</label>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="tasso-netto-commissioni" readonly>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-md-2">
+                                <label class="form-label mb-0">G. Netto Bollo</label>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="guadagno-netto-bollo" readonly>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label mb-0">Tasso N. Bollo</label>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="tasso-netto-bollo" readonly>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-md-4">
+                                <label class="form-label mb-0">Importo a scadenza</label>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="importo-scadenza" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-primary" id="salva-simulazione-btn" disabled>Salva Simulazione</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/locales/bootstrap-datepicker.it.min.js"></script>
+    <!-- Utility modules -->
+    <script src="js/utils/formatters.js"></script>
+    <script src="js/utils/validators.js"></script>
+    <script src="js/utils/dom-utils.js"></script>
+    <script src="js/utils/api-service.js"></script>
+    <!-- Auth module -->
+    <script src="js/auth.js"></script>
+    <!-- Models -->
+    <script src="js/models/titolo.js"></script>
+    <script src="js/models/simulazione.js"></script>
+    <!-- Controllers -->
+    <script src="js/controllers/titoli-controller.js"></script>
+    <script src="js/controllers/simulazioni-controller.js"></script>
+    <!-- Main script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inizializza il datepicker
+            $('.datepicker').datepicker({
+                format: 'dd-mm-yyyy',
+                language: 'it',
+                autoclose: true
+            });
+
+            // Inizializza il controller delle simulazioni
+            if (window.simulazioniController) {
+                window.simulazioniController.init();
+            }
+
+            // Inizializza il controller dei titoli per caricare la lista dei titoli
+            if (window.TitoliController) {
+                TitoliController.init();
+            }
+
+            // Gestione del form di simulazione
+            document.getElementById('simulazione-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const titoloId = document.getElementById('titolo-select').value;
+                const prezzoAcquisto = document.getElementById('prezzo-acquisto').value.replace(',', '.');
+                const importo = document.getElementById('importo-nominale').value.replace(',', '.');
+                
+                if (!titoloId || !prezzoAcquisto || !importo) {
+                    alert('Compila tutti i campi richiesti');
+                    return;
+                }
+                
+                // Mostra un indicatore di caricamento
+                DomUtils.toggleLoading(true);
+                
+                // Chiama l'API per calcolare il rendimento
+                ApiService.calcolaRendimento(titoloId, prezzoAcquisto, importo)
+                    .then(data => {
+                        // Nascondi l'indicatore di caricamento
+                        DomUtils.toggleLoading(false);
+                        
+                        // Popola i campi dei risultati
+                        document.getElementById('plusvalenza-netta').value = Formatters.formatCurrency(data.plusvalenzaNetta);
+                        document.getElementById('interessi-netti').value = Formatters.formatCurrency(data.interessiNetti);
+                        document.getElementById('commissioni').value = Formatters.formatCurrency(data.commissioni);
+                        document.getElementById('imposta-bollo').value = Formatters.formatCurrency(data.impostaBollo);
+                        document.getElementById('guadagno-totale').value = Formatters.formatCurrency(data.guadagnoTotale);
+                        document.getElementById('guadagno-netto-commissioni').value = Formatters.formatCurrency(data.guadagnoNettoCommissioni);
+                        document.getElementById('tasso').value = Formatters.formatPercentage(data.tasso);
+                        document.getElementById('tasso-netto-commissioni').value = Formatters.formatPercentage(data.tassoNettoCommissioni);
+                        document.getElementById('guadagno-netto-bollo').value = Formatters.formatCurrency(data.guadagnoNettoBollo);
+                        document.getElementById('tasso-netto-bollo').value = Formatters.formatPercentage(data.tassoNettoBollo);
+                        document.getElementById('importo-scadenza').value = Formatters.formatCurrency(data.importoScadenza);
+                        
+                        // Abilita il pulsante per salvare la simulazione
+                        document.getElementById('salva-simulazione-btn').disabled = false;
+                    })
+                    .catch(error => {
+                        console.error('Errore nel calcolo del rendimento:', error);
+                        DomUtils.toggleLoading(false);
+                        alert('Si è verificato un errore nel calcolo del rendimento');
+                    });
+            });
+            
+            // Gestione del pulsante "Prezzo Corrente"
+            document.getElementById('prezzo-corrente-btn').addEventListener('click', function() {
+                const titoloId = document.getElementById('titolo-select').value;
+                
+                if (!titoloId) {
+                    alert('Seleziona prima un titolo');
+                    return;
+                }
+                
+                // Mostra un indicatore di caricamento
+                DomUtils.toggleLoading(true);
+                
+                // Trova il titolo selezionato
+                const titolo = window.titoli.find(t => t.id == titoloId);
+                
+                if (titolo && titolo.prezzo) {
+                    // Imposta il prezzo corrente nel campo prezzo acquisto
+                    document.getElementById('prezzo-acquisto').value = Formatters.formatDecimal(titolo.prezzo);
+                    DomUtils.toggleLoading(false);
+                } else {
+                    // Se il prezzo non è disponibile, prova a recuperarlo dal server
+                    ApiService.getTitoloById(titoloId)
+                        .then(titoloData => {
+                            if (titoloData && titoloData.prezzo) {
+                                document.getElementById('prezzo-acquisto').value = Formatters.formatDecimal(titoloData.prezzo);
+                            } else {
+                                alert('Prezzo non disponibile per questo titolo');
+                            }
+                            DomUtils.toggleLoading(false);
+                        })
+                        .catch(error => {
+                            console.error('Errore nel recupero del prezzo:', error);
+                            DomUtils.toggleLoading(false);
+                            alert('Si è verificato un errore nel recupero del prezzo');
+                        });
+                }
+            });
+            
+            // Gestione del pulsante "Salva Simulazione"
+            document.getElementById('salva-simulazione-btn').addEventListener('click', function() {
+                const titoloId = document.getElementById('titolo-select').value;
+                const prezzoAcquisto = document.getElementById('prezzo-acquisto').value.replace(',', '.');
+                const importo = document.getElementById('importo-nominale').value.replace(',', '.');
+                const dataAcquisto = document.getElementById('data-acquisto').getAttribute('data-iso-date');
+                
+                if (!titoloId || !prezzoAcquisto || !importo || !dataAcquisto) {
+                    alert('Compila tutti i campi richiesti');
+                    return;
+                }
+                
+                // Mostra un indicatore di caricamento
+                DomUtils.toggleLoading(true);
+                
+                // Chiama l'API per salvare la simulazione
+                ApiService.calcolaESalvaSimulazione(titoloId, prezzoAcquisto, importo, dataAcquisto)
+                    .then(data => {
+                        // Nascondi l'indicatore di caricamento
+                        DomUtils.toggleLoading(false);
+                        
+                        // Mostra un messaggio di successo
+                        alert('Simulazione salvata con successo!');
+                        
+                        // Disabilita il pulsante per salvare la simulazione
+                        document.getElementById('salva-simulazione-btn').disabled = true;
+                    })
+                    .catch(error => {
+                        console.error('Errore nel salvataggio della simulazione:', error);
+                        DomUtils.toggleLoading(false);
+                        alert('Si è verificato un errore nel salvataggio della simulazione');
+                    });
+            });
+            
+            // Gestione del cambio di titolo
+            document.getElementById('titolo-select').addEventListener('change', function() {
+                const titoloId = parseInt(this.value);
+                
+                if (!titoloId) {
+                    return;
+                }
+                
+                // Trova il titolo selezionato
+                const titolo = window.titoli.find(t => t.id === titoloId);
+                
+                if (titolo) {
+                    // Imposta il tasso di interesse
+                    if (titolo.tassoNominale) {
+                        document.getElementById('tasso-interesse').value = Formatters.formatDecimal(titolo.tassoNominale);
+                    }
+                    
+                    // Calcola i giorni alla scadenza
+                    if (titolo.dataScadenza) {
+                        const dataAcquistoInput = document.getElementById('data-acquisto');
+                        const dataAcquistoIso = dataAcquistoInput.getAttribute('data-iso-date');
+                        
+                        if (dataAcquistoIso) {
+                            const dataAcquisto = new Date(dataAcquistoIso);
+                            const dataScadenza = new Date(titolo.dataScadenza);
+                            
+                            // Calcola la differenza in giorni
+                            const diffTime = dataScadenza.getTime() - dataAcquisto.getTime();
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            
+                            document.getElementById('giorni-alla-scadenza').value = diffDays;
+                        }
+                    }
+                }
+            });
+            
+            // Gestione del cambio di data acquisto
+            document.getElementById('data-acquisto').addEventListener('change', function() {
+                const titoloId = document.getElementById('titolo-select').value;
+                
+                if (!titoloId) {
+                    return;
+                }
+                
+                // Trova il titolo selezionato
+                const titolo = window.titoli.find(t => t.id == titoloId);
+                
+                if (titolo && titolo.dataScadenza) {
+                    const dataAcquistoIso = this.getAttribute('data-iso-date');
+                    
+                    if (dataAcquistoIso) {
+                        const dataAcquisto = new Date(dataAcquistoIso);
+                        const dataScadenza = new Date(titolo.dataScadenza);
+                        
+                        // Calcola la differenza in giorni
+                        const diffTime = dataScadenza.getTime() - dataAcquisto.getTime();
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        document.getElementById('giorni-alla-scadenza').value = diffDays;
+                    }
+                }
+            });
+        });
+    </script>
+    
+    <footer class="mt-5 py-3 text-center border-top">
+        <div class="container">
+            <p class="text-muted mb-0">
+                <span id="app-name"></span> - Versione <span id="app-version"></span>
+            </p>
+        </div>
+    </footer>
+</body>
+</html>

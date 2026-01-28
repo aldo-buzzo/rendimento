@@ -168,6 +168,17 @@ window.ApiService = {
     },
     
     /**
+     * Recupera tutte le simulazioni per un titolo specifico
+     * @param {number} idTitolo - L'ID del titolo per cui recuperare le simulazioni
+     * @returns {Promise} - Promise che risolve con la lista delle simulazioni per il titolo
+     */
+    getSimulazioniByTitoloId: function(idTitolo) {
+        const url = `${this.baseUrl}/simulazioni/titolo/${idTitolo}/all`;
+        console.log("Chiamata API a:", url);
+        return this.get(url);
+    },
+    
+    /**
      * Salva una simulazione sul server
      * @param {Object} simulazione - La simulazione da salvare
      * @returns {Promise} - Promise che risolve con la simulazione salvata
