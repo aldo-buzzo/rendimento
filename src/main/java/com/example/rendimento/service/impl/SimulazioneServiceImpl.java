@@ -491,9 +491,9 @@ public class SimulazioneServiceImpl implements SimulazioneService {
                         LocalDate dataAcquisto) {
 
                 RisultatoRendimentoAdvancedDTO dto = new RisultatoRendimentoAdvancedDTO();
-                System.out.println("DEBUG: Titolo con ISIN vuoto rilevato." + titolo.getCodiceIsin());
+                log.info("DEBUG: Titolo con ISIN:" + titolo.getCodiceIsin());
                 if ("IT0005640666".equals(titolo.getCodiceIsin())) {
-                        System.out.println("DEBUG: Titolo con ISIN vuoto rilevato." + titolo.getCodiceIsin());
+                        log.info("DEBUG: Titolo con ISIN:" + titolo.getCodiceIsin());
                 }
                 // ===============================
                 // 1. TEMPO

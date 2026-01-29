@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profili Utente - Simulazione Rendimento Titoli</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <header class="mb-4" id="header-section">
+            <h1 class="text-center">Profili Utente</h1>
+            <p class="text-center lead">Gestisci i tuoi profili di calcolo</p>
+        </header>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-4" id="profili-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h2>I tuoi profili</h2>
+                        <button class="btn btn-primary" id="nuovo-profilo-btn">Nuovo Profilo</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive" id="profili-table-container">
+                            <table class="table table-striped" id="profili-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Periodicità Bollo</th>
+                                        <th>% Bollo</th>
+                                        <th>Comm. BTP</th>
+                                        <th>Comm. BOT ≤120gg</th>
+                                        <th>Comm. BOT ≤240gg</th>
+                                        <th>Comm. BOT >240gg</th>
+                                        <th>Comm. CCT</th>
+                                        <th>Comm. CTZ</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="profili-list">
+                                    <!-- I profili verranno caricati dinamicamente qui -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="profili-loading" class="text-center my-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Caricamento...</span>
+                            </div>
+                        </div>
+                        <div id="profili-error" class="alert alert-danger d-none">
+                            Si è verificato un errore durante il caricamento dei profili.
+                        </div>
+                        <div id="profili-empty" class="alert alert-info d-none">
+                            Non hai ancora creato profili di calcolo.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-start mt-3" id="navigation-section">
+            <a href="index.html" class="btn btn-outline-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+                </svg>
+                Torna alla Home
+            </a>
+        </div>
+    </div>
+
+    <!-- Modal per aggiungere/modificare profili -->
+    <div class="modal fade" id="profilo-modal" tabindex="-1" aria-labelledby="profilo-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" id="profilo-modal-header">
+                    <h5 class="modal-title" id="profilo-modal-label">Nuovo Profilo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="profilo-modal-body">
+                    <form id="profilo-form">
+                        <input type="hidden" id="profilo-id">
+                        <div class="mb-3" id="nome-section">
+                            <label for="nome-profilo" class="form-label">Nome</label>
+                            <input type="text" class="form-control" id="nome-profilo" required>
+                        </div>
+                        <div class="row mb-3" id="bollo-section">
+                            <div class="col-md-6">
+                                <label for="periodicita-bollo" class="form-label">Periodicità Bollo</label>
+                                <select class="form-select" id="periodicita-bollo" required>
+                                    <option value="ANNUALE">Annuale</option>
+                                    <option value="SEMESTRALE">Semestrale</option>
+                                    <option value="TRIMESTRALE">Trimestrale</option>
+                                    <option value="MENSILE">Mensile</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="percentuale-bollo" class="form-label">Percentuale Bollo (%)</label>
+                                <input type="text" class="form-control" id="percentuale-bollo" required value="0.2">
+                            </div>
+                        </div>
+                        <h6 class="mt-4 mb-3" id="commissioni-title">Commissioni per tipo di titolo</h6>
+                        <div class="row mb-3" id="commissioni-section-1">
+                            <div class="col-md-6">
+                                <label for="commissione-btp" class="form-label">Commissione BTP (%)</label>
+                                <input type="text" class="form-control" id="commissione-btp" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="commissione-cct" class="form-label">Commissione CCT (%)</label>
+                                <input type="text" class="form-control" id="commissione-cct">
+                            </div>
+                        </div>
+                        <div class="row mb-3" id="commissioni-section-2">
+                            <div class="col-md-4">
+                                <label for="commissione-bot-120gg" class="form-label">Comm. BOT ≤120gg (%)</label>
+                                <input type="text" class="form-control" id="commissione-bot-120gg">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="commissione-bot-240gg" class="form-label">Comm. BOT ≤240gg (%)</label>
+                                <input type="text" class="form-control" id="commissione-bot-240gg">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="commissione-bot-oltre" class="form-label">Comm. BOT >240gg (%)</label>
+                                <input type="text" class="form-control" id="commissione-bot-oltre">
+                            </div>
+                        </div>
+                        <div class="row mb-3" id="commissioni-section-3">
+                            <div class="col-md-6">
+                                <label for="commissione-ctz" class="form-label">Commissione CTZ (%)</label>
+                                <input type="text" class="form-control" id="commissione-ctz">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" id="profilo-modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary" id="save-profilo-btn">Salva</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Utility modules -->
+    <script src="js/utils/formatters.js"></script>
+    <script src="js/utils/validators.js"></script>
+    <script src="js/utils/dom-utils.js"></script>
+    <script src="js/utils/api-service.js"></script>
+    <!-- Auth module -->
+    <script src="js/auth.js"></script>
+    <!-- Controller specifico per i profili -->
+    <script src="js/controllers/profili-controller.js"></script>
+</body>
+</html>

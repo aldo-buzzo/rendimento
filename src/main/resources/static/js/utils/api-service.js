@@ -90,7 +90,7 @@ window.ApiService = {
     /**
      * Esegue una richiesta DELETE
      * @param {string} url - L'URL della richiesta
-     * @returns {Promise} - Promise che risolve con i dati della risposta
+     * @returns {Promise} - Promise che risolve con i dati della risposta o un oggetto vuoto se la risposta è 204 (No Content)
      */
     delete: function(url) {
         return fetch(url, {
@@ -106,6 +106,13 @@ window.ApiService = {
                 }
                 throw new Error('Errore nella richiesta: ' + response.status);
             }
+            
+            // Se la risposta è 204 (No Content), restituisci un oggetto vuoto
+            if (response.status === 204) {
+                return {};
+            }
+            
+            // Altrimenti, analizza la risposta come JSON
             return response.json();
         });
     },

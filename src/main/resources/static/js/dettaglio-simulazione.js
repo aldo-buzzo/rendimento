@@ -218,20 +218,10 @@ function popolaTabellaSimulazioni(simulazioni) {
         importoCell.textContent = formatDecimal(simulazione.importoNominale || 10000);
         row.appendChild(importoCell);
         
-        // Rendimento Lordo
-        const rendimentoLordoCell = document.createElement('td');
-        rendimentoLordoCell.textContent = formatDecimal(simulazione.rendimentoLordo) + '%';
-        row.appendChild(rendimentoLordoCell);
-        
-        // Rendimento Netto
-        const rendimentoNettoCell = document.createElement('td');
-        rendimentoNettoCell.textContent = formatDecimal(simulazione.rendimentoNettoCedole) + '%';
-        row.appendChild(rendimentoNettoCell);
-        
-        // Rendimento Netto Bollo
-        const rendimentoNettoBolloCell = document.createElement('td');
-        rendimentoNettoBolloCell.textContent = formatDecimal(simulazione.rendimentoNettoBollo) + '%';
-        row.appendChild(rendimentoNettoBolloCell);
+        // Rendimento (ex Rendimento Lordo)
+        const rendimentoCell = document.createElement('td');
+        rendimentoCell.textContent = formatDecimal(simulazione.rendimentoLordo) + '%';
+        row.appendChild(rendimentoCell);
         
         // Colonna vuota per mantenere l'allineamento con l'intestazione
         const azioniCell = document.createElement('td');
