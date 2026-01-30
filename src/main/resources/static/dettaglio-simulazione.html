@@ -213,32 +213,46 @@
             </div>
         </div>
         
-        <!-- Sezione per la lista di tutte le simulazioni dello stesso titolo -->
+        <!-- Sezione per la lista di tutte le simulazioni dello stesso titolo e il grafico -->
         <div class="row justify-content-center mt-4">
             <div class="col-md-10">
                 <div class="card" id="storico-simulazioni-section-110">
                     <div class="card-header">
-                        <h3>Storico Simulazioni</h3>
+                        <h3>Dati Storici</h3>
                     </div>
                     <div class="card-body" id="storico-simulazioni-content-373">
-                        <div class="table-responsive">
-                            <table class="table table-striped table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Data Acquisto</th>
-                                        <th>Prezzo Acquisto</th>
-                                        <th>Importo</th>
-                                        <th>Rendimento</th>
-                                        <th>Azioni</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="simulazioni-list">
-                                    <!-- Le simulazioni verranno caricate dinamicamente qui -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <div id="no-simulazioni" class="alert alert-info d-none">
-                            Nessuna simulazione trovata per questo titolo.
+                        <div class="row">
+                            <!-- Colonna sinistra: Tabella dati -->
+                            <div class="col-md-6">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Data Acquisto</th>
+                                                <th>Prezzo Acquisto</th>
+                                                <th>Importo</th>
+                                                <th>Rendimento</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="simulazioni-list">
+                                            <!-- Le simulazioni verranno caricate dinamicamente qui -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="no-simulazioni" class="alert alert-info d-none">
+                                    Nessuna simulazione trovata per questo titolo.
+                                </div>
+                            </div>
+                            
+                            <!-- Colonna destra: Grafico -->
+                            <div class="col-md-6">
+                                <div class="chart-container" style="position: relative; height: 300px;">
+                                    <canvas id="tassi-chart"></canvas>
+                                </div>
+                                <div id="no-chart" class="alert alert-info d-none">
+                                    Dati insufficienti per visualizzare il grafico.
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -250,6 +264,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/locales/bootstrap-datepicker.it.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Utility modules -->
     <script src="js/utils/formatters.js"></script>
     <script src="js/utils/validators.js"></script>

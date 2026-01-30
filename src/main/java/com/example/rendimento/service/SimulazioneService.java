@@ -8,6 +8,7 @@ import com.example.rendimento.dto.ElaborazioneRisultatoDTO;
 import com.example.rendimento.dto.RisultatoRendimentoAdvancedDTO;
 import com.example.rendimento.dto.RisultatoSimulazioneDTO;
 import com.example.rendimento.dto.SimulazioneDTO;
+import com.example.rendimento.model.ProfiloCalcolo;
 import com.example.rendimento.model.Titolo;
 
 /**
@@ -138,23 +139,25 @@ public interface SimulazioneService {
      */
     List<SimulazioneDTO> getSimulazioniByUtenteIdOrderByScadenzaAsc(Integer utenteId, boolean latest);
     
-    /**
-     * Calcola il rendimento avanzato di un titolo in base ai parametri forniti.
-     * Questo metodo calcola sia il bollo mensile che annuale e fornisce dettagli
-     * completi sul calcolo del rendimento.
-     * 
-     * @param titolo il titolo per cui calcolare il rendimento
-     * @param prezzoAcquisto prezzo di acquisto inserito dall'utente
-     * @param nominale importo nominale dell'investimento
-     * @param dataAcquisto data di acquisto
-     * @return DTO contenente tutti i risultati dettagliati del calcolo
-     * @throws IllegalArgumentException se i parametri non sono validi
-     */
-    RisultatoRendimentoAdvancedDTO calcolaRendimentoAdvanced(
-            Titolo titolo,
-            BigDecimal prezzoAcquisto,
-            BigDecimal nominale,
-            LocalDate dataAcquisto);
+/**
+ * Calcola il rendimento avanzato di un titolo in base ai parametri forniti e al profilo di calcolo.
+ * Questo metodo calcola sia il bollo mensile che annuale e fornisce dettagli
+ * completi sul calcolo del rendimento, utilizzando i dati del profilo per commissioni e bollo.
+ * 
+ * @param titolo il titolo per cui calcolare il rendimento
+ * @param prezzoAcquisto prezzo di acquisto inserito dall'utente
+ * @param nominale importo nominale dell'investimento
+ * @param dataAcquisto data di acquisto
+ * @param profiloCalcolo profilo di calcolo da utilizzare per commissioni e bollo (può essere null)
+ * @return DTO contenente tutti i risultati dettagliati del calcolo
+ * @throws IllegalArgumentException se i parametri non sono validi
+ */
+RisultatoRendimentoAdvancedDTO calcolaRendimentoAdvanced(
+        Titolo titolo,
+        BigDecimal prezzoAcquisto,
+        BigDecimal nominale,
+        LocalDate dataAcquisto,
+        ProfiloCalcolo profiloCalcolo);
             
     /**
      * Versione estesa del metodo elaboraSimulazionePerTitolo che accetta anche una data per il prezzo.

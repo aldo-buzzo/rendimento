@@ -5,7 +5,6 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -14,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -452,12 +450,26 @@ public class SimulazioneController {
                 .orElseThrow(
                         () -> new EntityNotFoundException("Titolo non trovato con ID: " + simulazione.getIdTitolo()));
 
+        // Ottieni il profilo predefinito dell'utente corrente
+        com.example.rendimento.model.ProfiloCalcolo profiloPredefinito = null;
+        try {
+            // Ottieni l'ID dell'utente dal titolo
+            Integer userId = titolo.getUtente() != null ? titolo.getUtente().getIdUtente() : null;
+            if (userId != null) {
+                profiloPredefinito = com.example.rendimento.context.UserContext.getDefaultProfile(userId);
+            }
+        } catch (Exception e) {
+            log.warn("Impossibile ottenere il profilo predefinito: {}", e.getMessage());
+            // Continua con profiloPredefinito = null
+        }
+        
         // Utilizza la logica esistente per calcolare i rendimenti dettagliati
         RisultatoRendimentoAdvancedDTO risultato = simulazioneService.calcolaRendimentoAdvanced(
                 titolo,
                 simulazione.getPrezzoAcquisto(),
                 simulazione.getNominale() != null ? simulazione.getNominale() : new BigDecimal("10000"),
-                simulazione.getDataAcquisto());
+                simulazione.getDataAcquisto(),
+                profiloPredefinito);
 
         log.info("Risposta per GET /api/simulazioni/{}/calcolo-dettagliato: {}", id, risultato);
         return ResponseEntity.ok(risultato);
@@ -525,12 +537,26 @@ public class SimulazioneController {
                         .orElseThrow(() -> new EntityNotFoundException(
                                 "Titolo non trovato con ID: " + simulazione.getIdTitolo()));
 
+                // Ottieni il profilo predefinito dell'utente corrente
+                com.example.rendimento.model.ProfiloCalcolo profiloPredefinito = null;
+                try {
+                    // Ottieni l'ID dell'utente dal titolo
+                    Integer userId = titolo.getUtente() != null ? titolo.getUtente().getIdUtente() : null;
+                    if (userId != null) {
+                        profiloPredefinito = com.example.rendimento.context.UserContext.getDefaultProfile(userId);
+                    }
+                } catch (Exception e) {
+                    log.warn("Impossibile ottenere il profilo predefinito: {}", e.getMessage());
+                    // Continua con profiloPredefinito = null
+                }
+                
                 // Calcola i rendimenti dettagliati
                 RisultatoRendimentoAdvancedDTO risultato = simulazioneService.calcolaRendimentoAdvanced(
                         titolo,
                         simulazione.getPrezzoAcquisto(),
                         simulazione.getNominale() != null ? simulazione.getNominale() : new BigDecimal("10000"),
-                        simulazione.getDataAcquisto());
+                        simulazione.getDataAcquisto(),
+                        profiloPredefinito);
 
                 // Crea un oggetto TitoloRendimentoDTO con i dati del titolo e i rendimenti
                 // calcolati
@@ -626,7 +652,7 @@ public class SimulazioneController {
         DayOfWeek giornoSettimana = DayOfWeek.valueOf(giorno);
         List<Map<String, Object>> prezziMap;
         try {
-            prezziMap = prezzoStoricoService.estraiPrezziUltimi3MesiMap(titolo, giornoSettimana);
+            prezziMap = prezzoStoricoService.estraiPrezziStoriciMap(titolo, giornoSettimana);
             log.info("Recuperati {} prezzi storici per il titolo {}", prezziMap.size(), titolo.getCodiceIsin());
         } catch (Exception e) {
             log.error("Errore nel recupero dei prezzi storici per il titolo ID: {}, ISIN: {}, Errore: {}",

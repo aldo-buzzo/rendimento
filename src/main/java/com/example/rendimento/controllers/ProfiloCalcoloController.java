@@ -1,12 +1,12 @@
 package com.example.rendimento.controllers;
 
-import com.example.rendimento.constants.RendimentoConstants;
-import com.example.rendimento.dto.ProfiloCalcoloDTO;
-import com.example.rendimento.dto.UtenteResponseDTO;
-import com.example.rendimento.mapper.ProfiloCalcoloMapper;
-import com.example.rendimento.model.ProfiloCalcolo;
-import com.example.rendimento.service.ProfiloCalcoloService;
-import com.example.rendimento.service.UtenteService;
+import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,16 +15,23 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import com.example.rendimento.constants.RendimentoConstants;
+import com.example.rendimento.context.UserContext;
+import com.example.rendimento.dto.ProfiloCalcoloDTO;
+import com.example.rendimento.dto.UtenteResponseDTO;
+import com.example.rendimento.mapper.ProfiloCalcoloMapper;
+import com.example.rendimento.model.ProfiloCalcolo;
+import com.example.rendimento.service.ProfiloCalcoloService;
+import com.example.rendimento.service.UtenteService;
 
 /**
  * Controller REST che gestisce le operazioni relative ai profili di calcolo.
@@ -73,19 +80,11 @@ public class ProfiloCalcoloController {
         // Recupera i profili di calcolo dell'utente
         List<ProfiloCalcolo> profili = profiloCalcoloService.getProfiliCalcoloByUtenteId(utenteId);
         
-        // Se l'utente ha profili, rimuovi i profili predefiniti dalla lista
-        if (!profili.isEmpty()) {
-            final List<ProfiloCalcolo> profiliOriginali = profili;
-            profili = profiliOriginali.stream()
-                    .filter(p -> !Boolean.TRUE.equals(p.getIsDefault()))
-                    .collect(Collectors.toList());
-            
-            // Se dopo il filtraggio non ci sono più profili, mantieni il primo profilo originale
-            if (profili.isEmpty() && !profiliOriginali.isEmpty()) {
-                profili = Collections.singletonList(profiliOriginali.get(0));
-            }
-        } else {
-            // Se l'utente non ha profili, crea un profilo predefinito in memoria (non persistito)
+        // Non filtriamo più i profili predefiniti, mostriamo tutti i profili dell'utente
+        // inclusi quelli predefiniti per permettere all'utente di vedere e gestire il profilo predefinito
+        
+        // Se l'utente non ha profili, crea un profilo predefinito in memoria (non persistito)
+        if (profili.isEmpty()) {
             log.info("L'utente {} non ha profili di calcolo. Creazione di un profilo predefinito in memoria.", username);
             ProfiloCalcolo profiloPredefinito = new ProfiloCalcolo();
             profiloPredefinito.setNome("Profilo Predefinito");
@@ -180,6 +179,9 @@ public class ProfiloCalcoloController {
             // Converti l'entità salvata in DTO
             ProfiloCalcoloDTO result = profiloCalcoloMapper.toDto(saved);
             
+            // Aggiorna UserContext con i profili aggiornati dell'utente
+            aggiornaUserContext(utenteId);
+            
             log.info("Risposta per POST /api/profili-calcolo: {}", result);
             return ResponseEntity.status(HttpStatus.CREATED).body(result);
         } catch (Exception e) {
@@ -229,6 +231,9 @@ public class ProfiloCalcoloController {
                 // Converti l'entità aggiornata in DTO
                 ProfiloCalcoloDTO result = profiloCalcoloMapper.toDto(updated);
                 
+                // Aggiorna UserContext con i profili aggiornati dell'utente
+                aggiornaUserContext(profilo.getUtente().getIdUtente());
+                
                 log.info("Risposta per PUT /api/profili-calcolo/{}: {}", id, result);
                 return ResponseEntity.ok(result);
             } else {
@@ -272,6 +277,9 @@ public class ProfiloCalcoloController {
             // Converti l'entità in DTO
             ProfiloCalcoloDTO result = profiloCalcoloMapper.toDto(profilo);
             
+            // Aggiorna UserContext con i profili aggiornati dell'utente
+            aggiornaUserContext(utenteId);
+            
             log.info("Risposta per PUT /api/profili-calcolo/{}/predefinito: {}", id, result);
             return ResponseEntity.ok(result);
         } catch (IllegalArgumentException e) {
@@ -294,8 +302,19 @@ public class ProfiloCalcoloController {
         log.info("Ricevuta richiesta DELETE /api/profili-calcolo/{}", id);
         
         try {
+            // Ottieni l'ID dell'utente prima di eliminare il profilo
+            Integer utenteId = profiloCalcoloService.getProfiloCalcoloById(id)
+                    .map(p -> p.getUtente().getIdUtente())
+                    .orElse(null);
+            
             profiloCalcoloService.deleteProfiloCalcolo(id);
             log.info("Profilo di calcolo eliminato con ID: {}", id);
+            
+            // Aggiorna UserContext con i profili aggiornati dell'utente
+            if (utenteId != null) {
+                aggiornaUserContext(utenteId);
+            }
+            
             return ResponseEntity.noContent().build();
         } catch (IllegalStateException e) {
             log.warn("Impossibile eliminare il profilo di calcolo: {}", e.getMessage());
@@ -366,6 +385,30 @@ public class ProfiloCalcoloController {
             
             if (dto.getCommissioneCtz() == null) {
                 dto.setCommissioneCtz(commissioneBtp);
+            }
+        }
+    }
+    
+    /**
+     * Aggiorna UserContext con i profili aggiornati dell'utente.
+     * 
+     * @param utenteId l'ID dell'utente
+     */
+    private void aggiornaUserContext(Integer utenteId) {
+        if (utenteId != null) {
+            try {
+                // Rimuovi i profili esistenti dell'utente
+                UserContext.removeProfiles(utenteId);
+                
+                // Carica i nuovi profili dal database
+                List<ProfiloCalcolo> profiliAggiornati = profiloCalcoloService.getProfiliCalcoloByUtenteId(utenteId);
+                
+                // Imposta i nuovi profili in UserContext
+                UserContext.setProfiles(utenteId, profiliAggiornati);
+                
+                log.info("UserContext aggiornato per l'utente con ID {}: {} profili", utenteId, profiliAggiornati.size());
+            } catch (Exception e) {
+                log.error("Errore durante l'aggiornamento di UserContext per l'utente con ID {}: {}", utenteId, e.getMessage(), e);
             }
         }
     }

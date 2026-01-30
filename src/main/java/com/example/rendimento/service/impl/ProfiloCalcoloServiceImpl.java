@@ -1,19 +1,19 @@
 package com.example.rendimento.service.impl;
 
-import com.example.rendimento.constants.RendimentoConstants;
-import com.example.rendimento.model.ProfiloCalcolo;
-import com.example.rendimento.model.Utente;
-import com.example.rendimento.repository.ProfiloCalcoloRepository;
-import com.example.rendimento.repository.UtenteRepository;
-import com.example.rendimento.service.ProfiloCalcoloService;
-import jakarta.transaction.Transactional;
+import java.util.List;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
+import com.example.rendimento.model.ProfiloCalcolo;
+import com.example.rendimento.model.Utente;
+import com.example.rendimento.repository.ProfiloCalcoloRepository;
+import com.example.rendimento.service.ProfiloCalcoloService;
+
+import jakarta.transaction.Transactional;
 
 /**
  * Implementazione del servizio ProfiloCalcoloService.
@@ -27,8 +27,6 @@ public class ProfiloCalcoloServiceImpl implements ProfiloCalcoloService {
     @Autowired
     private ProfiloCalcoloRepository profiloCalcoloRepository;
     
-    @Autowired
-    private UtenteRepository utenteRepository;
 
     /**
      * {@inheritDoc}

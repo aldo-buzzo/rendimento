@@ -191,16 +191,17 @@ function popolaTabellaSimulazioni(simulazioni) {
     
     if (!simulazioni || simulazioni.length === 0) {
         document.getElementById('no-simulazioni').classList.remove('d-none');
+        document.getElementById('no-chart').classList.remove('d-none');
         return;
     }
     
     document.getElementById('no-simulazioni').classList.add('d-none');
     
-    // Ordina le simulazioni per data di acquisto decrescente
-    simulazioni.sort((a, b) => new Date(b.dataAcquisto) - new Date(a.dataAcquisto));
+    // Ordina le simulazioni per data di acquisto decrescente per la tabella
+    const simulazioniOrdinate = [...simulazioni].sort((a, b) => new Date(b.dataAcquisto) - new Date(a.dataAcquisto));
     
     // Popola la tabella con le simulazioni
-    simulazioni.forEach(simulazione => {
+    simulazioniOrdinate.forEach(simulazione => {
         const row = document.createElement('tr');
         
         // Data Acquisto
@@ -223,12 +224,100 @@ function popolaTabellaSimulazioni(simulazioni) {
         rendimentoCell.textContent = formatDecimal(simulazione.rendimentoLordo) + '%';
         row.appendChild(rendimentoCell);
         
-        // Colonna vuota per mantenere l'allineamento con l'intestazione
-        const azioniCell = document.createElement('td');
-        azioniCell.textContent = '-';
-        row.appendChild(azioniCell);
-        
         tbody.appendChild(row);
+    });
+    
+    // Crea il grafico con i dati delle simulazioni
+    creaGraficoTassi(simulazioni);
+}
+
+// Funzione per creare il grafico dei tassi
+function creaGraficoTassi(simulazioni) {
+    // Nascondi il messaggio di errore del grafico
+    document.getElementById('no-chart').classList.add('d-none');
+    
+    // Se non ci sono abbastanza dati, mostra un messaggio e esci
+    if (!simulazioni || simulazioni.length < 2) {
+        document.getElementById('no-chart').classList.remove('d-none');
+        return;
+    }
+    
+    // Ordina le simulazioni per data di acquisto crescente per il grafico
+    const simulazioniOrdinate = [...simulazioni].sort((a, b) => new Date(a.dataAcquisto) - new Date(b.dataAcquisto));
+    
+    // Estrai date e rendimento
+    const labels = simulazioniOrdinate.map(sim => formatDate(sim.dataAcquisto));
+    const rendimenti = simulazioniOrdinate.map(sim => parseFloat(sim.rendimentoLordo));
+    
+    // Ottieni il contesto del canvas
+    const ctx = document.getElementById('tassi-chart').getContext('2d');
+    
+    // Distruggi il grafico esistente se presente
+    if (window.tassiChart) {
+        window.tassiChart.destroy();
+    }
+    
+    // Crea il nuovo grafico
+    window.tassiChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Rendimento (%)',
+                    data: rendimenti,
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Andamento Rendimento nel Tempo'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += context.parsed.y.toFixed(2) + '%';
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Data'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Rendimento (%)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(2) + '%';
+                        }
+                    }
+                }
+            }
+        }
     });
 }
 

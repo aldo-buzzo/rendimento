@@ -68,13 +68,13 @@ public class TestPrezziStorici {
 
                 try {
                     // Richiamo il metodo che estrae i prezzi storici come oggetti PrezzoStorico
-                    List<PrezzoStorico> prezzi = servizio.estraiPrezziUltimi3Mesi(t, DayOfWeek.MONDAY);
+                    List<PrezzoStorico> prezzi = servizio.estraiPrezziStorici(t, DayOfWeek.MONDAY);
                     System.out.println("Titolo: " + t.getNome() + " (" + t.getCodiceIsin() + ")");
                     System.out.println("Prezzi come oggetti PrezzoStorico:");
                     prezzi.forEach(p -> System.out.println("  Prezzo: " + p));
 
                     // Richiamo il metodo che estrae i prezzi storici come mappe
-                    List<Map<String, Object>> prezziMap = servizio.estraiPrezziUltimi3MesiMap(t, DayOfWeek.MONDAY);
+                    List<Map<String, Object>> prezziMap = servizio.estraiPrezziStoriciMap(t, DayOfWeek.MONDAY);
                     System.out.println("\nPrezzi come mappe data/prezzo:");
                     for (Map<String, Object> mappa : prezziMap) {
                         LocalDate data = (LocalDate) mappa.get("data");
