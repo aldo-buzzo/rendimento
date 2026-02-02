@@ -72,9 +72,7 @@ window.Simulazione = {
             dataAcquisto: dataAcquisto,
             importoNominale: risultatoCalcolo.importo || 10000, // Valore di default se non presente
             commissioniAcquisto: commissioniAcquisto / 100, // Converti da percentuale a decimale
-            rendimentoLordo: risultatoCalcolo.tasso,
             rendimentoTassato: risultatoCalcolo.tasso * 0.875, // Tassazione del 12.5%
-            rendimentoNettoCedole: risultatoCalcolo.tassoNettoCommissioni,
             impostaBollo: risultatoCalcolo.impostaBollo,
             rendimentoNettoBollo: risultatoCalcolo.tassoNettoBollo,
             plusMinusValenza: risultatoCalcolo.plusvalenzaNetta,
@@ -117,9 +115,7 @@ window.Simulazione = {
             dataAcquisto: dto.dataAcquisto,
             importoNominale: dto.importoNominale || 10000, // Valore di default se non presente
             commissioniAcquisto: dto.commissioniAcquisto * 100, // Converti da decimale a percentuale
-            rendimentoLordo: dto.rendimentoLordo * 100, // Converti da decimale a percentuale
             rendimentoTassato: dto.rendimentoTassato * 100, // Converti da decimale a percentuale
-            rendimentoNettoCedole: dto.rendimentoNettoCedole * 100, // Converti da decimale a percentuale
             impostaBollo: dto.impostaBollo,
             rendimentoNettoBollo: dto.rendimentoNettoBollo, // Il valore è già una percentuale nel backend
             plusMinusValenza: dto.plusMinusValenza,
@@ -158,9 +154,7 @@ window.Simulazione = {
             dataAcquisto: simulazione.dataAcquisto,
             importoNominale: simulazione.importoNominale,
             commissioniAcquisto: simulazione.commissioniAcquisto / 100, // Converti da percentuale a decimale
-            rendimentoLordo: simulazione.rendimentoLordo / 100, // Converti da percentuale a decimale
             rendimentoTassato: simulazione.rendimentoTassato / 100, // Converti da percentuale a decimale
-            rendimentoNettoCedole: simulazione.rendimentoNettoCedole / 100, // Converti da percentuale a decimale
             impostaBollo: simulazione.impostaBollo,
             rendimentoNettoBollo: simulazione.rendimentoNettoBollo / 100, // Converti da percentuale a decimale
             plusMinusValenza: simulazione.plusMinusValenza,

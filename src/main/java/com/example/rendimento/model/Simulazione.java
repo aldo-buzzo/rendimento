@@ -27,17 +27,11 @@ public class Simulazione {
     @Column(name = "prezzo_acquisto", nullable = false, precision = 10, scale = 4)
     private BigDecimal prezzoAcquisto;
 
-    @Column(name = "rendimento_lordo", nullable = false, precision = 10, scale = 4)
-    private BigDecimal rendimentoLordo;
-
     @Column(name = "rendimento_tassato", nullable = false, precision = 10, scale = 4)
     private BigDecimal rendimentoTassato;
 
     @Column(name = "commissioni_acquisto", nullable = false, precision = 10, scale = 6)
     private BigDecimal commissioniAcquisto;
-
-    @Column(name = "rendimento_netto_cedole", nullable = false, precision = 10, scale = 4)
-    private BigDecimal rendimentoNettoCedole;
 
     @Column(name = "imposta_bollo", nullable = false, precision = 10, scale = 6)
     private BigDecimal impostaBollo;
@@ -105,25 +99,21 @@ public class Simulazione {
      * @param titolo il titolo associato alla simulazione
      * @param dataAcquisto la data ipotetica di acquisto
      * @param prezzoAcquisto il prezzo di acquisto per unità nominale
-     * @param rendimentoLordo il rendimento lordo (cedole + plusvalenza/minusvalenza)
      * @param rendimentoTassato il rendimento netto dopo tassazione
      * @param commissioniAcquisto le commissioni di acquisto
-     * @param rendimentoNettoCedole il rendimento netto dopo tasse e commissioni
      * @param impostaBollo l'imposta di bollo
      * @param rendimentoNettoBollo il rendimento netto finale al netto del bollo
      * @param plusMinusValenza la differenza tra prezzo di acquisto e 100
      */
     public Simulazione(Titolo titolo, LocalDate dataAcquisto, BigDecimal prezzoAcquisto,
-                      BigDecimal rendimentoLordo, BigDecimal rendimentoTassato, BigDecimal commissioniAcquisto,
-                      BigDecimal rendimentoNettoCedole, BigDecimal impostaBollo, BigDecimal rendimentoNettoBollo,
+                      BigDecimal rendimentoTassato, BigDecimal commissioniAcquisto,
+                      BigDecimal impostaBollo, BigDecimal rendimentoNettoBollo,
                       BigDecimal plusMinusValenza) {
         this.titolo = titolo;
         this.dataAcquisto = dataAcquisto;
         this.prezzoAcquisto = prezzoAcquisto;
-        this.rendimentoLordo = rendimentoLordo;
         this.rendimentoTassato = rendimentoTassato;
         this.commissioniAcquisto = commissioniAcquisto;
-        this.rendimentoNettoCedole = rendimentoNettoCedole;
         this.impostaBollo = impostaBollo;
         this.rendimentoNettoBollo = rendimentoNettoBollo;
         this.plusMinusValenza = plusMinusValenza;
@@ -163,14 +153,6 @@ public class Simulazione {
         this.prezzoAcquisto = prezzoAcquisto;
     }
 
-    public BigDecimal getRendimentoLordo() {
-        return rendimentoLordo;
-    }
-
-    public void setRendimentoLordo(BigDecimal rendimentoLordo) {
-        this.rendimentoLordo = rendimentoLordo;
-    }
-
     public BigDecimal getRendimentoTassato() {
         return rendimentoTassato;
     }
@@ -185,14 +167,6 @@ public class Simulazione {
 
     public void setCommissioniAcquisto(BigDecimal commissioniAcquisto) {
         this.commissioniAcquisto = commissioniAcquisto;
-    }
-
-    public BigDecimal getRendimentoNettoCedole() {
-        return rendimentoNettoCedole;
-    }
-
-    public void setRendimentoNettoCedole(BigDecimal rendimentoNettoCedole) {
-        this.rendimentoNettoCedole = rendimentoNettoCedole;
     }
 
     public BigDecimal getImpostaBollo() {
@@ -340,10 +314,8 @@ public class Simulazione {
                 ", titolo=" + (titolo != null ? titolo.getIdTitolo() : null) +
                 ", dataAcquisto=" + dataAcquisto +
                 ", prezzoAcquisto=" + prezzoAcquisto +
-                ", rendimentoLordo=" + rendimentoLordo +
                 ", rendimentoTassato=" + rendimentoTassato +
                 ", commissioniAcquisto=" + commissioniAcquisto +
-                ", rendimentoNettoCedole=" + rendimentoNettoCedole +
                 ", impostaBollo=" + impostaBollo +
                 ", rendimentoNettoBollo=" + rendimentoNettoBollo +
                 ", plusMinusValenza=" + plusMinusValenza +

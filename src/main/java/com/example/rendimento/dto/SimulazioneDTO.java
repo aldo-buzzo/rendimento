@@ -14,10 +14,8 @@ public class SimulazioneDTO {
     private TitoloDTO titolo;
     private LocalDate dataAcquisto;
     private BigDecimal prezzoAcquisto;
-    private BigDecimal rendimentoLordo;
     private BigDecimal rendimentoTassato;
     private BigDecimal commissioniAcquisto;
-    private BigDecimal rendimentoNettoCedole;
     private BigDecimal impostaBollo;
     private BigDecimal rendimentoNettoBollo;
     private BigDecimal plusMinusValenza;
@@ -57,26 +55,22 @@ public class SimulazioneDTO {
      * @param idTitolo l'ID del titolo associato
      * @param dataAcquisto la data ipotetica di acquisto
      * @param prezzoAcquisto il prezzo di acquisto per unità nominale
-     * @param rendimentoLordo il rendimento lordo (cedole + plusvalenza/minusvalenza)
      * @param rendimentoTassato il rendimento netto dopo tassazione
      * @param commissioniAcquisto le commissioni di acquisto
-     * @param rendimentoNettoCedole il rendimento netto dopo tasse e commissioni
      * @param impostaBollo l'imposta di bollo
      * @param rendimentoNettoBollo il rendimento netto finale al netto del bollo
      * @param plusMinusValenza la differenza tra prezzo di acquisto e 100
      */
     public SimulazioneDTO(Integer idSimulazione, Integer idTitolo, LocalDate dataAcquisto,
-                         BigDecimal prezzoAcquisto, BigDecimal rendimentoLordo, BigDecimal rendimentoTassato,
-                         BigDecimal commissioniAcquisto, BigDecimal rendimentoNettoCedole,
-                         BigDecimal impostaBollo, BigDecimal rendimentoNettoBollo, BigDecimal plusMinusValenza) {
+                         BigDecimal prezzoAcquisto, BigDecimal rendimentoTassato,
+                         BigDecimal commissioniAcquisto, BigDecimal impostaBollo, 
+                         BigDecimal rendimentoNettoBollo, BigDecimal plusMinusValenza) {
         this.idSimulazione = idSimulazione;
         this.idTitolo = idTitolo;
         this.dataAcquisto = dataAcquisto;
         this.prezzoAcquisto = prezzoAcquisto;
-        this.rendimentoLordo = rendimentoLordo;
         this.rendimentoTassato = rendimentoTassato;
         this.commissioniAcquisto = commissioniAcquisto;
-        this.rendimentoNettoCedole = rendimentoNettoCedole;
         this.impostaBollo = impostaBollo;
         this.rendimentoNettoBollo = rendimentoNettoBollo;
         this.plusMinusValenza = plusMinusValenza;
@@ -89,27 +83,23 @@ public class SimulazioneDTO {
      * @param titolo l'oggetto TitoloDTO associato
      * @param dataAcquisto la data ipotetica di acquisto
      * @param prezzoAcquisto il prezzo di acquisto per unità nominale
-     * @param rendimentoLordo il rendimento lordo (cedole + plusvalenza/minusvalenza)
      * @param rendimentoTassato il rendimento netto dopo tassazione
      * @param commissioniAcquisto le commissioni di acquisto
-     * @param rendimentoNettoCedole il rendimento netto dopo tasse e commissioni
      * @param impostaBollo l'imposta di bollo
      * @param rendimentoNettoBollo il rendimento netto finale al netto del bollo
      * @param plusMinusValenza la differenza tra prezzo di acquisto e 100
      */
     public SimulazioneDTO(Integer idSimulazione, TitoloDTO titolo, LocalDate dataAcquisto,
-                         BigDecimal prezzoAcquisto, BigDecimal rendimentoLordo, BigDecimal rendimentoTassato,
-                         BigDecimal commissioniAcquisto, BigDecimal rendimentoNettoCedole,
-                         BigDecimal impostaBollo, BigDecimal rendimentoNettoBollo, BigDecimal plusMinusValenza) {
+                         BigDecimal prezzoAcquisto, BigDecimal rendimentoTassato,
+                         BigDecimal commissioniAcquisto, BigDecimal impostaBollo, 
+                         BigDecimal rendimentoNettoBollo, BigDecimal plusMinusValenza) {
         this.idSimulazione = idSimulazione;
         this.titolo = titolo;
         this.idTitolo = titolo != null ? titolo.getIdTitolo() : null;
         this.dataAcquisto = dataAcquisto;
         this.prezzoAcquisto = prezzoAcquisto;
-        this.rendimentoLordo = rendimentoLordo;
         this.rendimentoTassato = rendimentoTassato;
         this.commissioniAcquisto = commissioniAcquisto;
-        this.rendimentoNettoCedole = rendimentoNettoCedole;
         this.impostaBollo = impostaBollo;
         this.rendimentoNettoBollo = rendimentoNettoBollo;
         this.plusMinusValenza = plusMinusValenza;
@@ -158,14 +148,6 @@ public class SimulazioneDTO {
         this.prezzoAcquisto = prezzoAcquisto;
     }
 
-    public BigDecimal getRendimentoLordo() {
-        return rendimentoLordo;
-    }
-
-    public void setRendimentoLordo(BigDecimal rendimentoLordo) {
-        this.rendimentoLordo = rendimentoLordo;
-    }
-
     public BigDecimal getRendimentoTassato() {
         return rendimentoTassato;
     }
@@ -180,14 +162,6 @@ public class SimulazioneDTO {
 
     public void setCommissioniAcquisto(BigDecimal commissioniAcquisto) {
         this.commissioniAcquisto = commissioniAcquisto;
-    }
-
-    public BigDecimal getRendimentoNettoCedole() {
-        return rendimentoNettoCedole;
-    }
-
-    public void setRendimentoNettoCedole(BigDecimal rendimentoNettoCedole) {
-        this.rendimentoNettoCedole = rendimentoNettoCedole;
     }
 
     public BigDecimal getImpostaBollo() {
@@ -367,10 +341,8 @@ public class SimulazioneDTO {
                 ", idTitolo=" + idTitolo +
                 ", dataAcquisto=" + dataAcquisto +
                 ", prezzoAcquisto=" + prezzoAcquisto +
-                ", rendimentoLordo=" + rendimentoLordo +
                 ", rendimentoTassato=" + rendimentoTassato +
                 ", commissioniAcquisto=" + commissioniAcquisto +
-                ", rendimentoNettoCedole=" + rendimentoNettoCedole +
                 ", impostaBollo=" + impostaBollo +
                 ", rendimentoNettoBollo=" + rendimentoNettoBollo +
                 ", plusMinusValenza=" + plusMinusValenza +

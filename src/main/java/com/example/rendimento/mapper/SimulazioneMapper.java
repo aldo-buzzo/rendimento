@@ -42,10 +42,8 @@ public class SimulazioneMapper {
         dto.setIdTitolo(simulazione.getTitolo() != null ? simulazione.getTitolo().getIdTitolo() : null);
         dto.setDataAcquisto(simulazione.getDataAcquisto());
         dto.setPrezzoAcquisto(simulazione.getPrezzoAcquisto());
-        dto.setRendimentoLordo(simulazione.getRendimentoLordo());
         dto.setRendimentoTassato(simulazione.getRendimentoTassato());
         dto.setCommissioniAcquisto(simulazione.getCommissioniAcquisto());
-        dto.setRendimentoNettoCedole(simulazione.getRendimentoNettoCedole());
         dto.setImpostaBollo(simulazione.getImpostaBollo());
         dto.setRendimentoNettoBollo(simulazione.getRendimentoNettoBollo());
         dto.setPlusMinusValenza(simulazione.getPlusMinusValenza());
@@ -107,10 +105,8 @@ public class SimulazioneMapper {
         
         simulazione.setDataAcquisto(dto.getDataAcquisto());
         simulazione.setPrezzoAcquisto(dto.getPrezzoAcquisto());
-        simulazione.setRendimentoLordo(dto.getRendimentoLordo());
         simulazione.setRendimentoTassato(dto.getRendimentoTassato());
         simulazione.setCommissioniAcquisto(dto.getCommissioniAcquisto());
-        simulazione.setRendimentoNettoCedole(dto.getRendimentoNettoCedole());
         simulazione.setImpostaBollo(dto.getImpostaBollo());
         simulazione.setRendimentoNettoBollo(dto.getRendimentoNettoBollo());
         simulazione.setPlusMinusValenza(dto.getPlusMinusValenza());
