@@ -772,8 +772,18 @@ class SimulazioniController {
                 // Nascondi l'indicatore di caricamento
                 DomUtils.toggleLoading(false);
                 
-                // Mostra un messaggio di successo
-                DomUtils.showAlert('Rendimenti calcolati con successo!', 'success');
+                // Mostra il messaggio restituito dal backend
+                if (data && data.messaggio) {
+                    DomUtils.showAlert(data.messaggio, 'success');
+                } else {
+                    DomUtils.showAlert('Rendimenti calcolati con successo!', 'success');
+                }
+                
+                // Aggiorna la tabella con le simulazioni aggiornate se disponibili
+                if (data && data.simulazioniAggiornate && data.simulazioniAggiornate.length > 0) {
+                    this.simulazioni = data.simulazioniAggiornate;
+                    this.updateSimulazioniTable();
+                }
             })
             .catch(error => {
                 console.error('Errore:', error);

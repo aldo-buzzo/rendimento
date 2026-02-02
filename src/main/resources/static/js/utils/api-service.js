@@ -118,11 +118,16 @@ window.ApiService = {
     },
     
     /**
-     * Recupera tutti i titoli dal server
+     * Recupera tutti i titoli, opzionalmente filtrati per tipo
+     * @param {string} tipo - Il tipo di titolo da filtrare (opzionale)
      * @returns {Promise} - Promise che risolve con l'array dei titoli
      */
-    getTitoli: function() {
-        return this.get(`${this.baseUrl}/titolo`);
+    getTitoli: function(tipo) {
+        let url = `${this.baseUrl}/titolo`;
+        if (tipo) {
+            url += `?tipo=${tipo}`;
+        }
+        return this.get(url);
     },
     
     /**
@@ -241,7 +246,7 @@ window.ApiService = {
     
     /**
      * Calcola i rendimenti di tutti i titoli
-     * @returns {Promise} - Promise che risolve con l'esito del calcolo
+     * @returns {Promise} - Promise che risolve con l'oggetto RisultatoCalcoloRendimentiDTO contenente statistiche sull'operazione
      */
     calcolaRendimentiTuttiTitoli: function() {
         return this.post(`${this.baseUrl}/simulazioni/calcola-rendimenti-tutti-titoli`, {});

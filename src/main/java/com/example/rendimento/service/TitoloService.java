@@ -3,6 +3,7 @@ package com.example.rendimento.service;
 import com.example.rendimento.dto.RendimentiDTO;
 import com.example.rendimento.dto.TitoloDTO;
 import com.example.rendimento.enums.PeriodoScadenza;
+import com.example.rendimento.enums.TipoTitolo;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -74,6 +75,15 @@ public interface TitoloService {
      * @return lista di titoli che appartengono all'utente specificato
      */
     List<TitoloDTO> getTitoliByUtenteId(Integer utenteId);
+    
+    /**
+     * Recupera tutti i titoli che appartengono all'utente specificato e sono del tipo specificato.
+     * 
+     * @param utenteId l'ID dell'utente proprietario dei titoli
+     * @param tipoTitolo il tipo di titolo da filtrare (può essere null per recuperare tutti i titoli)
+     * @return lista di titoli che appartengono all'utente specificato e sono del tipo specificato
+     */
+    List<TitoloDTO> getTitoliByUtenteIdAndTipo(Integer utenteId, TipoTitolo tipoTitolo);
     
     /**
      * Recupera tutti i titoli che appartengono all'utente specificato e hanno una data di scadenza

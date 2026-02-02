@@ -44,6 +44,16 @@ window.TitoliController = {
         document.getElementById('lista-btp-btn').addEventListener('click', () => this.showListaTitoli('BTP'));
         document.getElementById('lista-bot-btn').addEventListener('click', () => this.showListaTitoli('BOT'));
         
+        // Event listener per il filtro per tipo
+        const filtroTipoTitolo = document.getElementById('filtro-tipo-titolo');
+        if (filtroTipoTitolo) {
+            filtroTipoTitolo.addEventListener('change', () => {
+                const tipoSelezionato = filtroTipoTitolo.value;
+                console.log(`Filtro per tipo selezionato: ${tipoSelezionato}`);
+                this.filtraTitoliPerTipo(tipoSelezionato);
+            });
+        }
+        
         // Event listeners per i pulsanti di paginazione
         document.getElementById('prev-page-btn').addEventListener('click', () => {
             if (this.currentPage > 0) {
@@ -76,10 +86,11 @@ window.TitoliController = {
     
     /**
      * Carica i titoli dal server
+     * @param {string} tipo - Il tipo di titolo da filtrare (opzionale)
      */
-    loadTitoli: function() {
+    loadTitoli: function(tipo) {
         console.log('Caricamento titoli dal server...');
-        Titolo.load()
+        Titolo.load(tipo)
             .then(data => {
                 console.log('Titoli caricati con successo:', data);
                 // Memorizza i titoli
@@ -110,6 +121,23 @@ window.TitoliController = {
                     window.simulazioniController.loadSimulazioniFromServer();
                 }
             });
+    },
+    
+    /**
+     * Filtra i titoli per tipo
+     * @param {string} tipo - Il tipo di titolo da filtrare (BTP o BOT)
+     */
+    filtraTitoliPerTipo: function(tipo) {
+        console.log(`Filtrando titoli per tipo: ${tipo}`);
+        
+        // Mostra un indicatore di caricamento
+        DomUtils.toggleLoading(true);
+        
+        // Carica i titoli filtrati per tipo
+        this.loadTitoli(tipo);
+        
+        // Nascondi l'indicatore di caricamento
+        DomUtils.toggleLoading(false);
     },
     
     /**
@@ -192,12 +220,18 @@ window.TitoliController = {
                 ? Formatters.formatDate(titolo.dataScadenza) 
                 : 'N/D';
             
+            // Usa direttamente il campo rendimento del titolo
+            const rendimentoFormattato = titolo.rendimento !== undefined && titolo.rendimento !== null 
+                ? `${Formatters.formatDecimal(titolo.rendimento * 100)} %` 
+                : 'N/D';
+                
             row.innerHTML = `
                 <td>${titolo.codiceIsin || ''}</td>
                 <td>${titolo.nome || ''}</td>
                 <td>${dataScadenzaFormattata}</td>
                 <td>${tassoFormattato}</td>
                 <td>${prezzoFormattato}</td>
+                <td>${rendimentoFormattato}</td>
                 <td>
                     <button class="btn btn-sm btn-outline-primary me-1" onclick="TitoliController.editTitolo(${titolo.id})">Modifica</button>
                     <button class="btn btn-sm btn-outline-danger me-1" onclick="TitoliController.deleteTitolo(${titolo.id})">Elimina</button>
@@ -208,6 +242,78 @@ window.TitoliController = {
         });
         
         console.log(`Tabella titoli aggiornata con ${window.titoli.length} titoli`);
+    },
+    
+    /**
+     * Recupera i rendimenti più recenti per ogni titolo
+     * @returns {Promise<Object>} - Un oggetto con i rendimenti indicizzati per ID titolo
+     */
+    getRendimentiRecenti: function() {
+        return new Promise((resolve, reject) => {
+            // Verifica che simulazioniController esista
+            if (!window.simulazioniController) {
+                console.warn('simulazioniController non è definito, impossibile recuperare i rendimenti');
+                resolve({});
+                return;
+            }
+            
+            // Recupera tutte le simulazioni
+            ApiService.getSimulazioni()
+                .then(simulazioni => {
+                    console.log('Simulazioni recuperate per rendimenti:', simulazioni);
+                    
+                    // Crea un oggetto per memorizzare il rendimento più recente per ogni titolo
+                    const rendimenti = {};
+                    
+                    // Raggruppa le simulazioni per titolo e trova la più recente
+                    simulazioni.forEach(simulazione => {
+                        const titoloId = simulazione.titoloId;
+                        
+                        // Verifica che titoloId sia definito
+                        if (!titoloId) {
+                            console.warn('Simulazione senza titoloId:', simulazione);
+                            return;
+                        }
+                        
+                        // Usa dataAcquisto invece di dataCreazione
+                        const dataAcquisto = simulazione.dataAcquisto;
+                        if (!dataAcquisto) {
+                            console.warn('Simulazione senza dataAcquisto:', simulazione);
+                            return;
+                        }
+                        
+                        // Se non abbiamo ancora un rendimento per questo titolo o questa simulazione è più recente
+                        if (!rendimenti[titoloId] || 
+                            !rendimenti[titoloId].dataAcquisto || 
+                            new Date(dataAcquisto) > new Date(rendimenti[titoloId].dataAcquisto)) {
+                            
+                            // Verifica che rendimentoSenzaCosti sia definito
+                            if (simulazione.rendimentoSenzaCosti !== undefined && simulazione.rendimentoSenzaCosti !== null) {
+                                rendimenti[titoloId] = {
+                                    dataAcquisto: dataAcquisto,
+                                    rendimento: simulazione.rendimentoSenzaCosti
+                                };
+                                console.log(`Rendimento aggiornato per titolo ${titoloId}:`, rendimenti[titoloId]);
+                            } else {
+                                console.warn('Simulazione senza rendimentoSenzaCosti:', simulazione);
+                            }
+                        }
+                    });
+                    
+                    // Semplifica l'oggetto per restituire solo i valori di rendimento
+                    const risultato = {};
+                    Object.keys(rendimenti).forEach(titoloId => {
+                        risultato[titoloId] = rendimenti[titoloId].rendimento;
+                    });
+                    
+                    console.log('Rendimenti finali:', risultato);
+                    resolve(risultato);
+                })
+                .catch(error => {
+                    console.error('Errore nel recupero delle simulazioni:', error);
+                    reject(error);
+                });
+        });
     },
     
     /**

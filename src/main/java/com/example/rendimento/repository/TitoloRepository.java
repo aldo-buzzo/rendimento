@@ -1,5 +1,6 @@
 package com.example.rendimento.repository;
 
+import com.example.rendimento.enums.TipoTitolo;
 import com.example.rendimento.model.Titolo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -68,4 +69,15 @@ public interface TitoloRepository extends JpaRepository<Titolo, Integer> {
      * @return lista di titoli che appartengono all'utente specificato, ordinati per data di scadenza crescente
      */
     java.util.List<Titolo> findByUtente_IdUtenteOrderByDataScadenzaAsc(Integer utenteId);
+    
+    /**
+     * Trova tutti i titoli che appartengono all'utente specificato e sono del tipo specificato,
+     * ordinati per data di scadenza.
+     * 
+     * @param utenteId l'ID dell'utente proprietario dei titoli
+     * @param tipoTitolo il tipo di titolo da filtrare
+     * @return lista di titoli che appartengono all'utente specificato e sono del tipo specificato,
+     *         ordinati per data di scadenza crescente
+     */
+    java.util.List<Titolo> findByUtente_IdUtenteAndTipoTitoloOrderByDataScadenzaAsc(Integer utenteId, TipoTitolo tipoTitolo);
 }

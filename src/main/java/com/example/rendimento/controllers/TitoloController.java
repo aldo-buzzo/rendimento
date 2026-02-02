@@ -7,6 +7,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.example.rendimento.enums.TipoTitolo;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +29,7 @@ import com.example.rendimento.constants.AppMessages;
 import com.example.rendimento.dto.TitoloImportDTO;
 import com.example.rendimento.dto.TitoloDTO;
 import com.example.rendimento.dto.UtenteResponseDTO;
+import com.example.rendimento.service.SimulazioneService;
 import com.example.rendimento.service.TitoloService;
 import com.example.rendimento.service.UtenteService;
 
@@ -45,14 +48,18 @@ public class TitoloController {
     @Autowired
     private UtenteService utenteService;
     
+    @Autowired
+    private SimulazioneService simulazioneService;
+    
     /**
      * Recupera tutti i titoli dell'utente corrente.
      * 
-     * @return lista dei titoli dell'utente corrente
+     * @param tipo il tipo di titolo da filtrare (opzionale)
+     * @return lista dei titoli dell'utente corrente, filtrati per tipo se specificato
      */
     @GetMapping
-    public List<TitoloDTO> getAllTitoli() {
-        log.info("Ricevuta richiesta GET /api/titolo");
+    public List<TitoloDTO> getAllTitoli(@RequestParam(required = false) String tipo) {
+        log.info("Ricevuta richiesta GET /api/titolo con tipo: {}", tipo);
         
         // Inizia il conteggio del tempo
         long startTime = System.currentTimeMillis();
@@ -66,8 +73,22 @@ public class TitoloController {
                 .map(UtenteResponseDTO::getIdUtente)
                 .orElseThrow(() -> new IllegalStateException("Utente non autenticato"));
         
-        // Usa il metodo che filtra per utente
-        List<TitoloDTO> result = titoloService.getTitoliByUtenteId(utenteId);
+        List<TitoloDTO> result;
+        
+        // Se il tipo è specificato, filtra per tipo
+        if (tipo != null && !tipo.isEmpty()) {
+            try {
+                TipoTitolo tipoTitolo = TipoTitolo.valueOf(tipo.toUpperCase());
+                result = titoloService.getTitoliByUtenteIdAndTipo(utenteId, tipoTitolo);
+                log.info("Filtro per tipo: {}", tipoTitolo);
+            } catch (IllegalArgumentException e) {
+                log.warn("Tipo titolo non valido: {}, recupero tutti i titoli", tipo);
+                result = titoloService.getTitoliByUtenteId(utenteId);
+            }
+        } else {
+            // Altrimenti, recupera tutti i titoli dell'utente
+            result = titoloService.getTitoliByUtenteId(utenteId);
+        }
         
         // Calcola il tempo di esecuzione in secondi
         long endTime = System.currentTimeMillis();

@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.rendimento.dto.ElaborazioneRisultatoDTO;
+import com.example.rendimento.dto.RisultatoCalcoloRendimentiDTO;
 import com.example.rendimento.dto.RisultatoRendimentoAdvancedDTO;
 import com.example.rendimento.dto.RisultatoSimulazioneDTO;
 import com.example.rendimento.dto.SimulazioneDTO;
@@ -347,10 +348,10 @@ public class SimulazioneController {
      * Per ogni titolo viene calcolato il rendimento con un importo fisso di 10.000
      * euro.
      *
-     * @return lista di simulazioni calcolate e salvate
+     * @return oggetto RisultatoCalcoloRendimentiDTO con statistiche sull'operazione
      */
     @PostMapping("/calcola-rendimenti-tutti-titoli")
-    public ResponseEntity<List<SimulazioneDTO>> calcolaRendimentiTuttiTitoli() {
+    public ResponseEntity<RisultatoCalcoloRendimentiDTO> calcolaRendimentiTuttiTitoli() {
         log.info("Ricevuta richiesta POST /api/simulazioni/calcola-rendimenti-tutti-titoli");
 
         // Ottieni l'utente corrente
@@ -368,6 +369,9 @@ public class SimulazioneController {
                 utenteId);
         log.info("Trovati {} titoli con scadenza futura per l'utente ID: {}", titoliValidi.size(), utenteId);
 
+        // Contatori per le statistiche
+        int titoliLetti = titoliValidi.size();
+        int titoliAggiornati = 0;
         List<SimulazioneDTO> simulazioniSalvate = new ArrayList<>();
 
         // Per ogni titolo, calcola e salva una simulazione
@@ -377,6 +381,8 @@ public class SimulazioneController {
                 BigDecimal prezzoAcquisto = getPrezzoAcquistoPerTitolo(titolo);
                 LocalDate oggi = LocalDate.now();
                 if (prezzoAcquisto == null) {
+                    log.warn("Prezzo non disponibile per il titolo ID: {}, ISIN: {}", 
+                            titolo.getIdTitolo(), titolo.getCodiceIsin());
                     continue; // Salta questo titolo e passa al prossimo
                 }
 
@@ -384,6 +390,8 @@ public class SimulazioneController {
                 com.example.rendimento.dto.ElaborazioneRisultatoDTO risultatoElaborazione = simulazioneService
                         .elaboraSimulazionePerTitolo(titolo, prezzoAcquisto, oggi);
                 if (risultatoElaborazione == null || risultatoElaborazione.getSimulazione() == null) {
+                    log.warn("Elaborazione fallita per il titolo ID: {}, ISIN: {}", 
+                            titolo.getIdTitolo(), titolo.getCodiceIsin());
                     continue; // Salta questo titolo se l'elaborazione ha fallito
                 }
 
@@ -397,15 +405,19 @@ public class SimulazioneController {
                         titolo.getIdTitolo(), titolo.getCodiceIsin());
 
                 simulazioniSalvate.add(risultatoElaborazione.getSimulazione());
+                titoliAggiornati++; // Incrementa il contatore dei titoli aggiornati con successo
             } catch (Exception e) {
                 log.error("Errore nel calcolo della simulazione per il titolo ID: {}, ISIN: {}, Errore: {}",
                         titolo.getIdTitolo(), titolo.getCodiceIsin(), e.getMessage());
             }
         }
 
-        log.info("Risposta per POST /api/simulazioni/calcola-rendimenti-tutti-titoli: {} simulazioni aggiornate/create",
-                simulazioniSalvate.size());
-        return ResponseEntity.ok(simulazioniSalvate);
+        // Crea l'oggetto risultato con le statistiche
+        RisultatoCalcoloRendimentiDTO risultato = new RisultatoCalcoloRendimentiDTO(
+                titoliLetti, titoliAggiornati, simulazioniSalvate);
+
+        log.info("Risposta per POST /api/simulazioni/calcola-rendimenti-tutti-titoli: {}", risultato.getMessaggio());
+        return ResponseEntity.ok(risultato);
     }
 
     /**

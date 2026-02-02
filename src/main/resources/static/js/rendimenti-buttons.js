@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const listaBtpBtn = document.getElementById('lista-btp-btn-rendimenti');
     const listaBotBtn = document.getElementById('lista-bot-btn-rendimenti');
     const calcolaRendimentiBtn = document.getElementById('calcola-rendimenti-btn-rendimenti');
+    const filtroTipoTitolo = document.getElementById('filtro-tipo-titolo');
     
     // Aggiungi event listener per il pulsante "Aggiungi Titolo"
     if (addTitoloBtn) {
@@ -47,4 +48,5 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
 });

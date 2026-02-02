@@ -42,7 +42,8 @@ public class TitoloMapper {
                 entity.getPeriodicitaBollo(),
                 entity.getTipoTitolo(),
                 null,  // Il corso non è memorizzato nell'entità, viene recuperato in tempo reale
-                entity.getUtente() != null ? entity.getUtente().getIdUtente() : null
+                entity.getUtente() != null ? entity.getUtente().getIdUtente() : null,
+                null   // Il rendimento viene valorizzato nel service
         );
     }
 

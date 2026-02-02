@@ -7,10 +7,11 @@
 window.Titolo = {
     /**
      * Carica tutti i titoli dal server
+     * @param {string} tipo - Il tipo di titolo da filtrare (opzionale)
      * @returns {Promise} - Promise che risolve con l'array dei titoli convertiti per il frontend
      */
-    load: function() {
-        return ApiService.getTitoli()
+    load: function(tipo) {
+        return ApiService.getTitoli(tipo)
             .then(data => {
                 // Converti i DTO in oggetti per il frontend
                 return data.map(dto => this.convertFromDTO(dto));
@@ -93,7 +94,8 @@ window.Titolo = {
             periodicitaCedole: dto.periodicitaCedole,  // Aggiunto campo periodicitaCedole
             modalitaCalcoloBollo: dto.modalitaCalcoloBollo,
             periodicitaBollo: dto.periodicitaBollo,
-            prezzo: dto.corso  // Aggiunto campo prezzo mappato da corso
+            prezzo: dto.corso,  // Aggiunto campo prezzo mappato da corso
+            rendimento: dto.rendimento  // Aggiunto campo rendimento
         };
     },
     
