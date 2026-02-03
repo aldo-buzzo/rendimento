@@ -29,6 +29,14 @@
             margin-bottom: 0;
             font-size: 1.1rem;
         }
+        
+        /* Stile per le righe cliccabili */
+        .titolo-row {
+            cursor: pointer;
+        }
+        .titolo-row:hover {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -43,7 +51,7 @@
 
         <div class="row g-2">
             <!-- Colonna sinistra: Rendimenti Semestrali -->
-            <div class="col-md-4">
+            <div class="col-md-4" id="sezione-rendimenti-semestrali">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center">
@@ -62,7 +70,7 @@
                     </div>
                     <div class="card-body">
                         <!-- Primo riquadro: Rendimenti min/med/max -->
-                        <div class="mb-2">
+                        <div class="mb-2" id="statistiche-rendimenti-1">
                             <div class="card">
                                 <div class="card-header">
                                     <h5>Statistiche Rendimenti</h5>
@@ -91,7 +99,7 @@
                         </div>
                         
                         <!-- Secondo riquadro: Lista titoli -->
-                        <div>
+                        <div id="titoli-scadenza-1">
                             <div class="card">
                                 <div class="card-header">
                                     <h5>Titoli in Scadenza</h5>
@@ -119,7 +127,7 @@
             </div>
 
             <!-- Colonna centrale: Rendimenti Annuali -->
-            <div class="col-md-4">
+            <div class="col-md-4" id="sezione-rendimenti-annuali">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center">
@@ -138,7 +146,7 @@
                     </div>
                     <div class="card-body">
                         <!-- Primo riquadro: Rendimenti min/med/max -->
-                        <div class="mb-2">
+                        <div class="mb-2" id="statistiche-rendimenti-2">
                             <div class="card">
                                 <div class="card-header">
                                     <h5>Statistiche Rendimenti</h5>
@@ -167,7 +175,7 @@
                         </div>
                         
                         <!-- Secondo riquadro: Lista titoli -->
-                        <div>
+                        <div id="titoli-scadenza-2">
                             <div class="card">
                                 <div class="card-header">
                                     <h5>Titoli in Scadenza</h5>
@@ -195,7 +203,7 @@
             </div>
 
             <!-- Colonna destra: Tutti i Rendimenti -->
-            <div class="col-md-4">
+            <div class="col-md-4" id="sezione-rendimenti-tutti">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center">
@@ -214,7 +222,7 @@
                     </div>
                     <div class="card-body">
                         <!-- Primo riquadro: Rendimenti min/med/max -->
-                        <div class="mb-2">
+                        <div class="mb-2" id="statistiche-rendimenti-3">
                             <div class="card">
                                 <div class="card-header">
                                     <h5>Statistiche Rendimenti</h5>
@@ -243,7 +251,7 @@
                         </div>
                         
                         <!-- Secondo riquadro: Lista titoli -->
-                        <div>
+                        <div id="titoli-scadenza-3">
                             <div class="card">
                                 <div class="card-header">
                                     <h5>Titoli in Scadenza</h5>

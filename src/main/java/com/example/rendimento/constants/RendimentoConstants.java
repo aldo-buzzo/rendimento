@@ -86,6 +86,42 @@ public final class RendimentoConstants {
     public static final BigDecimal IMPORTO_FISSO_SIMULAZIONE = new BigDecimal("10000");
     
     /**
+     * Mese minimo per il range di visualizzazione dei titoli semestrali.
+     * <p>
+     * Utilizzato per filtrare i titoli nella pagina trends.html.
+     */
+    public static final int RANGE_SEMESTRALE_MIN_MESI = 5;
+    
+    /**
+     * Mese massimo per il range di visualizzazione dei titoli semestrali.
+     * <p>
+     * Utilizzato per filtrare i titoli nella pagina trends.html.
+     */
+    public static final int RANGE_SEMESTRALE_MAX_MESI = 7;
+    
+    /**
+     * Mese minimo per il range di visualizzazione dei titoli annuali.
+     * <p>
+     * Utilizzato per filtrare i titoli nella pagina trends.html.
+     */
+    public static final int RANGE_ANNUALE_MIN_MESI = 11;
+    
+    /**
+     * Mese massimo per il range di visualizzazione dei titoli annuali.
+     * <p>
+     * Utilizzato per filtrare i titoli nella pagina trends.html.
+     */
+    public static final int RANGE_ANNUALE_MAX_MESI = 13;
+    
+    /**
+     * Offset in mesi per il range di visualizzazione dei titoli pluriennali.
+     * <p>
+     * Utilizzato per filtrare i titoli nella pagina trends.html.
+     * Rappresenta il numero di mesi prima e dopo la scadenza esatta.
+     */
+    public static final int RANGE_PLURIENNALE_OFFSET_MESI = 6;
+    
+    /**
      * Costruttore privato per impedire l'istanziazione.
      * <p>
      * Questa classe contiene solo costanti statiche e non deve essere istanziata.

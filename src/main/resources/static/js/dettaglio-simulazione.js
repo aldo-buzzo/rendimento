@@ -70,9 +70,9 @@ function caricaDettagliSimulazione(titoloId) {
         dataAcquisto: new Date().toISOString().split('T')[0],
         importoNominale: 10000,
         commissioniAcquisto: 0.25,
-        rendimentoLordo: 0,
+        rendimentoSenzaCosti: 0,
         rendimentoTassato: 0,
-        rendimentoNettoCedole: 0,
+        rendimentoConCommissioni: 0,
         impostaBollo: 0.20,
         rendimentoNettoBollo: 0,
         plusMinusValenza: 0
@@ -221,7 +221,7 @@ function popolaTabellaSimulazioni(simulazioni) {
         
         // Rendimento (ex Rendimento Lordo)
         const rendimentoCell = document.createElement('td');
-        rendimentoCell.textContent = formatDecimal(simulazione.rendimentoLordo) + '%';
+        rendimentoCell.textContent = formatDecimal(simulazione.rendimentoSenzaCosti) + '%';
         row.appendChild(rendimentoCell);
         
         tbody.appendChild(row);
@@ -247,7 +247,7 @@ function creaGraficoTassi(simulazioni) {
     
     // Estrai date e rendimento
     const labels = simulazioniOrdinate.map(sim => formatDate(sim.dataAcquisto));
-    const rendimenti = simulazioniOrdinate.map(sim => parseFloat(sim.rendimentoLordo));
+    const rendimenti = simulazioniOrdinate.map(sim => parseFloat(sim.rendimentoSenzaCosti));
     
     // Ottieni il contesto del canvas
     const ctx = document.getElementById('tassi-chart').getContext('2d');
@@ -406,8 +406,8 @@ function popolaCampi(simulazione, titolo) {
         document.getElementById('guadagno-totale').value = formatDecimal(simulazione.guadagnoTotale || 0);
         document.getElementById('guadagno-netto-commissioni').value = formatDecimal(simulazione.guadagnoNettoCommissioni || 0);
         document.getElementById('guadagno-netto-bollo').value = formatDecimal(simulazione.guadagnoNettoBollo || 0);
-        document.getElementById('tasso').value = formatDecimal(simulazione.rendimentoLordo || 0) + '%';
-        document.getElementById('tasso-netto-commissioni').value = formatDecimal(simulazione.rendimentoNettoCedole || 0) + '%';
+        document.getElementById('tasso').value = formatDecimal(simulazione.rendimentoSenzaCosti || 0) + '%';
+        document.getElementById('tasso-netto-commissioni').value = formatDecimal(simulazione.rendimentoConCommissioni || 0) + '%';
         document.getElementById('tasso-netto-bollo').value = formatDecimal(simulazione.rendimentoNettoBollo || 0) + '%';
         document.getElementById('importo-scadenza').value = formatDecimal(simulazione.importoScadenza || 0);
     } catch (error) {

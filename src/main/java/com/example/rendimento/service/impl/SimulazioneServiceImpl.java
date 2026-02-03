@@ -209,10 +209,10 @@ public class SimulazioneServiceImpl implements SimulazioneService {
                 simulazioneDTO.setCommissioniAcquisto(risultato.getCommissionRate());
 
                 // Imposta i valori calcolati di base
-                simulazioneDTO.setRendimentoLordo(tasso.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
+                simulazioneDTO.setRendimentoSenzaCosti(tasso.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
                 simulazioneDTO.setRendimentoTassato(tasso.multiply(new BigDecimal("0.875"))
                                 .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
-                simulazioneDTO.setRendimentoNettoCedole(tassoNettoCommissioni
+                simulazioneDTO.setRendimentoConCommissioni(tassoNettoCommissioni
                                 .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
                 simulazioneDTO.setImpostaBollo(risultato.getImpostaBollo());
 

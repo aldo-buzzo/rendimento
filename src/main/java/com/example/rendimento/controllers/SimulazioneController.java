@@ -37,6 +37,7 @@ import com.example.rendimento.dto.UtenteResponseDTO;
 import com.example.rendimento.enums.TipoTitolo;
 import com.example.rendimento.model.Titolo;
 import com.example.rendimento.repository.TitoloRepository;
+import com.example.rendimento.constants.RendimentoConstants;
 import com.example.rendimento.service.BorsaItalianaService;
 import com.example.rendimento.service.PrezzoStoricoService;
 import com.example.rendimento.service.SimulazioneService;
@@ -378,6 +379,10 @@ public class SimulazioneController {
         for (Titolo titolo : titoliValidi) {
             try {
                 // Ottieni il prezzo attuale del titolo
+                if ("IT0005538597".equalsIgnoreCase(titolo.getCodiceIsin())){
+                        log.info("titolo con codice isin: " + titolo.getCodiceIsin());
+                }
+
                 BigDecimal prezzoAcquisto = getPrezzoAcquistoPerTitolo(titolo);
                 LocalDate oggi = LocalDate.now();
                 if (prezzoAcquisto == null) {
@@ -660,7 +665,7 @@ public class SimulazioneController {
     private List<SimulazioneDTO> elaboraPrezziStoriciETrend(Titolo titolo, String giorno) throws Exception {
         List<SimulazioneDTO> simulazioniSalvate = new ArrayList<>();
 
-        // Estrai i prezzi storici degli ultimi 3 mesi per il giorno specificato
+                                                                                                                                                                                                                                                                                                                                                        // Estrai i prezzi storici degli ultimi 3 mesi per il giorno specificato
         DayOfWeek giornoSettimana = DayOfWeek.valueOf(giorno);
         List<Map<String, Object>> prezziMap;
         try {
@@ -843,19 +848,20 @@ public class SimulazioneController {
                 dataMassima = oggi.plusMonths(3);
                 break;
             case "semestrali":
-                // Titoli in scadenza tra 5 e 6 mesi
-                dataMinima = oggi.plusMonths(5);
-                dataMassima = oggi.plusMonths(6);
+                // Titoli in scadenza tra 5 e 7 mesi (usando le costanti)
+                dataMinima = oggi.plusMonths(RendimentoConstants.RANGE_SEMESTRALE_MIN_MESI);
+                dataMassima = oggi.plusMonths(RendimentoConstants.RANGE_SEMESTRALE_MAX_MESI);
                 break;
             case "annuali":
-                // Titoli in scadenza tra 11 e 12 mesi
-                dataMinima = oggi.plusMonths(11);
-                dataMassima = oggi.plusMonths(12);
+                // Titoli in scadenza tra 11 e 13 mesi (usando le costanti)
+                dataMinima = oggi.plusMonths(RendimentoConstants.RANGE_ANNUALE_MIN_MESI);
+                dataMassima = oggi.plusMonths(RendimentoConstants.RANGE_ANNUALE_MAX_MESI);
                 break;
             case "triennali":
-                // Titoli in scadenza tra 30 e 36 mesi (2 anni e mezzo - 3 anni)
-                dataMinima = oggi.plusMonths(30);
-                dataMassima = oggi.plusMonths(36);
+                // Titoli in scadenza a 3 anni +/- 6 mesi (usando le costanti)
+                LocalDate dataEsatta = oggi.plusYears(3);
+                dataMinima = dataEsatta.minusMonths(RendimentoConstants.RANGE_PLURIENNALE_OFFSET_MESI);
+                dataMassima = dataEsatta.plusMonths(RendimentoConstants.RANGE_PLURIENNALE_OFFSET_MESI);
                 break;
             default:
                 return titoli;

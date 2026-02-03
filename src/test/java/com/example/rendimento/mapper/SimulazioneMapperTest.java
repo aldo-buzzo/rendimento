@@ -53,10 +53,10 @@ public class SimulazioneMapperTest {
         simulazione.setTitolo(titolo);
         simulazione.setDataAcquisto(LocalDate.now());
         simulazione.setPrezzoAcquisto(new BigDecimal("109.8887"));
-        simulazione.setRendimentoLordo(new BigDecimal("5.25"));
+        simulazione.setRendimentoSenzaCosti(new BigDecimal("5.25"));
         simulazione.setRendimentoTassato(new BigDecimal("4.59375"));
         simulazione.setCommissioniAcquisto(new BigDecimal("0.0009"));
-        simulazione.setRendimentoNettoCedole(new BigDecimal("4.5"));
+        simulazione.setRendimentoConCommissioni(new BigDecimal("4.5"));
         simulazione.setImpostaBollo(new BigDecimal("0.002"));
         simulazione.setRendimentoNettoBollo(new BigDecimal("4.4"));
         simulazione.setPlusMinusValenza(new BigDecimal("-9.8887"));
@@ -81,10 +81,10 @@ public class SimulazioneMapperTest {
         dto.setIdTitolo(1);
         dto.setDataAcquisto(LocalDate.now());
         dto.setPrezzoAcquisto(new BigDecimal("109.8887"));
-        dto.setRendimentoLordo(new BigDecimal("5.25"));
+        dto.setRendimentoSenzaCosti(new BigDecimal("5.25"));
         dto.setRendimentoTassato(new BigDecimal("4.59375"));
         dto.setCommissioniAcquisto(new BigDecimal("0.0009"));
-        dto.setRendimentoNettoCedole(new BigDecimal("4.5"));
+        dto.setRendimentoConCommissioni(new BigDecimal("4.5"));
         dto.setImpostaBollo(new BigDecimal("0.002"));
         dto.setRendimentoNettoBollo(new BigDecimal("4.4"));
         dto.setPlusMinusValenza(new BigDecimal("-9.8887"));
