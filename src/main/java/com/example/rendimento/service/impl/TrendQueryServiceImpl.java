@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.rendimento.dto.TrendAggregatoDTO;
+import com.example.rendimento.enums.PeriodoScadenza;
 import com.example.rendimento.enums.TrendBucket;
 import com.example.rendimento.repository.TrendRepository;
 import com.example.rendimento.repository.projection.TrendAggregatoProjection;
@@ -25,9 +26,38 @@ public class TrendQueryServiceImpl implements TrendQueryService {
 
     @Override
     public List<TrendAggregatoDTO> getTrendAggregati(LocalDate dataInizio, LocalDate dataFine) {
-
         return trendRepository.findTrendAggregati(dataInizio, dataFine)
                 .stream()
+                .map(this::toDto)
+                .toList();
+    }
+    
+    @Override
+    public List<TrendAggregatoDTO> getTrendAggregatiPerPeriodo(PeriodoScadenza periodo, LocalDate dataInizio) {
+        // Ottieni il bucket corrispondente al periodo
+        TrendBucket bucket = periodo.getTrendBucket();
+        
+        // Prepara la query
+        List<TrendAggregatoProjection> allTrends;
+        
+        if (dataInizio != null) {
+            // Se è specificata una data di inizio, filtra da quella data in poi
+            allTrends = trendRepository.findTrendAggregatiFromDate(dataInizio);
+        } else {
+            // Altrimenti, recupera tutti i dati disponibili
+            allTrends = trendRepository.findAllTrendAggregati();
+        }
+        
+        // Se il periodo è TUTTI, restituisci tutti i trend senza filtrare per bucket
+        if (bucket == null) {
+            return allTrends.stream()
+                    .map(this::toDto)
+                    .toList();
+        }
+        
+        // Altrimenti, filtra i trend per il bucket specifico
+        return allTrends.stream()
+                .filter(trend -> bucket.matches(trend.getAnniAllaScadenza()))
                 .map(this::toDto)
                 .toList();
     }

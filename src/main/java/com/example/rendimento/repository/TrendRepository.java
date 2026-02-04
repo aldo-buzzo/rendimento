@@ -61,5 +61,40 @@ public interface TrendRepository extends JpaRepository<TrendEntity, Long> {
         @Param("dataInizio") LocalDate dataInizio,
         @Param("dataFine") LocalDate dataFine
     );
+    
+    /**
+     * Trova tutti i trend aggregati a partire da una data specifica
+     */
+    @Query("""
+        SELECT
+            t.dataSnapshot as dataSnapshot,
+            t.anniAllaScadenza as anniAllaScadenza,
+            AVG(t.rendimentoAnnuo) as rendimentoMedio,
+            MIN(t.rendimentoAnnuo) as rendimentoMinimo,
+            MAX(t.rendimentoAnnuo) as rendimentoMassimo,
+            COUNT(t) as numeroTitoli
+        FROM TrendEntity t
+        WHERE t.dataSnapshot >= :dataInizio
+        GROUP BY t.dataSnapshot, t.anniAllaScadenza
+    """)
+    List<TrendAggregatoProjection> findTrendAggregatiFromDate(
+        @Param("dataInizio") LocalDate dataInizio
+    );
+    
+    /**
+     * Trova tutti i trend aggregati senza filtro per data
+     */
+    @Query("""
+        SELECT
+            t.dataSnapshot as dataSnapshot,
+            t.anniAllaScadenza as anniAllaScadenza,
+            AVG(t.rendimentoAnnuo) as rendimentoMedio,
+            MIN(t.rendimentoAnnuo) as rendimentoMinimo,
+            MAX(t.rendimentoAnnuo) as rendimentoMassimo,
+            COUNT(t) as numeroTitoli
+        FROM TrendEntity t
+        GROUP BY t.dataSnapshot, t.anniAllaScadenza
+    """)
+    List<TrendAggregatoProjection> findAllTrendAggregati();
 
 }
