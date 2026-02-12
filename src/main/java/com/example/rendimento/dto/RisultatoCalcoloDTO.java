@@ -38,13 +38,10 @@ public class RisultatoCalcoloDTO {
     private BigDecimal cedoleNetteAnnue;
     private BigDecimal guadagnoNettoSenzaCosti;
 
-    private BigDecimal bolloTotaleAnnuale;
-    private BigDecimal bolloTotaleMensile;
-
     private BigDecimal rendimentoSenzaCosti;
     private BigDecimal rendimentoConCommissioni;
-    private BigDecimal rendimentoConCommissioniEBolloAnnuale;
-    private BigDecimal rendimentoConCommissioniEBolloMensile;
+    private BigDecimal rendimentoConBollo;
+    private String periodicitaBollo;
     private BigDecimal rendimentoPlusvalenzaEsente;
     
     // Valori finali teorici per le diverse combinazioni
@@ -133,12 +130,13 @@ public class RisultatoCalcoloDTO {
         this.capitaleConCommissioni = advanced.getCapitaleConCommissioni();
         this.cedoleNetteAnnue = advanced.getCedoleNetteAnnue();
         this.guadagnoNettoSenzaCosti = advanced.getGuadagnoNettoSenzaCosti();
-        this.bolloTotaleAnnuale = advanced.getBolloTotaleAnnuale();
-        this.bolloTotaleMensile = advanced.getBolloTotaleMensile();
         this.rendimentoSenzaCosti = advanced.getRendimentoSenzaCosti();
         this.rendimentoConCommissioni = advanced.getRendimentoConCommissioni();
-        this.rendimentoConCommissioniEBolloAnnuale = advanced.getRendimentoConCommissioniEBolloAnnuale();
-        this.rendimentoConCommissioniEBolloMensile = advanced.getRendimentoConCommissioniEBolloMensile();
+        
+        // Per retrocompatibilità, utilizziamo il rendimento con bollo annuale come default
+        this.rendimentoConBollo = advanced.getRendimentoConCommissioniEBolloAnnuale();
+        this.periodicitaBollo = "ANNUALE"; // Default
+        
         this.rendimentoPlusvalenzaEsente = advanced.getRendimentoPlusvalenzaEsente();
         this.valoreBolloAnnualePlusvalenzaNonEsente = advanced.getValoreBolloAnnualePlusvalenzaNonEsente();
         this.valoreBolloAnnualePlusvalenzaEsente = advanced.getValoreBolloAnnualePlusvalenzaEsente();
@@ -324,21 +322,6 @@ public class RisultatoCalcoloDTO {
         this.guadagnoNettoSenzaCosti = guadagnoNettoSenzaCosti; 
     }
 
-    public BigDecimal getBolloTotaleAnnuale() { 
-        return bolloTotaleAnnuale; 
-    }
-    
-    public void setBolloTotaleAnnuale(BigDecimal bolloTotaleAnnuale) { 
-        this.bolloTotaleAnnuale = bolloTotaleAnnuale; 
-    }
-
-    public BigDecimal getBolloTotaleMensile() { 
-        return bolloTotaleMensile; 
-    }
-    
-    public void setBolloTotaleMensile(BigDecimal bolloTotaleMensile) { 
-        this.bolloTotaleMensile = bolloTotaleMensile; 
-    }
 
     public BigDecimal getRendimentoSenzaCosti() { 
         return rendimentoSenzaCosti; 
@@ -356,20 +339,20 @@ public class RisultatoCalcoloDTO {
         this.rendimentoConCommissioni = rendimentoConCommissioni; 
     }
 
-    public BigDecimal getRendimentoConCommissioniEBolloAnnuale() { 
-        return rendimentoConCommissioniEBolloAnnuale; 
+    public BigDecimal getRendimentoConBollo() { 
+        return rendimentoConBollo; 
     }
     
-    public void setRendimentoConCommissioniEBolloAnnuale(BigDecimal rendimentoConCommissioniEBolloAnnuale) { 
-        this.rendimentoConCommissioniEBolloAnnuale = rendimentoConCommissioniEBolloAnnuale; 
-    }
-
-    public BigDecimal getRendimentoConCommissioniEBolloMensile() { 
-        return rendimentoConCommissioniEBolloMensile; 
+    public void setRendimentoConBollo(BigDecimal rendimentoConBollo) { 
+        this.rendimentoConBollo = rendimentoConBollo; 
     }
     
-    public void setRendimentoConCommissioniEBolloMensile(BigDecimal rendimentoConCommissioniEBolloMensile) { 
-        this.rendimentoConCommissioniEBolloMensile = rendimentoConCommissioniEBolloMensile; 
+    public String getPeriodicitaBollo() { 
+        return periodicitaBollo; 
+    }
+    
+    public void setPeriodicitaBollo(String periodicitaBollo) { 
+        this.periodicitaBollo = periodicitaBollo; 
     }
     
     public BigDecimal getRendimentoPlusvalenzaEsente() { 
@@ -455,8 +438,8 @@ public class RisultatoCalcoloDTO {
                 ", prezzoAcquistoPercentuale=" + prezzoAcquistoPercentuale +
                 ", rendimentoSenzaCosti=" + rendimentoSenzaCosti +
                 ", rendimentoConCommissioni=" + rendimentoConCommissioni +
-                ", rendimentoConCommissioniEBolloAnnuale=" + rendimentoConCommissioniEBolloAnnuale +
-                ", rendimentoConCommissioniEBolloMensile=" + rendimentoConCommissioniEBolloMensile +
+                ", rendimentoConBollo=" + rendimentoConBollo +
+                ", periodicitaBollo=" + periodicitaBollo +
                 ", rendimentoPlusvalenzaEsente=" + rendimentoPlusvalenzaEsente +
                 '}';
     }

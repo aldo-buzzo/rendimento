@@ -7,8 +7,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.example.rendimento.enums.TipoTitolo;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,10 +24,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.rendimento.constants.AppMessages;
-import com.example.rendimento.dto.TitoloImportDTO;
 import com.example.rendimento.dto.TitoloDTO;
+import com.example.rendimento.dto.TitoloImportDTO;
 import com.example.rendimento.dto.UtenteResponseDTO;
-import com.example.rendimento.service.SimulazioneService;
+import com.example.rendimento.enums.TipoTitolo;
 import com.example.rendimento.service.TitoloService;
 import com.example.rendimento.service.UtenteService;
 
@@ -47,10 +45,7 @@ public class TitoloController {
     
     @Autowired
     private UtenteService utenteService;
-    
-    @Autowired
-    private SimulazioneService simulazioneService;
-    
+        
     /**
      * Recupera tutti i titoli dell'utente corrente.
      * 

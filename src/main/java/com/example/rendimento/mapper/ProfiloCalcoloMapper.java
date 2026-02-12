@@ -44,6 +44,7 @@ public class ProfiloCalcoloMapper {
         dto.setCommissioneCct(entity.getCommissioneCct());
         dto.setCommissioneCtz(entity.getCommissioneCtz());
         dto.setIsDefault(entity.getIsDefault());
+        dto.setPlusvalenzaEsente(entity.getPlusvalenzaEsente());
 
         return dto;
     }
@@ -83,6 +84,7 @@ public class ProfiloCalcoloMapper {
         entity.setCommissioneCct(dto.getCommissioneCct());
         entity.setCommissioneCtz(dto.getCommissioneCtz());
         entity.setIsDefault(dto.getIsDefault());
+        entity.setPlusvalenzaEsente(dto.getPlusvalenzaEsente());
 
         return entity;
     }
@@ -110,6 +112,7 @@ public class ProfiloCalcoloMapper {
         entity.setCommissioneCct(dto.getCommissioneCct());
         entity.setCommissioneCtz(dto.getCommissioneCtz());
         entity.setIsDefault(dto.getIsDefault());
+        entity.setPlusvalenzaEsente(dto.getPlusvalenzaEsente());
 
         return entity;
     }

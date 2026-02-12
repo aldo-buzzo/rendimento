@@ -29,8 +29,6 @@ import com.example.rendimento.model.Titolo;
 import com.example.rendimento.model.Utente;
 import com.example.rendimento.repository.TitoloRepository;
 import com.example.rendimento.repository.UtenteRepository;
-import com.example.rendimento.service.TitoloService;
-import com.example.rendimento.service.UtenteService;
 
 /**
  * Test per il controller TitoloController utilizzando un database H2 in memoria.
@@ -51,11 +49,6 @@ public class TitoloControllerTest {
     @Autowired
     private UtenteRepository utenteRepository;
 
-    @Autowired
-    private TitoloService titoloService;
-
-    @Autowired
-    private UtenteService utenteService;
 
     private Utente utente1;
     private Utente utente2;

@@ -97,6 +97,7 @@ public class ProfiloCalcoloController {
             profiloPredefinito.setCommissioneCct(RendimentoConstants.COMMISSION_DEFAULT_RATE); // 0.09%
             profiloPredefinito.setCommissioneCtz(RendimentoConstants.COMMISSION_DEFAULT_RATE); // 0.09%
             profiloPredefinito.setIsDefault(true);
+            profiloPredefinito.setPlusvalenzaEsente(RendimentoConstants.PROFILE_DEFAULT_PLUSVALENZA_ESENTE); // false
             // Non impostiamo l'utente perché questo profilo è solo in memoria e non verrà persistito
             
             profili = Collections.singletonList(profiloPredefinito);

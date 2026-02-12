@@ -247,8 +247,6 @@ class SimulazioniController {
         }
         
         // Verifica che ci siano simulazioni da mostrare
-        
-        // Verifica che ci siano simulazioni da mostrare
         if (!this.simulazioni || this.simulazioni.length === 0) {
             console.log('Nessuna simulazione da mostrare');
             return;
@@ -256,24 +254,44 @@ class SimulazioniController {
         
         console.log(`Aggiornamento tabella con ${this.simulazioni.length} simulazioni`);
         
-        // Ordina le simulazioni per data di scadenza crescente
-        this.simulazioni.sort((a, b) => {
-            // Usa direttamente l'oggetto titolo dal DTO della simulazione
-            const titoloA = a.titolo;
-            const titoloB = b.titolo;
-            
-            if (!titoloA || !titoloA.dataScadenza) return -1;
-            if (!titoloB || !titoloB.dataScadenza) return 1;
-            
-            const scadenzaA = new Date(titoloA.dataScadenza);
-            const scadenzaB = new Date(titoloB.dataScadenza);
-            
-            return scadenzaA - scadenzaB;
-        });
+        // I dati sono già ordinati per scadenza crescente dal backend
+        // Non è necessario ordinare nuovamente qui
         
-        this.simulazioni.forEach(simulazione => {
-            // Usa direttamente l'oggetto titolo dal DTO della simulazione
-            const titolo = simulazione.titolo;
+        // Verifica se this.simulazioni è un array o un oggetto
+        // Se è un oggetto, converti in array
+        let simulazioniArray = this.simulazioni;
+        if (this.simulazioni && !Array.isArray(this.simulazioni)) {
+            console.log('this.simulazioni non è un array, tentativo di conversione...');
+            // Verifica se è un oggetto con proprietà numeriche (come un oggetto JSON con indici)
+            if (typeof this.simulazioni === 'object') {
+                simulazioniArray = Object.values(this.simulazioni);
+                console.log('Convertito oggetto in array con', simulazioniArray.length, 'elementi');
+            } else {
+                console.error('Impossibile convertire this.simulazioni in array');
+                return;
+            }
+        }
+        
+        // Usa l'array (originale o convertito)
+        simulazioniArray.forEach(simulazione => {
+            // Verifica se la simulazione ha un oggetto titolo associato
+            let titolo = simulazione.titolo;
+            
+            // Se non c'è un oggetto titolo ma c'è un titoloId, cerca il titolo nell'array window.titoli
+            if (!titolo && simulazione.titoloId && window.titoli) {
+                console.log(`Cercando titolo con ID ${simulazione.titoloId} in window.titoli`);
+                titolo = window.titoli.find(t => t.id == simulazione.titoloId);
+                
+                if (titolo) {
+                    console.log(`Trovato titolo con ID ${simulazione.titoloId}:`, titolo);
+                    // Associa il titolo alla simulazione per usi futuri
+                    simulazione.titolo = titolo;
+                } else {
+                    console.warn(`Titolo con ID ${simulazione.titoloId} non trovato in window.titoli`);
+                }
+            }
+            
+            // Se ancora non abbiamo un titolo, salta questa simulazione
             if (!titolo) {
                 console.warn('Simulazione senza titolo associato:', simulazione);
                 return;
@@ -300,17 +318,30 @@ class SimulazioniController {
                 </svg>
             `;
             
+            // Funzione per normalizzare i valori dei rendimenti
+            // I dati dopo la funzione "ricalcola" sono divisi per cento rispetto a quelli presenti al caricamento della pagina
+            // Quindi moltiplichiamo sempre per 100 i valori provenienti dal ricalcolo
+            const normalizeRendimento = (value) => {
+                if (value === null || value === undefined) return 0;
+                const numValue = parseFloat(value);
+                if (isNaN(numValue)) return 0;
+                
+                // Se il valore è molto piccolo (es. 0.025 invece di 2.5), lo moltiplichiamo per 100
+                // Questo è un indicatore più affidabile che i dati sono in formato decimale (0.025 per 2.5%)
+                return (numValue < 0.1 && numValue > 0) ? numValue * 100 : numValue;
+            };
+            
             // Usa Formatters.formatDecimal e Formatters.formatDate per la formattazione
             row.innerHTML = `
                 <td>${titolo.nome || ''} (${titolo.codiceIsin || ''})</td>
                 <td>${Formatters.formatDecimal(simulazione.prezzoAcquisto || 0)}</td>
                 <td>${Formatters.formatDate(titolo.dataScadenza || '')}</td>
-                <td>${Formatters.formatDecimal(simulazione.rendimentoSenzaCosti || 0)}%</td>
-                <td>${Formatters.formatDecimal(simulazione.rendimentoConCommissioni || 0)}%</td>
-                <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloMensile || 0)}%</td>
-                <td>${Formatters.formatDecimal(simulazione.rendimentoConBolloAnnuale || 0)}%</td>
+                <td>${Formatters.formatDecimal(normalizeRendimento(simulazione.rendimentoSenzaCosti))}%</td>
+                <td>${Formatters.formatDecimal(normalizeRendimento(simulazione.rendimentoConCommissioni))}%</td>
+                <td>${Formatters.formatDecimal(normalizeRendimento(simulazione.rendimentoConBolloMensile))}%</td>
+                <td>${Formatters.formatDecimal(normalizeRendimento(simulazione.rendimentoConBolloAnnuale))}%</td>
                 <td>${titolo.tipoTitolo === 'BTP' && simulazione.rendimentoPlusvalenzaEsente != null ? 
-                    Formatters.formatDecimal(simulazione.rendimentoPlusvalenzaEsente) + '%' : 
+                    Formatters.formatDecimal(normalizeRendimento(simulazione.rendimentoPlusvalenzaEsente)) + '%' : 
                     '-'}</td>
                 <td>
                     <span 
@@ -365,8 +396,11 @@ class SimulazioniController {
         });
         
         // Aggiungi nuovi listener per il click
+        const self = this; // Salva il riferimento a this
         document.querySelectorAll('.value-with-popover').forEach(el => {
-            el.addEventListener('click', this.showPopupTable);
+            el.addEventListener('click', function(event) {
+                self.showPopupTable(event, self); // Passa sia l'evento che il riferimento a this
+            });
             // Aggiungi stile per indicare che è cliccabile
             el.style.cursor = 'pointer';
             el.style.textDecoration = 'underline';
@@ -387,8 +421,9 @@ class SimulazioniController {
     /**
      * Mostra la tabella popup al click
      * @param {Event} event - L'evento click
+     * @param {SimulazioniController} controller - Il controller
      */
-    showPopupTable(event) {
+    showPopupTable(event, controller) {
         event.stopPropagation(); // Previene la propagazione dell'evento click
         
         // Rimuovi eventuali popup esistenti
@@ -399,35 +434,189 @@ class SimulazioniController {
         }
         
         const target = event.currentTarget;
-        const rect = target.getBoundingClientRect();
+        const simulazioneId = target.getAttribute('data-simulazione-id');
         
-        // Recupera i dati dal target
-        const valoreBolloAnnualePlusvalenzaNonEsente = parseFloat(target.getAttribute('data-valore-bollo-annuale-plusvalenza-non-esente') || 0);
-        const valoreBolloMensilePlusvalenzaNonEsente = parseFloat(target.getAttribute('data-valore-bollo-mensile-plusvalenza-non-esente') || 0);
-        const valoreBolloAnnualePlusvalenzaEsente = parseFloat(target.getAttribute('data-valore-bollo-annuale-plusvalenza-esente') || 0);
-        const valoreBolloMensilePlusvalenzaEsente = parseFloat(target.getAttribute('data-valore-bollo-mensile-plusvalenza-esente') || 0);
+        if (!simulazioneId) {
+            console.error('ID simulazione non trovato');
+            return;
+        }
+        
+        // Recupera i dati dal target per il titolo
+        const titoloNome = target.getAttribute('data-titolo-nome') || '';
+        const titoloIsin = target.getAttribute('data-titolo-isin') || '';
         const tipoTitolo = target.getAttribute('data-tipo-titolo') || '';
+        
+        // Mostra un indicatore di caricamento
+        const loadingPopup = document.createElement('div');
+        loadingPopup.id = 'valori-popup';
+        loadingPopup.className = 'modal-style-popup popup-visible';
+        loadingPopup.innerHTML = `
+            <div class="popup-header">
+                <h5>Caricamento dati...</h5>
+            </div>
+            <div class="popup-body">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">Caricamento...</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Posiziona il popup al centro della pagina
+        loadingPopup.style.position = 'fixed';
+        loadingPopup.style.top = '50%';
+        loadingPopup.style.left = '50%';
+        loadingPopup.style.transform = 'translate(-50%, -50%)';
+        
+        // Aggiungi il popup di caricamento al DOM
+        document.body.appendChild(loadingPopup);
+        
+        // Recupera i dati dettagliati della simulazione
+        fetch(`/api/simulazioni/${simulazioneId}/calcolo-dettagliato`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Errore nella richiesta: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Dati dettagliati ricevuti:", data);
+                
+                // Rimuovi il popup di caricamento
+                loadingPopup.remove();
+                
+                // Crea il popup con i dati ricevuti
+                controller.createValoriFinaliPopup(data, titoloNome, titoloIsin, tipoTitolo);
+            })
+            .catch(error => {
+                console.error('Errore nel recupero dei dati dettagliati:', error);
+                
+                // Rimuovi il popup di caricamento
+                loadingPopup.remove();
+                
+                // Mostra un messaggio di errore
+                const errorPopup = document.createElement('div');
+                errorPopup.id = 'valori-popup';
+                errorPopup.className = 'modal-style-popup popup-visible';
+                errorPopup.innerHTML = `
+                    <div class="popup-header">
+                        <h5>Errore</h5>
+                        <button type="button" class="close-button" aria-label="Chiudi">×</button>
+                    </div>
+                    <div class="popup-body">
+                        <div class="alert alert-danger">
+                            Si è verificato un errore nel recupero dei dati dettagliati.
+                        </div>
+                    </div>
+                `;
+                
+                // Posiziona il popup al centro della pagina
+                errorPopup.style.position = 'fixed';
+                errorPopup.style.top = '50%';
+                errorPopup.style.left = '50%';
+                errorPopup.style.transform = 'translate(-50%, -50%)';
+                
+                // Aggiungi il popup di errore al DOM
+                document.body.appendChild(errorPopup);
+                
+                // Aggiungi event listener per il pulsante di chiusura
+                const closeButton = errorPopup.querySelector('.close-button');
+                if (closeButton) {
+                    closeButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        errorPopup.remove();
+                    });
+                }
+            });
+    }
+    
+    /**
+     * Crea il popup con i dati dei valori finali per profilo
+     * @param {Object} data - I dati dettagliati della simulazione
+     * @param {string} titoloNome - Il nome del titolo
+     * @param {string} titoloIsin - Il codice ISIN del titolo
+     * @param {string} tipoTitolo - Il tipo di titolo
+     */
+    createValoriFinaliPopup(data, titoloNome, titoloIsin, tipoTitolo) {
+        // Verifica che ci siano dati dei profili
+        if (!data || (!data.rendimentiPerProfili && !data.valoriFinaliPerProfili) || 
+            (data.rendimentiPerProfili && data.rendimentiPerProfili.length === 0 && 
+             data.valoriFinaliPerProfili && data.valoriFinaliPerProfili.length === 0)) {
+            console.error('Dati dei profili non disponibili');
+            return;
+        }
         
         // Crea il popup
         const popup = document.createElement('div');
         popup.id = 'valori-popup';
         popup.className = 'modal-style-popup';
         
-        // Recupera il nome e l'ISIN del titolo
-        const titoloNome = target.getAttribute('data-titolo-nome') || '';
-        const titoloIsin = target.getAttribute('data-titolo-isin') || '';
-        
-        // Crea il contenuto HTML con pulsante di chiusura
+        // Crea l'intestazione del popup
         let contentHtml = `
             <div class="popup-header" id="valori-popup-header">
                 <h5>Dettaglio Valori Finali - ${titoloNome} (${titoloIsin})</h5>
                 <button type="button" class="close-button" aria-label="Chiudi">×</button>
             </div>
             <div class="popup-body">
-                <table class="table table-sm popup-table">
+        `;
+        
+        // Aggiungi la tabella dei rendimenti per profilo
+        if (data.rendimentiPerProfili && data.rendimentiPerProfili.length > 0) {
+            contentHtml += `
+        <h6>Rendimenti per Profilo</h6>
+        <table id="rendimenti-profilo-table" class="table table-sm popup-table">
+            <thead>
+                <tr>
+                    <th class="scenario-column">Profilo</th>
+                    <th>Netto</th>
+                    <th>Commiss.</th>
+                    <th>Bolli</th>
+                    <th>Plusvalenza</th>
+                    <th>Esente</th>
+                </tr>
+            </thead>
+                    <tbody>
+            `;
+            
+            // Aggiungi una riga per ogni profilo
+            data.rendimentiPerProfili.forEach(profilo => {
+                const nomeProfilo = profilo.nomeProfilo || 'Profilo';
+                const rendimentoConCommissioni = profilo.rendimentoConCommissioni || 0;
+                const rendimentoConBollo = profilo.rendimentoConBollo || 0;
+                const rendimentoPlusvalenzaEsente = profilo.rendimentoPlusvalenzaEsente || null;
+                
+                // Usa il campo rendimentoNetto del DTO per la colonna "Netto"
+                const rendimentoNettoValue = profilo.rendimentoNetto ? (profilo.rendimentoNetto * 100) : 0;
+                
+                // Aggiungi la riga alla tabella
+                contentHtml += `
+                    <tr>
+                        <td class="scenario-column">${nomeProfilo}</td>
+                        <td>${Formatters.formatDecimal(rendimentoNettoValue)}%</td>
+                        <td>${Formatters.formatDecimal(rendimentoConCommissioni * 100)}%</td>
+                        <td>${Formatters.formatDecimal(rendimentoConBollo * 100)}%</td>
+                        <td>${rendimentoPlusvalenzaEsente !== null ? Formatters.formatDecimal(rendimentoPlusvalenzaEsente * 100) + '%' : 'N/A'}</td>
+                        <td>${profilo.isPlusvalenzaEsente ? 'Sì' : 'No'}</td>
+                    </tr>
+                `;
+            });
+            
+            contentHtml += `
+                    </tbody>
+                </table>
+                <br>
+            `;
+        }
+        
+        // Aggiungi la tabella dei valori finali per profilo
+        if (data.valoriFinaliPerProfili && data.valoriFinaliPerProfili.length > 0) {
+            contentHtml += `
+                <h6>Valori Finali per Profilo</h6>
+                <table id="valori-finali-table" class="table table-sm popup-table">
                     <thead>
                         <tr>
-                            <th class="scenario-column">Scenario</th>
+                            <th class="scenario-column">Profilo</th>
                             <th>10.000€</th>
                             <th>30.000€</th>
                             <th>50.000€</th>
@@ -435,58 +624,42 @@ class SimulazioniController {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td class="scenario-column">Bollo Annuo Plusv Tassata</td>
-                            <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente)}€</td>
-                            <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 3)}€</td>
-                            <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 5)}€</td>
-                            <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaNonEsente * 10)}€</td>
-                        </tr>
-                        <tr>
-                            <td class="scenario-column">Bollo Mese Plusv. Tassata</td>
-                            <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente)}€</td>
-                            <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 3)}€</td>
-                            <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 5)}€</td>
-                            <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaNonEsente * 10)}€</td>
-                        </tr>`;
-                        
-        if (tipoTitolo === 'BTP') {
+            `;
+            
+            // Aggiungi una riga per ogni profilo
+            data.valoriFinaliPerProfili.forEach(profilo => {
+                const nomeProfilo = profilo.nomeProfilo || 'Profilo';
+                const isPlusvalenzaEsente = profilo.plusvalenzaEsente;
+                const valoreFinaleLordo = profilo.valoreFinaleLordo || 0;
+                const valoreFinaleMenoCommissioni = profilo.valoreFinaleMenoCommissioni || 0;
+                const valoreFinaleMenoBolli = profilo.valoreFinaleMenoBolli || 0;
+                
+                // Calcola il valore per diversi importi di capitale
+                const valore10k = valoreFinaleMenoBolli;
+                const valore30k = valoreFinaleMenoBolli * 3;
+                const valore50k = valoreFinaleMenoBolli * 5;
+                const valore100k = valoreFinaleMenoBolli * 10;
+                
+                // Aggiungi la riga alla tabella
+                contentHtml += `
+                    <tr>
+                        <td class="scenario-column">${nomeProfilo} (Plusv. ${isPlusvalenzaEsente ? 'Esente' : 'Tassata'})</td>
+                        <td>${Formatters.formatDecimal(valore10k)}€</td>
+                        <td>${Formatters.formatDecimal(valore30k)}€</td>
+                        <td>${Formatters.formatDecimal(valore50k)}€</td>
+                        <td>${Formatters.formatDecimal(valore100k)}€</td>
+                    </tr>
+                `;
+            });
+            
             contentHtml += `
-                <tr>
-                    <td class="scenario-column">Bollo Annuo Plusv Esente</td>
-                    <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente)}€</td>
-                    <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente * 3)}€</td>
-                    <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente * 5)}€</td>
-                    <td>${Formatters.formatDecimal(valoreBolloAnnualePlusvalenzaEsente * 10)}€</td>
-                </tr>
-                <tr>
-                    <td class="scenario-column">Bollo Mese Plusv. Esente</td>
-                    <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente)}€</td>
-                    <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente * 3)}€</td>
-                    <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente * 5)}€</td>
-                    <td>${Formatters.formatDecimal(valoreBolloMensilePlusvalenzaEsente * 10)}€</td>
-                </tr>`;
-        } else {
-            contentHtml += `
-                <tr>
-                    <td class="scenario-column">Bollo Annuo Plusv Esente</td>
-                    <td>N/A</td>
-                    <td>N/A</td>
-                    <td>N/A</td>
-                    <td>N/A</td>
-                </tr>
-                <tr>
-                    <td class="scenario-column">Bollo Mese Plusv. Esente</td>
-                    <td>N/A</td>
-                    <td>N/A</td>
-                    <td>N/A</td>
-                    <td>N/A</td>
-                </tr>`;
-        }
-        
-        contentHtml += `
                     </tbody>
                 </table>
+            `;
+        }
+        
+        // Chiudi il popup
+        contentHtml += `
             </div>
         `;
         
@@ -509,290 +682,347 @@ class SimulazioniController {
                 popup.remove();
             });
         }
-        
-        // Previeni la propagazione del click all'interno del popup
-        popup.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
-        
-        // Aggiungi una classe per l'animazione di fade-in
-        setTimeout(() => {
-            popup.classList.add('popup-visible');
-        }, 10);
     }
     
     /**
-     * Aggiunge stili CSS per la visualizzazione dei valori finali
+     * Aggiunge stili CSS per la tabella dei valori finali
      */
     addValoriFinaliStyles() {
-        // Verifica se lo stile è già stato aggiunto
-        if (document.getElementById('valori-finali-styles')) return;
+        // Verifica se gli stili sono già stati aggiunti
+        if (document.getElementById('valori-finali-styles')) {
+            return;
+        }
         
+        // Crea un elemento style
         const style = document.createElement('style');
         style.id = 'valori-finali-styles';
-        style.textContent = `
-            .valori-finali-row {
-                background-color: #f8f9fa;
-                border-bottom: 1px solid #dee2e6;
-            }
-            .valori-finali-inline {
-                padding: 0.5rem 1rem;
-                font-size: 0.85rem;
-            }
-            .valori-finali-label {
-                margin-right: 1rem;
-            }
-            .valori-finali-values {
-                flex-grow: 1;
-                text-align: right;
-            }
-            .valor-tipo {
-                font-weight: 600;
-                color: #495057;
-            }
-            .valor-value {
-                font-weight: 500;
-                color: #0d6efd;
-            }
-            
-            /* Stili per il popup in stile modale */
+        
+        // Aggiungi gli stili CSS
+        style.innerHTML = `
             .modal-style-popup {
                 position: fixed;
-                z-index: 1060;
+                z-index: 1050;
                 background-color: white;
-                border-radius: 0.3rem;
-                box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
-                width: 90%;
-                max-width: 600px;
-                opacity: 0;
-                transition: opacity 0.3s ease;
+                border-radius: 5px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+                max-width: 80%;
+                max-height: 80%;
+                overflow: auto;
             }
-            .modal-style-popup.popup-visible {
-                opacity: 1;
-            }
+            
             .popup-header {
+                padding: 10px 15px;
+                border-bottom: 1px solid #e9ecef;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                padding: 1rem;
-                border-bottom: 1px solid #dee2e6;
-                background-color: #f8f9fa;
-                border-top-left-radius: 0.3rem;
-                border-top-right-radius: 0.3rem;
             }
-            .popup-header h5 {
-                margin: 0;
-                font-size: 1.1rem;
-                font-weight: 500;
+            
+            .popup-body {
+                padding: 15px;
             }
+            
             .close-button {
                 background: none;
                 border: none;
                 font-size: 1.5rem;
-                font-weight: 700;
+                font-weight: bold;
                 line-height: 1;
                 color: #000;
                 text-shadow: 0 1px 0 #fff;
                 opacity: 0.5;
                 cursor: pointer;
-                padding: 0;
-                margin-left: 1rem;
             }
+            
             .close-button:hover {
                 opacity: 0.75;
             }
-            .popup-body {
-                padding: 1rem;
-                max-height: 70vh;
-                overflow-y: auto;
-            }
+            
             .popup-table {
                 width: 100%;
-                margin-bottom: 0;
+                margin-bottom: 1rem;
+                color: #212529;
                 border-collapse: collapse;
             }
-            .popup-table th, .popup-table td {
-                padding: 0.5rem;
-                text-align: center;
-                border: 1px solid #dee2e6;
-            }
-            .popup-table th {
-                background-color: #f8f9fa;
-                font-weight: 600;
-                font-size: 0.9rem;
-            }
+            
+            .popup-table th,
             .popup-table td {
-                font-size: 0.9rem;
+                padding: 0.3rem;
+                vertical-align: top;
+                border-top: 1px solid #dee2e6;
             }
+            
+            .popup-table thead th {
+                vertical-align: bottom;
+                border-bottom: 2px solid #dee2e6;
+                background-color: #f8f9fa;
+            }
+            
             .scenario-column {
-                text-align: left !important;
-                font-weight: 600;
-                min-width: 180px; /* Larghezza minima per evitare sovrapposizioni */
-                width: 30%;
-            }
-            .value-with-popover {
-                color: #0d6efd;
-                cursor: pointer;
-            }
-            .value-with-popover:hover {
-                text-decoration: underline;
+                font-weight: bold;
+                background-color: #f8f9fa;
             }
         `;
         
+        // Aggiungi lo stile al DOM
         document.head.appendChild(style);
     }
     
     /**
-     * Imposta le date di default per il form di simulazione
+     * Imposta le date di default
      */
     setDefaultDates() {
-        const today = new Date();
         const dataAcquistoInput = document.getElementById('data-acquisto');
-        
         if (dataAcquistoInput) {
-            // Imposta la data di oggi utilizzando le funzioni di utilità DomUtils
-            DomUtils.setDatepickerDate(dataAcquistoInput, today);
-            
-            // Memorizza il formato ISO per l'invio al server
-            dataAcquistoInput.setAttribute('data-iso-date', today.toISOString().split('T')[0]);
+            // Imposta la data di oggi come data di acquisto di default
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0];
+            dataAcquistoInput.value = formattedDate;
         }
     }
     
     /**
-     * Calcola e aggiorna i giorni mancanti alla scadenza e imposta il tasso d'interesse
+     * Aggiorna i giorni alla scadenza
      */
     updateGiorniAllaScadenza() {
         const titoloSelect = document.getElementById('titolo-select');
         const dataAcquistoInput = document.getElementById('data-acquisto');
-        const giorniAllaScadenzaInput = document.getElementById('giorni-alla-scadenza');
-        const tassoInteresseInput = document.getElementById('tasso-interesse');
+        const giorniScadenzaSpan = document.getElementById('giorni-scadenza');
         
-        // Verifica che tutti gli elementi esistano
-        if (!titoloSelect || !dataAcquistoInput || !giorniAllaScadenzaInput || !tassoInteresseInput) {
-            console.error('Elementi DOM mancanti per updateGiorniAllaScadenza');
+        if (!titoloSelect || !dataAcquistoInput || !giorniScadenzaSpan) {
+            console.log('Elementi necessari per il calcolo dei giorni alla scadenza non trovati');
             return;
         }
         
-        const titoloId = parseInt(titoloSelect.value);
-        
-        if (!titoloId || !dataAcquistoInput.value) {
-            giorniAllaScadenzaInput.value = '';
-            tassoInteresseInput.value = '';
+        const titoloId = titoloSelect.value;
+        if (!titoloId) {
+            giorniScadenzaSpan.textContent = '0';
             return;
         }
         
-        // Verifica che window.titoli esista prima di usarlo
-        if (!window.titoli || !Array.isArray(window.titoli)) {
-            console.error('window.titoli non è definito o non è un array');
-            giorniAllaScadenzaInput.value = '';
-            tassoInteresseInput.value = '';
-            return;
-        }
-        
-        const titolo = window.titoli.find(t => t && t.id === titoloId);
+        // Trova il titolo selezionato
+        const titolo = window.titoli.find(t => t.id == titoloId);
         if (!titolo || !titolo.dataScadenza) {
-            giorniAllaScadenzaInput.value = '';
-            tassoInteresseInput.value = '';
+            giorniScadenzaSpan.textContent = '0';
             return;
         }
         
-        // Usa la data ISO memorizzata nell'attributo data-iso-date
-        const dataAcquistoISO = dataAcquistoInput.getAttribute('data-iso-date');
+        // Calcola i giorni alla scadenza
+        const dataAcquisto = new Date(dataAcquistoInput.value);
+        const dataScadenza = new Date(titolo.dataScadenza);
         
-        // Calcola i giorni tra la data di acquisto e la data di scadenza
-        const acquisto = dataAcquistoISO ? new Date(dataAcquistoISO) : new Date();
-        const scadenza = new Date(titolo.dataScadenza);
+        // Calcola la differenza in millisecondi
+        const diffTime = dataScadenza - dataAcquisto;
         
-        // Calcola la differenza in millisecondi e converti in giorni
-        const diffTime = scadenza - acquisto;
+        // Converti in giorni
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        giorniAllaScadenzaInput.value = diffDays > 0 ? diffDays : 0;
-        
-        // Imposta il tasso d'interesse con il valore del titolo selezionato
-        // Verifica se tassoNominale è definito (anche se è zero)
-        if (titolo.tassoNominale != null) {
-            tassoInteresseInput.value = Formatters.formatDecimal(titolo.tassoNominale);
-        }
+        // Aggiorna il testo
+        giorniScadenzaSpan.textContent = diffDays > 0 ? diffDays : '0';
     }
     
     /**
-     * Ottiene il prezzo corrente di un titolo
+     * Ottiene il prezzo corrente del titolo
      */
     getPrezzoCorrente() {
-        const titoloId = parseInt(document.getElementById('titolo-select').value);
+        const titoloSelect = document.getElementById('titolo-select');
+        const prezzoAcquistoInput = document.getElementById('prezzo-acquisto');
         
+        if (!titoloSelect || !prezzoAcquistoInput) {
+            console.log('Elementi necessari per il recupero del prezzo corrente non trovati');
+            return;
+        }
+        
+        const titoloId = titoloSelect.value;
         if (!titoloId) {
-            alert('Seleziona un titolo');
+            alert('Seleziona un titolo prima di recuperare il prezzo corrente');
             return;
         }
         
-        const titolo = window.titoli.find(t => t.id === titoloId);
-        if (!titolo) {
-            alert('Titolo non trovato');
-            return;
+        // Mostra un indicatore di caricamento
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.id = 'loading-indicator';
+        loadingIndicator.className = 'spinner-border text-primary';
+        loadingIndicator.setAttribute('role', 'status');
+        loadingIndicator.innerHTML = '<span class="sr-only">Caricamento...</span>';
+        
+        // Aggiungi l'indicatore vicino al campo del prezzo
+        prezzoAcquistoInput.parentNode.appendChild(loadingIndicator);
+        
+        // Disabilita il pulsante durante il caricamento
+        const prezzoCorrenteBtn = document.getElementById('prezzo-corrente-btn');
+        if (prezzoCorrenteBtn) {
+            prezzoCorrenteBtn.disabled = true;
         }
         
-        // Ottieni il codice ISIN e il tipo di titolo
-        const codiceIsin = titolo.codiceIsin;
-        const tipoTitolo = titolo.tipoTitolo;
-        
-        if (!codiceIsin || !tipoTitolo) {
-            alert('Informazioni sul titolo incomplete');
-            return;
-        }
-        
-        Titolo.getPrezzoCorrente(tipoTitolo, codiceIsin)
-            .then(prezzo => {
-                console.log("Prezzo corrente:", prezzo);
+        // Recupera il prezzo corrente dal server
+        fetch(`/api/titoli/${titoloId}/prezzo-corrente`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Errore nella richiesta: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Prezzo corrente ricevuto:', data);
                 
-                // Aggiorna il prezzo nel campo
-                document.getElementById('prezzo-acquisto').value = Formatters.formatDecimal(prezzo);
+                // Aggiorna il campo del prezzo di acquisto
+                if (data && data.prezzo) {
+                    prezzoAcquistoInput.value = data.prezzo;
+                } else {
+                    alert('Prezzo corrente non disponibile');
+                }
             })
             .catch(error => {
-                console.error('Errore:', error);
-                alert('Si è verificato un errore nel recupero del prezzo corrente.');
+                console.error('Errore nel recupero del prezzo corrente:', error);
+                alert('Si è verificato un errore nel recupero del prezzo corrente');
+            })
+            .finally(() => {
+                // Rimuovi l'indicatore di caricamento
+                const loadingIndicator = document.getElementById('loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.remove();
+                }
+                
+                // Riabilita il pulsante
+                if (prezzoCorrenteBtn) {
+                    prezzoCorrenteBtn.disabled = false;
+                }
             });
     }
     
     /**
-     * Calcola i rendimenti di tutti i titoli
+     * Calcola i rendimenti per tutti i titoli
      */
     calcolaRendimentiTuttiTitoli() {
-        // Mostra un indicatore di caricamento
-        DomUtils.toggleLoading(true);
+        console.log('Calcolo rendimenti per tutti i titoli...');
         
-        Simulazione.calcolaRendimentiTuttiTitoli()
+        // Verifica che ci siano titoli disponibili
+        if (!window.titoli || window.titoli.length === 0) {
+            alert('Nessun titolo disponibile per il calcolo dei rendimenti');
+            return;
+        }
+        
+        // Mostra un indicatore di caricamento
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.id = 'loading-indicator';
+        loadingIndicator.className = 'spinner-border text-primary';
+        loadingIndicator.setAttribute('role', 'status');
+        loadingIndicator.innerHTML = '<span class="sr-only">Caricamento...</span>';
+        
+        // Aggiungi l'indicatore al DOM
+        const calcolaRendimentiBtn = document.getElementById('calcola-rendimenti-btn');
+        const calcolaRendimentiBtnRendimenti = document.getElementById('calcola-rendimenti-btn-rendimenti');
+        const buttonToUse = calcolaRendimentiBtn || calcolaRendimentiBtnRendimenti;
+        
+        if (buttonToUse) {
+            buttonToUse.parentNode.appendChild(loadingIndicator);
+            buttonToUse.disabled = true;
+        }
+        
+        // Valori predefiniti
+        let dataAcquisto = new Date().toISOString().split('T')[0]; // Data odierna
+        let importoNominale = 10000;
+        let commissioniAcquisto = 0.25;
+        
+        // Recupera i dati dal form se disponibili
+        const dataAcquistoInput = document.getElementById('data-acquisto');
+        const importoNominaleInput = document.getElementById('importo-nominale');
+        const commissioniAcquistoInput = document.getElementById('commissioni-acquisto');
+        
+        // Se gli elementi del form esistono, usa i loro valori
+        if (dataAcquistoInput) {
+            dataAcquisto = dataAcquistoInput.value || dataAcquisto;
+        }
+        
+        if (importoNominaleInput) {
+            importoNominale = parseFloat(importoNominaleInput.value) || importoNominale;
+        }
+        
+        if (commissioniAcquistoInput) {
+            commissioniAcquisto = parseFloat(commissioniAcquistoInput.value) || commissioniAcquisto;
+        }
+        
+        // Prepara i dati per la richiesta
+        const requestData = {
+            dataAcquisto: dataAcquisto,
+            importoNominale: importoNominale,
+            commissioniAcquisto: commissioniAcquisto
+        };
+        
+        // Invia la richiesta al server per calcolare i rendimenti
+        fetch('/api/simulazioni/calcola-rendimenti-tutti-titoli', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Errore nella richiesta: ' + response.status);
+                }
+                return response.json();
+            })
             .then(data => {
-                console.log("Rendimenti calcolati:", data);
+                console.log('Risultati del calcolo ricevuti:', data);
                 
-                // Ricarica le simulazioni dal server
-                this.loadSimulazioniFromServer();
-                
-                // Nascondi l'indicatore di caricamento
-                DomUtils.toggleLoading(false);
-                
-                // Mostra il messaggio restituito dal backend
-                if (data && data.messaggio) {
-                    DomUtils.showAlert(data.messaggio, 'success');
+                // Salva i risultati temporaneamente
+                if (data && data.simulazioniAggiornate) {
+                    this.ultimoRisultatoCalcolo = data.simulazioniAggiornate;
+                } else if (Array.isArray(data)) {
+                    this.ultimoRisultatoCalcolo = data;
                 } else {
-                    DomUtils.showAlert('Rendimenti calcolati con successo!', 'success');
+                    console.warn('Formato dati non riconosciuto:', data);
+                    this.ultimoRisultatoCalcolo = [];
                 }
                 
-                // Aggiorna la tabella con le simulazioni aggiornate se disponibili
-                if (data && data.simulazioniAggiornate && data.simulazioniAggiornate.length > 0) {
-                    this.simulazioni = data.simulazioniAggiornate;
-                    this.updateSimulazioniTable();
+                // Dopo aver calcolato i rendimenti, carica le simulazioni aggiornate dal server
+                // Questo garantisce che i dati siano nel formato corretto con tutti i campi necessari
+                console.log('Caricamento delle simulazioni aggiornate dal server...');
+                return fetch('/api/simulazioni?latest=true');
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Errore nella richiesta: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(simulazioni => {
+                console.log('Simulazioni aggiornate caricate dal server:', simulazioni);
+                
+                // Aggiorna la vista delle simulazioni con i dati completi
+                this.simulazioni = simulazioni;
+                this.updateSimulazioniTable();
+                
+                // Mostra la sezione dei risultati
+                const risultatiSection = document.getElementById('risultati-section');
+                if (risultatiSection) {
+                    risultatiSection.style.display = 'block';
                 }
             })
             .catch(error => {
-                console.error('Errore:', error);
+                console.error('Errore nel calcolo dei rendimenti:', error);
+                alert('Si è verificato un errore nel calcolo dei rendimenti');
+            })
+            .finally(() => {
+                // Rimuovi l'indicatore di caricamento
+                const loadingIndicator = document.getElementById('loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.remove();
+                }
                 
-                // Nascondi l'indicatore di caricamento
-                DomUtils.toggleLoading(false);
+                // Riabilita il pulsante
+                const calcolaRendimentiBtn = document.getElementById('calcola-rendimenti-btn');
+                const calcolaRendimentiBtnRendimenti = document.getElementById('calcola-rendimenti-btn-rendimenti');
                 
-                // Mostra un messaggio di errore
-                DomUtils.showAlert('Si è verificato un errore nel calcolo dei rendimenti.', 'danger');
+                if (calcolaRendimentiBtn) {
+                    calcolaRendimentiBtn.disabled = false;
+                }
+                
+                if (calcolaRendimentiBtnRendimenti) {
+                    calcolaRendimentiBtnRendimenti.disabled = false;
+                }
             });
     }
     
@@ -800,69 +1030,110 @@ class SimulazioniController {
      * Crea una nuova simulazione
      */
     createSimulazione() {
-        const titoloId = parseInt(document.getElementById('titolo-select').value);
-        const prezzoAcquistoText = document.getElementById('prezzo-acquisto').value;
-        const importoText = document.getElementById('importo-nominale').value;
+        console.log('Creazione nuova simulazione...');
+        
+        // Recupera i dati dal form
+        const titoloSelect = document.getElementById('titolo-select');
         const dataAcquistoInput = document.getElementById('data-acquisto');
-        const commissioniAcquistoText = document.getElementById('commissioni-acquisto').value;
-        const modalitaBollo = document.querySelector('input[name="modalita-bollo"]:checked').value;
+        const prezzoAcquistoInput = document.getElementById('prezzo-acquisto');
+        const importoNominaleInput = document.getElementById('importo-nominale');
+        const commissioniAcquistoInput = document.getElementById('commissioni-acquisto');
         
-        // Verifica che tutti i campi siano valorizzati
-        if (!titoloId || !prezzoAcquistoText || !importoText || !dataAcquistoInput.value || !commissioniAcquistoText || !modalitaBollo) {
-            alert('Compila tutti i campi');
+        if (!titoloSelect || !dataAcquistoInput || !prezzoAcquistoInput || !importoNominaleInput || !commissioniAcquistoInput) {
+            console.error('Elementi del form non trovati');
             return;
         }
         
-        // Converti i valori
-        const prezzoAcquisto = Validators.parseNumericValue(prezzoAcquistoText);
-        const importo = Validators.parseNumericValue(importoText);
-        const dataAcquistoISO = dataAcquistoInput.getAttribute('data-iso-date');
-        const commissioniAcquisto = Validators.parseNumericValue(commissioniAcquistoText);
+        const titoloId = titoloSelect.value;
+        const dataAcquisto = dataAcquistoInput.value;
+        const prezzoAcquisto = parseFloat(prezzoAcquistoInput.value);
+        const importoNominale = parseFloat(importoNominaleInput.value);
+        const commissioniAcquisto = parseFloat(commissioniAcquistoInput.value);
         
-        // Verifica che i valori siano validi
-        if (prezzoAcquisto <= 0 || importo <= 0 || commissioniAcquisto < 0) {
-            alert('I valori devono essere positivi');
+        // Validazione dei dati
+        if (!titoloId) {
+            alert('Seleziona un titolo');
             return;
         }
+        
+        if (!dataAcquisto) {
+            alert('Inserisci la data di acquisto');
+            return;
+        }
+        
+        if (isNaN(prezzoAcquisto) || prezzoAcquisto <= 0) {
+            alert('Inserisci un prezzo di acquisto valido');
+            return;
+        }
+        
+        if (isNaN(importoNominale) || importoNominale <= 0) {
+            alert('Inserisci un importo nominale valido');
+            return;
+        }
+        
+        if (isNaN(commissioniAcquisto) || commissioniAcquisto < 0) {
+            alert('Inserisci un valore valido per le commissioni di acquisto');
+            return;
+        }
+        
+        // Prepara i dati per la richiesta
+        const requestData = {
+            titoloId: titoloId,
+            dataAcquisto: dataAcquisto,
+            prezzoAcquisto: prezzoAcquisto,
+            importoNominale: importoNominale,
+            commissioniAcquisto: commissioniAcquisto
+        };
         
         // Mostra un indicatore di caricamento
-        DomUtils.toggleLoading(true);
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.id = 'loading-indicator';
+        loadingIndicator.className = 'spinner-border text-primary';
+        loadingIndicator.setAttribute('role', 'status');
+        loadingIndicator.innerHTML = '<span class="sr-only">Caricamento...</span>';
         
-        Simulazione.calcolaRendimento(titoloId, prezzoAcquisto, importo)
+        // Aggiungi l'indicatore al DOM
+        const submitButton = document.querySelector('#simulazione-form button[type="submit"]');
+        if (submitButton) {
+            submitButton.parentNode.appendChild(loadingIndicator);
+            submitButton.disabled = true;
+        }
+        
+        // Invia la richiesta al server
+        fetch('/api/simulazioni', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Errore nella richiesta: ' + response.status);
+                }
+                return response.json();
+            })
             .then(data => {
-                console.log("Rendimento calcolato:", data);
+                console.log('Simulazione creata con successo:', data);
                 
-                // Memorizza l'ultimo risultato del calcolo
-                this.ultimoRisultatoCalcolo = data;
-                
-                // Visualizza i risultati nei campi appropriati
-                document.getElementById('plusvalenza-netta').value = Formatters.formatDecimal(data.plusvalenzaNetta);
-                document.getElementById('interessi-netti').value = Formatters.formatDecimal(data.interessiNetti);
-                document.getElementById('commissioni').value = Formatters.formatDecimal(data.commissioni);
-                document.getElementById('imposta-bollo').value = Formatters.formatDecimal(data.impostaBollo);
-                document.getElementById('guadagno-totale').value = Formatters.formatDecimal(data.guadagnoTotale);
-                document.getElementById('guadagno-netto-commissioni').value = Formatters.formatDecimal(data.guadagnoNettoCommissioni);
-                document.getElementById('tasso').value = Formatters.formatDecimal(data.tasso) + '%';
-                document.getElementById('tasso-netto-commissioni').value = Formatters.formatDecimal(data.tassoNettoCommissioni) + '%';
-                document.getElementById('guadagno-netto-bollo').value = Formatters.formatDecimal(data.guadagnoNettoBollo);
-                document.getElementById('tasso-netto-bollo').value = Formatters.formatDecimal(data.tassoNettoBollo) + '%';
-                document.getElementById('importo-scadenza').value = Formatters.formatDecimal(data.importoScadenza);
-                
-                // Abilita il pulsante "Salva Simulazione"
-                document.getElementById('salva-simulazione-btn').disabled = false;
-                
-                // Nascondi l'indicatore di caricamento
-                DomUtils.toggleLoading(false);
-                
-                // Mostra un messaggio di successo
-                DomUtils.showAlert('Rendimento calcolato con successo!', 'success');
+                // Reindirizza alla pagina di dettaglio della simulazione
+                window.location.href = `dettaglio-simulazione.html?id=${data.id}`;
             })
             .catch(error => {
-                console.error('Errore:', error);
-                DomUtils.showAlert('Si è verificato un errore nel calcolo del rendimento.', 'danger');
+                console.error('Errore nella creazione della simulazione:', error);
+                alert('Si è verificato un errore nella creazione della simulazione');
+            })
+            .finally(() => {
+                // Rimuovi l'indicatore di caricamento
+                const loadingIndicator = document.getElementById('loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.remove();
+                }
                 
-                // Nascondi l'indicatore di caricamento
-                DomUtils.toggleLoading(false);
+                // Riabilita il pulsante
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
             });
     }
     
@@ -870,67 +1141,66 @@ class SimulazioniController {
      * Salva una simulazione
      */
     salvaSimulazione() {
+        console.log('Salvataggio simulazione...');
+        
         // Verifica che ci sia un risultato di calcolo
-        if (!this.ultimoRisultatoCalcolo) {
-            DomUtils.showAlert('Calcola prima il rendimento', 'warning');
+        if (!this.ultimoRisultatoCalcolo || this.ultimoRisultatoCalcolo.length === 0) {
+            alert('Nessun risultato di calcolo disponibile da salvare');
             return;
         }
-        
-        const titoloId = parseInt(document.getElementById('titolo-select').value);
-        const prezzoAcquistoText = document.getElementById('prezzo-acquisto').value;
-        const importoText = document.getElementById('importo-nominale').value;
-        const dataAcquistoInput = document.getElementById('data-acquisto');
-        const commissioniAcquistoText = document.getElementById('commissioni-acquisto').value;
-        
-        // Verifica che tutti i campi siano valorizzati
-        if (!titoloId || !prezzoAcquistoText || !importoText || !dataAcquistoInput.value || !commissioniAcquistoText) {
-            DomUtils.showAlert('Compila tutti i campi', 'warning');
-            return;
-        }
-        
-        // Converti i valori
-        const prezzoAcquisto = Validators.parseNumericValue(prezzoAcquistoText);
-        const importo = Validators.parseNumericValue(importoText);
-        const dataAcquistoISO = dataAcquistoInput.getAttribute('data-iso-date');
-        const commissioniAcquisto = Validators.parseNumericValue(commissioniAcquistoText);
-        
-        // Crea l'oggetto simulazione utilizzando il metodo del modello
-        const simulazione = Simulazione.creaSimulazione(
-            titoloId, 
-            prezzoAcquisto, 
-            dataAcquistoISO, 
-            commissioniAcquisto, 
-            this.ultimoRisultatoCalcolo
-        );
         
         // Mostra un indicatore di caricamento
-        DomUtils.toggleLoading(true);
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.id = 'loading-indicator';
+        loadingIndicator.className = 'spinner-border text-primary';
+        loadingIndicator.setAttribute('role', 'status');
+        loadingIndicator.innerHTML = '<span class="sr-only">Caricamento...</span>';
         
-        Simulazione.save(simulazione)
+        // Aggiungi l'indicatore al DOM
+        const salvaSimulazioneBtn = document.getElementById('salva-simulazione-btn');
+        if (salvaSimulazioneBtn) {
+            salvaSimulazioneBtn.parentNode.appendChild(loadingIndicator);
+            salvaSimulazioneBtn.disabled = true;
+        }
+        
+        // Prepara i dati per la richiesta
+        const requestData = {
+            simulazioni: this.ultimoRisultatoCalcolo
+        };
+        
+        // Invia la richiesta al server
+        fetch('/api/simulazioni/salva-multiple', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Errore nella richiesta: ' + response.status);
+                }
+                return response.json();
+            })
             .then(data => {
-                console.log("Simulazione salvata:", data);
-                
-                // Ricarica le simulazioni dal server
-                this.loadSimulazioniFromServer();
-                
-                // Nascondi l'indicatore di caricamento
-                DomUtils.toggleLoading(false);
-                
-                // Mostra un messaggio di successo
-                DomUtils.showAlert('Simulazione salvata con successo!', 'success');
+                console.log('Simulazioni salvate con successo:', data);
+                alert('Simulazioni salvate con successo');
             })
             .catch(error => {
-                console.error('Errore:', error);
-                DomUtils.showAlert('Si è verificato un errore nel salvataggio della simulazione.', 'danger');
+                console.error('Errore nel salvataggio delle simulazioni:', error);
+                alert('Si è verificato un errore nel salvataggio delle simulazioni');
+            })
+            .finally(() => {
+                // Rimuovi l'indicatore di caricamento
+                const loadingIndicator = document.getElementById('loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.remove();
+                }
                 
-                // Nascondi l'indicatore di caricamento
-                DomUtils.toggleLoading(false);
+                // Riabilita il pulsante
+                if (salvaSimulazioneBtn) {
+                    salvaSimulazioneBtn.disabled = false;
+                }
             });
     }
 }
-
-// Inizializza il controller quando il DOM è pronto
-document.addEventListener('DOMContentLoaded', function() {
-    // Crea l'istanza del controller e la rende disponibile globalmente
-    window.simulazioniController = new SimulazioniController();
-});

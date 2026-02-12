@@ -72,17 +72,11 @@ public class Simulazione {
     @Column(name = "rendimento_con_commissioni", precision = 10, scale = 6)
     private BigDecimal rendimentoConCommissioni;
 
-    @Column(name = "rendimento_con_bollo_mensile", precision = 10, scale = 6)
-    private BigDecimal rendimentoConBolloMensile;
-
-    @Column(name = "rendimento_con_bollo_annuale", precision = 10, scale = 6)
-    private BigDecimal rendimentoConBolloAnnuale;
-
-    @Column(name = "bollo_totale_mensile", precision = 10, scale = 4)
-    private BigDecimal bolloTotaleMensile;
-
-    @Column(name = "bollo_totale_annuale", precision = 10, scale = 4)
-    private BigDecimal bolloTotaleAnnuale;
+    @Column(name = "rendimento_con_bollo", precision = 10, scale = 6)
+    private BigDecimal rendimentoConBollo;
+    
+    @Column(name = "periodicita_bollo", length = 20)
+    private String periodicitaBollo;
     
     @Column(name = "rendimento_plusvalenza_esente", precision = 10, scale = 6)
     private BigDecimal rendimentoPlusvalenzaEsente;
@@ -267,36 +261,20 @@ public class Simulazione {
         this.rendimentoConCommissioni = rendimentoConCommissioni;
     }
 
-    public BigDecimal getRendimentoConBolloMensile() {
-        return rendimentoConBolloMensile;
+    public BigDecimal getRendimentoConBollo() {
+        return rendimentoConBollo;
     }
 
-    public void setRendimentoConBolloMensile(BigDecimal rendimentoConBolloMensile) {
-        this.rendimentoConBolloMensile = rendimentoConBolloMensile;
+    public void setRendimentoConBollo(BigDecimal rendimentoConBollo) {
+        this.rendimentoConBollo = rendimentoConBollo;
     }
-
-    public BigDecimal getRendimentoConBolloAnnuale() {
-        return rendimentoConBolloAnnuale;
+    
+    public String getPeriodicitaBollo() {
+        return periodicitaBollo;
     }
-
-    public void setRendimentoConBolloAnnuale(BigDecimal rendimentoConBolloAnnuale) {
-        this.rendimentoConBolloAnnuale = rendimentoConBolloAnnuale;
-    }
-
-    public BigDecimal getBolloTotaleMensile() {
-        return bolloTotaleMensile;
-    }
-
-    public void setBolloTotaleMensile(BigDecimal bolloTotaleMensile) {
-        this.bolloTotaleMensile = bolloTotaleMensile;
-    }
-
-    public BigDecimal getBolloTotaleAnnuale() {
-        return bolloTotaleAnnuale;
-    }
-
-    public void setBolloTotaleAnnuale(BigDecimal bolloTotaleAnnuale) {
-        this.bolloTotaleAnnuale = bolloTotaleAnnuale;
+    
+    public void setPeriodicitaBollo(String periodicitaBollo) {
+        this.periodicitaBollo = periodicitaBollo;
     }
     
     public BigDecimal getRendimentoPlusvalenzaEsente() {
@@ -327,10 +305,8 @@ public class Simulazione {
                 ", guadagnoNettoSenzaCosti=" + guadagnoNettoSenzaCosti +
                 ", rendimentoSenzaCosti=" + rendimentoSenzaCosti +
                 ", rendimentoConCommissioni=" + rendimentoConCommissioni +
-                ", rendimentoConBolloMensile=" + rendimentoConBolloMensile +
-                ", rendimentoConBolloAnnuale=" + rendimentoConBolloAnnuale +
-                ", bolloTotaleMensile=" + bolloTotaleMensile +
-                ", bolloTotaleAnnuale=" + bolloTotaleAnnuale +
+                ", rendimentoConBollo=" + rendimentoConBollo +
+                ", periodicitaBollo='" + periodicitaBollo + '\'' +
                 ", rendimentoPlusvalenzaEsente=" + rendimentoPlusvalenzaEsente +
                 ", version=" + version +
                 '}';

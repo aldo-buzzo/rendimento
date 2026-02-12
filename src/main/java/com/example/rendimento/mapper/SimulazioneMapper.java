@@ -58,10 +58,8 @@ public class SimulazioneMapper {
         dto.setGuadagnoNettoSenzaCosti(simulazione.getGuadagnoNettoSenzaCosti());
         dto.setRendimentoSenzaCosti(simulazione.getRendimentoSenzaCosti());
         dto.setRendimentoConCommissioni(simulazione.getRendimentoConCommissioni());
-        dto.setRendimentoConBolloMensile(simulazione.getRendimentoConBolloMensile());
-        dto.setBolloTotaleMensile(simulazione.getBolloTotaleMensile());
-        dto.setRendimentoConBolloAnnuale(simulazione.getRendimentoConBolloAnnuale());
-        dto.setBolloTotaleAnnuale(simulazione.getBolloTotaleAnnuale());
+        dto.setRendimentoConBollo(simulazione.getRendimentoConBollo());
+        dto.setPeriodicitaBollo(simulazione.getPeriodicitaBollo());
         dto.setRendimentoPlusvalenzaEsente(simulazione.getRendimentoPlusvalenzaEsente());
         
         // Aggiungi il titolo al DTO
@@ -121,10 +119,8 @@ public class SimulazioneMapper {
         simulazione.setGuadagnoNettoSenzaCosti(dto.getGuadagnoNettoSenzaCosti());
         simulazione.setRendimentoSenzaCosti(dto.getRendimentoSenzaCosti());
         simulazione.setRendimentoConCommissioni(dto.getRendimentoConCommissioni());
-        simulazione.setRendimentoConBolloMensile(dto.getRendimentoConBolloMensile());
-        simulazione.setBolloTotaleMensile(dto.getBolloTotaleMensile());
-        simulazione.setRendimentoConBolloAnnuale(dto.getRendimentoConBolloAnnuale());
-        simulazione.setBolloTotaleAnnuale(dto.getBolloTotaleAnnuale());
+        simulazione.setRendimentoConBollo(dto.getRendimentoConBollo());
+        simulazione.setPeriodicitaBollo(dto.getPeriodicitaBollo());
         simulazione.setRendimentoPlusvalenzaEsente(dto.getRendimentoPlusvalenzaEsente());
 
         return simulazione;

@@ -2,6 +2,8 @@ package com.example.rendimento.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * DTO (Data Transfer Object) per l'entità Simulazione.
@@ -30,17 +32,19 @@ public class SimulazioneDTO {
     private BigDecimal guadagnoNettoSenzaCosti;
     private BigDecimal rendimentoSenzaCosti;
     private BigDecimal rendimentoConCommissioni;
-    private BigDecimal rendimentoConBolloMensile;
-    private BigDecimal rendimentoConBolloAnnuale;
-    private BigDecimal bolloTotaleMensile;
-    private BigDecimal bolloTotaleAnnuale;
+    private BigDecimal rendimentoConBollo;
     private BigDecimal rendimentoPlusvalenzaEsente;
+    private String periodicitaBollo;
     
     // Valori finali teorici per le diverse combinazioni
     private BigDecimal valoreBolloAnnualePlusvalenzaNonEsente;  // Valore finale con bollo annuale e plusvalenza non esente
     private BigDecimal valoreBolloAnnualePlusvalenzaEsente;     // Valore finale con bollo annuale e plusvalenza esente (solo per BTP)
     private BigDecimal valoreBolloMensilePlusvalenzaNonEsente;  // Valore finale con bollo mensile e plusvalenza non esente
     private BigDecimal valoreBolloMensilePlusvalenzaEsente;     // Valore finale con bollo mensile e plusvalenza esente (solo per BTP)
+    
+    // Liste di rendimenti e valori finali per profili
+    private List<RendimentiPerProfiloDTO> rendimentiPerProfili = new ArrayList<>();
+    private List<ValoriFinaliPerProfiloDTO> valoriFinaliPerProfili = new ArrayList<>();
 
     /**
      * Costruttore predefinito.
@@ -262,36 +266,20 @@ public class SimulazioneDTO {
         this.rendimentoConCommissioni = rendimentoConCommissioni;
     }
 
-    public BigDecimal getRendimentoConBolloMensile() {
-        return rendimentoConBolloMensile;
+    public BigDecimal getRendimentoConBollo() {
+        return rendimentoConBollo;
     }
 
-    public void setRendimentoConBolloMensile(BigDecimal rendimentoConBolloMensile) {
-        this.rendimentoConBolloMensile = rendimentoConBolloMensile;
+    public void setRendimentoConBollo(BigDecimal rendimentoConBollo) {
+        this.rendimentoConBollo = rendimentoConBollo;
     }
-
-    public BigDecimal getRendimentoConBolloAnnuale() {
-        return rendimentoConBolloAnnuale;
+    
+    public String getPeriodicitaBollo() {
+        return periodicitaBollo;
     }
-
-    public void setRendimentoConBolloAnnuale(BigDecimal rendimentoConBolloAnnuale) {
-        this.rendimentoConBolloAnnuale = rendimentoConBolloAnnuale;
-    }
-
-    public BigDecimal getBolloTotaleMensile() {
-        return bolloTotaleMensile;
-    }
-
-    public void setBolloTotaleMensile(BigDecimal bolloTotaleMensile) {
-        this.bolloTotaleMensile = bolloTotaleMensile;
-    }
-
-    public BigDecimal getBolloTotaleAnnuale() {
-        return bolloTotaleAnnuale;
-    }
-
-    public void setBolloTotaleAnnuale(BigDecimal bolloTotaleAnnuale) {
-        this.bolloTotaleAnnuale = bolloTotaleAnnuale;
+    
+    public void setPeriodicitaBollo(String periodicitaBollo) {
+        this.periodicitaBollo = periodicitaBollo;
     }
     
     public BigDecimal getRendimentoPlusvalenzaEsente() {
@@ -333,6 +321,38 @@ public class SimulazioneDTO {
     public void setValoreBolloMensilePlusvalenzaEsente(BigDecimal valoreBolloMensilePlusvalenzaEsente) {
         this.valoreBolloMensilePlusvalenzaEsente = valoreBolloMensilePlusvalenzaEsente;
     }
+    
+    // Getter e setter per le liste di rendimenti e valori finali per profili
+    
+    public List<RendimentiPerProfiloDTO> getRendimentiPerProfili() {
+        return rendimentiPerProfili;
+    }
+    
+    public void setRendimentiPerProfili(List<RendimentiPerProfiloDTO> rendimentiPerProfili) {
+        this.rendimentiPerProfili = rendimentiPerProfili != null ? rendimentiPerProfili : new ArrayList<>();
+    }
+    
+    public List<ValoriFinaliPerProfiloDTO> getValoriFinaliPerProfili() {
+        return valoriFinaliPerProfili;
+    }
+    
+    public void setValoriFinaliPerProfili(List<ValoriFinaliPerProfiloDTO> valoriFinaliPerProfili) {
+        this.valoriFinaliPerProfili = valoriFinaliPerProfili != null ? valoriFinaliPerProfili : new ArrayList<>();
+    }
+    
+    // Metodi di utilità per aggiungere elementi alle liste
+    
+    public void addRendimentiPerProfilo(RendimentiPerProfiloDTO rendimentiPerProfilo) {
+        if (rendimentiPerProfilo != null) {
+            this.rendimentiPerProfili.add(rendimentiPerProfilo);
+        }
+    }
+    
+    public void addValoriFinaliPerProfilo(ValoriFinaliPerProfiloDTO valoriFinaliPerProfilo) {
+        if (valoriFinaliPerProfilo != null) {
+            this.valoriFinaliPerProfili.add(valoriFinaliPerProfilo);
+        }
+    }
 
     @Override
     public String toString() {
@@ -354,15 +374,15 @@ public class SimulazioneDTO {
                 ", guadagnoNettoSenzaCosti=" + guadagnoNettoSenzaCosti +
                 ", rendimentoSenzaCosti=" + rendimentoSenzaCosti +
                 ", rendimentoConCommissioni=" + rendimentoConCommissioni +
-                ", rendimentoConBolloMensile=" + rendimentoConBolloMensile +
-                ", rendimentoConBolloAnnuale=" + rendimentoConBolloAnnuale +
-                ", bolloTotaleMensile=" + bolloTotaleMensile +
-                ", bolloTotaleAnnuale=" + bolloTotaleAnnuale +
+                ", rendimentoConBollo=" + rendimentoConBollo +
                 ", rendimentoPlusvalenzaEsente=" + rendimentoPlusvalenzaEsente +
+                ", periodicitaBollo=" + periodicitaBollo +
                 ", valoreBolloAnnualePlusvalenzaNonEsente=" + valoreBolloAnnualePlusvalenzaNonEsente +
                 ", valoreBolloAnnualePlusvalenzaEsente=" + valoreBolloAnnualePlusvalenzaEsente +
                 ", valoreBolloMensilePlusvalenzaNonEsente=" + valoreBolloMensilePlusvalenzaNonEsente +
                 ", valoreBolloMensilePlusvalenzaEsente=" + valoreBolloMensilePlusvalenzaEsente +
+                ", rendimentiPerProfili=" + (rendimentiPerProfili != null ? rendimentiPerProfili.size() : 0) +
+                ", valoriFinaliPerProfili=" + (valoriFinaliPerProfili != null ? valoriFinaliPerProfili.size() : 0) +
                 ", version=" + version +
                 '}';
     }

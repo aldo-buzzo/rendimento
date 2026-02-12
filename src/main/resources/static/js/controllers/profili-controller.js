@@ -80,6 +80,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Formatta i valori percentuali (moltiplica per 100 per convertire da decimale a percentuale)
                 const formatPercentuale = (val) => val ? ((parseFloat(val) * 100).toFixed(2) + '%') : '-';
                 
+                // Formatta i valori booleani
+                const formatBoolean = (val) => val === true ? 'Sì' : 'No';
+                
                 // Visualizza se il profilo è predefinito
                 const isPredefinito = profilo.isDefault === true;
                 const defaultIcon = isPredefinito ? 
@@ -97,6 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td>${formatPercentuale(profilo.commissioneBotOltre)}</td>
                     <td>${formatPercentuale(profilo.commissioneCct)}</td>
                     <td>${formatPercentuale(profilo.commissioneCtz)}</td>
+                    <td>${formatBoolean(profilo.plusvalenzaEsente)}</td>
                     <td>
                         <div class="btn-group btn-group-sm" role="group">
                             <button type="button" class="btn btn-outline-warning set-default-btn" data-id="${profilo.idProfilo}" title="Imposta come predefinito" ${isPredefinito ? 'disabled' : ''}>
@@ -156,6 +160,7 @@ document.addEventListener('DOMContentLoaded', function() {
             commissioneBotOltre.value = '';
             commissioneCct.value = '';
             commissioneCtz.value = '';
+            document.getElementById('plusvalenza-esente').checked = false;
             
             profiloModal.show();
         }
@@ -179,6 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     commissioneBotOltre.value = profilo.commissioneBotOltre ? (parseFloat(profilo.commissioneBotOltre) * 100).toFixed(2) : '';
                     commissioneCct.value = profilo.commissioneCct ? (parseFloat(profilo.commissioneCct) * 100).toFixed(2) : '';
                     commissioneCtz.value = profilo.commissioneCtz ? (parseFloat(profilo.commissioneCtz) * 100).toFixed(2) : '';
+                    document.getElementById('plusvalenza-esente').checked = profilo.plusvalenzaEsente === true;
                     
                     document.getElementById('profilo-modal-label').textContent = 'Modifica Profilo';
                     profiloModal.show();
@@ -213,7 +219,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 commissioneBot240gg: commissioneBot240gg.value ? parseFloat(commissioneBot240gg.value) / 100 : commissioneBtpValue / 100,
                 commissioneBotOltre: commissioneBotOltre.value ? parseFloat(commissioneBotOltre.value) / 100 : commissioneBtpValue / 100,
                 commissioneCct: commissioneCct.value ? parseFloat(commissioneCct.value) / 100 : commissioneBtpValue / 100,
-                commissioneCtz: commissioneCtz.value ? parseFloat(commissioneCtz.value) / 100 : commissioneBtpValue / 100
+                commissioneCtz: commissioneCtz.value ? parseFloat(commissioneCtz.value) / 100 : commissioneBtpValue / 100,
+                plusvalenzaEsente: document.getElementById('plusvalenza-esente').checked
             };
             
             const isNew = !profiloId.value;

@@ -127,8 +127,8 @@ public class FrontendApiController {
                 .map(UtenteResponseDTO::getIdUtente)
                 .orElseThrow(() -> new IllegalStateException("Utente non autenticato"));
         
-        // Usa il metodo ottimizzato che filtra direttamente nel database
-        List<SimulazioneDTO> result = simulazioneService.getSimulazioniByUtenteId(utenteId, true);
+        // Usa il metodo ottimizzato che filtra direttamente nel database e ordina per data di scadenza crescente
+        List<SimulazioneDTO> result = simulazioneService.getSimulazioniByUtenteIdOrderByScadenzaAsc(utenteId, true);
         
         // Calcola il tempo di esecuzione in secondi
         long endTime = System.currentTimeMillis();

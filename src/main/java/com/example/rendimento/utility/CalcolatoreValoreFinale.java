@@ -1,13 +1,10 @@
 package com.example.rendimento.utility;
 
-import com.example.rendimento.constants.RendimentoConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Classe utility per il calcolo dei valori finali teorici di un investimento.
@@ -30,9 +27,9 @@ public class CalcolatoreValoreFinale {
     private final BigDecimal commissioni;
     private final BigDecimal bolloAnnuale;
     private final BigDecimal bolloMensile;
-    private final BigDecimal rendimentoConBolloAnnuale;
-    private final BigDecimal rendimentoConBolloMensile;
+    private final BigDecimal rendimentoConBollo;
     private final BigDecimal rendimentoPlusvalenzaEsente;
+    private final String periodicitaBollo;
     
     /**
      * Costruttore che inizializza tutti i parametri necessari per i calcoli
@@ -47,9 +44,9 @@ public class CalcolatoreValoreFinale {
             BigDecimal commissioni,
             BigDecimal bolloAnnuale,
             BigDecimal bolloMensile,
-            BigDecimal rendimentoConBolloAnnuale,
-            BigDecimal rendimentoConBolloMensile,
-            BigDecimal rendimentoPlusvalenzaEsente) {
+            BigDecimal rendimentoConBollo,
+            BigDecimal rendimentoPlusvalenzaEsente,
+            String periodicitaBollo) {
         
         // Inizializza i campi calcolati dalla durata
         this.giorni = giorni;
@@ -64,9 +61,9 @@ public class CalcolatoreValoreFinale {
         this.commissioni = commissioni;
         this.bolloAnnuale = bolloAnnuale;
         this.bolloMensile = bolloMensile;
-        this.rendimentoConBolloAnnuale = rendimentoConBolloAnnuale;
-        this.rendimentoConBolloMensile = rendimentoConBolloMensile;
+        this.rendimentoConBollo = rendimentoConBollo;
         this.rendimentoPlusvalenzaEsente = rendimentoPlusvalenzaEsente;
+        this.periodicitaBollo = periodicitaBollo;
     }
     
     
@@ -74,24 +71,44 @@ public class CalcolatoreValoreFinale {
      * Calcola il valore finale con bollo annuale e plusvalenza non esente
      */
     public BigDecimal getValoreBolloAnnualePlusvalenzaNonEsente() {
-        return calcolaValoreFinale(
-            "BOLLO_ANNUALE_PLUSVALENZA_NON_ESENTE",
-            rendimentoConBolloAnnuale, 
-            plusvalenzaNonEsente, 
-            commissioni.add(bolloAnnuale)
-        );
+        if ("ANNUALE".equals(periodicitaBollo)) {
+            return calcolaValoreFinale(
+                "BOLLO_ANNUALE_PLUSVALENZA_NON_ESENTE",
+                rendimentoConBollo, 
+                plusvalenzaNonEsente, 
+                commissioni.add(bolloAnnuale)
+            );
+        } else {
+            // Per retrocompatibilità, se la periodicità non è annuale, calcoliamo comunque il valore
+            return calcolaValoreFinale(
+                "BOLLO_ANNUALE_PLUSVALENZA_NON_ESENTE",
+                rendimentoConBollo, 
+                plusvalenzaNonEsente, 
+                commissioni.add(bolloAnnuale)
+            );
+        }
     }
     
     /**
      * Calcola il valore finale con bollo mensile e plusvalenza non esente
      */
     public BigDecimal getValoreBolloMensilePlusvalenzaNonEsente() {
-        return calcolaValoreFinale(
-            "BOLLO_MENSILE_PLUSVALENZA_NON_ESENTE",
-            rendimentoConBolloMensile, 
-            plusvalenzaNonEsente, 
-            commissioni.add(bolloMensile)
-        );
+        if ("MENSILE".equals(periodicitaBollo)) {
+            return calcolaValoreFinale(
+                "BOLLO_MENSILE_PLUSVALENZA_NON_ESENTE",
+                rendimentoConBollo, 
+                plusvalenzaNonEsente, 
+                commissioni.add(bolloMensile)
+            );
+        } else {
+            // Per retrocompatibilità, se la periodicità non è mensile, calcoliamo comunque il valore
+            return calcolaValoreFinale(
+                "BOLLO_MENSILE_PLUSVALENZA_NON_ESENTE",
+                rendimentoConBollo, 
+                plusvalenzaNonEsente, 
+                commissioni.add(bolloMensile)
+            );
+        }
     }
     
     /**
@@ -102,12 +119,22 @@ public class CalcolatoreValoreFinale {
             return null;
         }
         
-        return calcolaValoreFinale(
-            "BOLLO_ANNUALE_PLUSVALENZA_ESENTE",
-            rendimentoPlusvalenzaEsente, 
-            plusvalenzaEsente, 
-            commissioni.add(bolloAnnuale)
-        );
+        if ("ANNUALE".equals(periodicitaBollo)) {
+            return calcolaValoreFinale(
+                "BOLLO_ANNUALE_PLUSVALENZA_ESENTE",
+                rendimentoPlusvalenzaEsente, 
+                plusvalenzaEsente, 
+                commissioni.add(bolloAnnuale)
+            );
+        } else {
+            // Per retrocompatibilità, se la periodicità non è annuale, calcoliamo comunque il valore
+            return calcolaValoreFinale(
+                "BOLLO_ANNUALE_PLUSVALENZA_ESENTE",
+                rendimentoPlusvalenzaEsente, 
+                plusvalenzaEsente, 
+                commissioni.add(bolloAnnuale)
+            );
+        }
     }
     
     /**
@@ -118,18 +145,28 @@ public class CalcolatoreValoreFinale {
             return null;
         }
         
-        return calcolaValoreFinale(
-            "BOLLO_MENSILE_PLUSVALENZA_ESENTE",
-            rendimentoPlusvalenzaEsente, 
-            plusvalenzaEsente, 
-            commissioni.add(bolloMensile)
-        );
+        if ("MENSILE".equals(periodicitaBollo)) {
+            return calcolaValoreFinale(
+                "BOLLO_MENSILE_PLUSVALENZA_ESENTE",
+                rendimentoPlusvalenzaEsente, 
+                plusvalenzaEsente, 
+                commissioni.add(bolloMensile)
+            );
+        } else {
+            // Per retrocompatibilità, se la periodicità non è mensile, calcoliamo comunque il valore
+            return calcolaValoreFinale(
+                "BOLLO_MENSILE_PLUSVALENZA_ESENTE",
+                rendimentoPlusvalenzaEsente, 
+                plusvalenzaEsente, 
+                commissioni.add(bolloMensile)
+            );
+        }
     }
     
     /**
-     * Metodo privato che implementa la logica di calcolo del valore finale
+     * Metodo che implementa la logica di calcolo del valore finale
      */
-    private BigDecimal calcolaValoreFinale(
+    public BigDecimal calcolaValoreFinale(
             String tipoValore,
             BigDecimal rendimentoPercentuale, 
             BigDecimal plusvalenza, 

@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,7 +23,6 @@ import com.example.rendimento.dto.ElaborazioneRisultatoDTO;
 import com.example.rendimento.dto.RisultatoRendimentoAdvancedDTO;
 import com.example.rendimento.dto.RisultatoSimulazioneDTO;
 import com.example.rendimento.dto.SimulazioneDTO;
-import com.example.rendimento.enums.TipoTitolo;
 import com.example.rendimento.exception.ConflittoModificaException;
 import com.example.rendimento.mapper.SimulazioneMapper;
 import com.example.rendimento.model.ProfiloCalcolo;
@@ -31,7 +31,7 @@ import com.example.rendimento.model.Titolo;
 import com.example.rendimento.repository.SimulazioneRepository;
 import com.example.rendimento.repository.TitoloRepository;
 import com.example.rendimento.service.SimulazioneService;
-import com.example.rendimento.utility.CalcolatoreValoreFinale;
+import com.example.rendimento.utility.CalcolatoreRendimentoAdvanced;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -63,7 +63,7 @@ public class SimulazioneServiceImpl implements SimulazioneService {
                 this.titoloRepository = titoloRepository;
                 this.simulazioneMapper = simulazioneMapper;
         }
-        
+
         /**
          * Metodo helper per recuperare il profilo predefinito da un titolo.
          * Questo metodo centralizza la logica di recupero del profilo predefinito
@@ -73,21 +73,19 @@ public class SimulazioneServiceImpl implements SimulazioneService {
          * @return il profilo predefinito dell'utente o null se non disponibile
          */
         private ProfiloCalcolo getDefaultProfileFromTitolo(Titolo titolo) {
-            ProfiloCalcolo profiloPredefinito = null;
-            try {
-                // Ottieni l'ID dell'utente dal titolo
-                Integer utenteId = titolo.getUtente() != null ? titolo.getUtente().getIdUtente() : null;
-                if (utenteId != null) {
-                    profiloPredefinito = UserContext.getDefaultProfile(utenteId);
+                ProfiloCalcolo profiloPredefinito = null;
+                try {
+                        // Ottieni l'ID dell'utente dal titolo
+                        Integer utenteId = titolo.getUtente() != null ? titolo.getUtente().getIdUtente() : null;
+                        if (utenteId != null) {
+                                profiloPredefinito = UserContext.getDefaultProfile(utenteId);
+                        }
+                } catch (Exception e) {
+                        log.warn("Impossibile ottenere il profilo predefinito: {}", e.getMessage());
+                        // Continua con profiloPredefinito = null
                 }
-            } catch (Exception e) {
-                log.warn("Impossibile ottenere il profilo predefinito: {}", e.getMessage());
-                // Continua con profiloPredefinito = null
-            }
-            return profiloPredefinito;
+                return profiloPredefinito;
         }
-
-  
 
         @Override
         public RisultatoSimulazioneDTO calcolaRendimento(Integer idTitolo, BigDecimal prezzoAcquisto,
@@ -108,11 +106,15 @@ public class SimulazioneServiceImpl implements SimulazioneService {
                 // Restituisce direttamente RisultatoRendimentoAdvancedDTO per mantenere tutti i
                 // campi avanzati
                 // inclusi rendimentoConCommissioniEBolloAnnuale e bolloTotaleAnnuale
-                
+
                 // Ottieni il profilo predefinito dell'utente corrente
                 ProfiloCalcolo profiloPredefinito = getDefaultProfileFromTitolo(titolo);
-                
-                return calcolaRendimentoAdvanced(titolo, prezzoAcquisto, importo, LocalDate.now(), profiloPredefinito);
+
+                // Crea una lista con il profilo predefinito
+                List<ProfiloCalcolo> profili = new ArrayList<>();
+                profili.add(profiloPredefinito);
+
+                return calcolaRendimentoAdvanced(titolo, prezzoAcquisto, importo, LocalDate.now(), profili);
         }
 
         @Override
@@ -209,11 +211,10 @@ public class SimulazioneServiceImpl implements SimulazioneService {
                 simulazioneDTO.setCommissioniAcquisto(risultato.getCommissionRate());
 
                 // Imposta i valori calcolati di base
-                simulazioneDTO.setRendimentoSenzaCosti(tasso.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
+                simulazioneDTO.setRendimentoSenzaCosti(rendimentoSenzaCosti);
                 simulazioneDTO.setRendimentoTassato(tasso.multiply(new BigDecimal("0.875"))
                                 .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
-                simulazioneDTO.setRendimentoConCommissioni(tassoNettoCommissioni
-                                .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
+                simulazioneDTO.setRendimentoConCommissioni(risultato.getRendimentoConCommissioni());
                 simulazioneDTO.setImpostaBollo(risultato.getImpostaBollo());
 
                 // Calcola rendimentoNettoBollo in modo sicuro
@@ -234,12 +235,13 @@ public class SimulazioneServiceImpl implements SimulazioneService {
                 simulazioneDTO.setCapitaleConCommissioni(risultato.getCapitaleConCommissioni());
                 simulazioneDTO.setCedoleNetteAnnue(risultato.getCedoleNetteAnnue());
                 simulazioneDTO.setGuadagnoNettoSenzaCosti(risultato.getGuadagnoNettoSenzaCosti());
-                simulazioneDTO.setRendimentoSenzaCosti(rendimentoSenzaCosti);
                 simulazioneDTO.setRendimentoConCommissioni(risultato.getRendimentoConCommissioni());
-                simulazioneDTO.setRendimentoConBolloMensile(risultato.getRendimentoConCommissioniEBolloMensile());
-                simulazioneDTO.setRendimentoConBolloAnnuale(risultato.getRendimentoConCommissioniEBolloAnnuale());
-                simulazioneDTO.setBolloTotaleMensile(risultato.getBolloTotaleMensile());
-                simulazioneDTO.setBolloTotaleAnnuale(risultato.getBolloTotaleAnnuale());
+
+                // Per retrocompatibilità, utilizziamo il rendimento con bollo annuale come
+                // default
+                simulazioneDTO.setRendimentoConBollo(risultato.getRendimentoConCommissioniEBolloAnnuale());
+                simulazioneDTO.setPeriodicitaBollo("ANNUALE"); // Default
+
                 simulazioneDTO.setRendimentoPlusvalenzaEsente(risultato.getRendimentoPlusvalenzaEsente());
 
                 // Copia i valori finali
@@ -258,6 +260,15 @@ public class SimulazioneServiceImpl implements SimulazioneService {
                 // Questi campi sono già stati utilizzati per calcolare i valori in
                 // SimulazioneDTO
 
+                // Copia le liste di rendimenti e valori finali per tutti i profili
+                if (risultato.getRendimentiPerProfili() != null) {
+                        simulazioneDTO.setRendimentiPerProfili(risultato.getRendimentiPerProfili());
+                }
+
+                if (risultato.getValoriFinaliPerProfili() != null) {
+                        simulazioneDTO.setValoriFinaliPerProfili(risultato.getValoriFinaliPerProfili());
+                }
+
                 return simulazioneDTO;
         }
 
@@ -273,12 +284,16 @@ public class SimulazioneServiceImpl implements SimulazioneService {
                 // Usa il metodo avanzato per calcolare il rendimento
                 // Nota: calcolaRendimentoAdvanced calcola sia il bollo mensile che annuale
                 // e utilizza il bollo mensile come default
-                
+
                 // Ottieni il profilo predefinito dell'utente corrente
                 ProfiloCalcolo profiloPredefinito = getDefaultProfileFromTitolo(titolo);
-                
+
+                // Crea una lista con il profilo predefinito
+                List<ProfiloCalcolo> profili = new ArrayList<>();
+                profili.add(profiloPredefinito);
+
                 RisultatoRendimentoAdvancedDTO risultatoAdvanced = calcolaRendimentoAdvanced(
-                                titolo, prezzoAcquisto, importo, dataAcquisto, profiloPredefinito);
+                                titolo, prezzoAcquisto, importo, dataAcquisto, profili);
 
                 // Converti il risultato in SimulazioneDTO
                 SimulazioneDTO simulazioneDTO = convertToSimulazioneDTO(
@@ -379,355 +394,78 @@ public class SimulazioneServiceImpl implements SimulazioneService {
                                                                 + simulazione.getIdTitolo()));
 
                 // Usa il metodo avanzato per ricalcolare tutti i valori
-                
+
                 // Ottieni il profilo predefinito dell'utente corrente
                 ProfiloCalcolo profiloPredefinito = getDefaultProfileFromTitolo(titolo);
-                
+
+                // Crea una lista con il profilo predefinito
+                List<ProfiloCalcolo> profili = new ArrayList<>();
+                profili.add(profiloPredefinito);
+
                 return calcolaRendimentoAdvanced(
                                 titolo,
                                 simulazione.getPrezzoAcquisto(),
                                 new BigDecimal("10000"), // Importo fisso di 10.000 euro
                                 simulazione.getDataAcquisto(),
-                                profiloPredefinito);
+                                profili);
         }
 
-// Il metodo calcolaRendimentoAdvanced senza parametro profilo è stato rimosso
-// Tutte le chiamate a questo metodo devono ora utilizzare il metodo con parametro profilo
-// ottenendo il profilo di default tramite UserContext.getDefaultProfile()
+        // Il metodo calcolaRendimentoAdvanced senza parametro profilo è stato rimosso
+        // Tutte le chiamate a questo metodo devono ora utilizzare il metodo con
+        // parametro profilo
+        // ottenendo il profilo di default tramite UserContext.getDefaultProfile()
 
-@Override
-public RisultatoRendimentoAdvancedDTO calcolaRendimentoAdvanced(
-        Titolo titolo,
-        BigDecimal prezzoAcquistoPercentuale,
-        BigDecimal nominale,
-        LocalDate dataAcquisto,
-        ProfiloCalcolo profiloCalcolo) {
-
-    RisultatoRendimentoAdvancedDTO dto = new RisultatoRendimentoAdvancedDTO();
-                log.info("DEBUG: Titolo con ISIN:" + titolo.getCodiceIsin());
-                if ("IT0005640666".equals(titolo.getCodiceIsin())) {
-                        log.info("DEBUG: Titolo con ISIN:" + titolo.getCodiceIsin());
-                }
-                // ===============================
-                // 1. TEMPO
-                // ===============================
-                LocalDate dataScadenza = titolo.getDataScadenza();
-                long giorniAllaScadenza = ChronoUnit.DAYS.between(dataAcquisto, dataScadenza);
-
-                if (giorniAllaScadenza <= 0) {
-                        throw new IllegalArgumentException(
-                                        "La data di scadenza deve essere successiva alla data di acquisto");
-                }
-
-                BigDecimal giorni = BigDecimal.valueOf(giorniAllaScadenza);
-                BigDecimal fattoreTempo = giorni.divide(new BigDecimal("360"), 10, RoundingMode.HALF_UP);
-                BigDecimal fattoreAnnualizzazione = RendimentoConstants.TIME_DAYS_IN_YEAR
-                                .divide(giorni, 10, RoundingMode.HALF_UP);
-
-                // Imposta i fattori tempo
-                dto.setFattoreTempo(fattoreTempo);
-                dto.setFattoreAnnualizzazione(fattoreAnnualizzazione);
-
-                // Calcolo anni durata
-                BigDecimal anniDurata = giorni.divide(RendimentoConstants.TIME_DAYS_IN_YEAR, 4, RoundingMode.HALF_UP);
-                dto.setAnniDurata(anniDurata);
-
-                // Imposta il valore di rimborso fisso a 100
-                dto.setValoreRimborso(BigDecimal.valueOf(100));
-
-                // ===============================
-                // 2. CAPITALE INVESTITO
-                // ===============================
-                BigDecimal capitaleInvestito = nominale
-                                .multiply(prezzoAcquistoPercentuale)
-                                .divide(RendimentoConstants.PERCENT_100, 8, RoundingMode.HALF_UP);
-
-                dto.setNominale(nominale);
-                dto.setPrezzoAcquistoPercentuale(prezzoAcquistoPercentuale);
-                dto.setCapitaleInvestito(capitaleInvestito);
-
-                // Imposta il prezzo di riferimento per il bollo (uguale al prezzo di acquisto
-                // percentuale)
-                dto.setPrezzoRiferimentoBollo(prezzoAcquistoPercentuale);
-
-                // ===============================
-                // 3. PLUSVALENZA NETTA
-                // ===============================
-                // BigDecimal plusvalenzaNetta = nominale
-                // .subtract(capitaleInvestito)
-                // .multiply(RendimentoConstants.TAX_FACTOR)
-                // .setScale(8, RoundingMode.HALF_UP);
-                // dto.setPlusvalenzaNetta(plusvalenzaNetta);
-                BigDecimal plusvalenzaLorda = nominale.subtract(capitaleInvestito);
-
-                BigDecimal plusvalenzaNetta;
-                if (plusvalenzaLorda.signum() > 0) {
-                        plusvalenzaNetta = plusvalenzaLorda
-                                        .multiply(RendimentoConstants.TAX_FACTOR);
-                } else {
-                        plusvalenzaNetta = plusvalenzaLorda; // minusvalenza NON tassata
-                }
-
-                plusvalenzaNetta = plusvalenzaNetta.setScale(8, RoundingMode.HALF_UP);
-                dto.setPlusvalenzaNetta(plusvalenzaNetta);
-
-                // Salviamo la plusvalenza lorda per il calcolo del rendimento con plusvalenza
-                // esente
-                BigDecimal plusvalenzaEsente = plusvalenzaLorda.setScale(8, RoundingMode.HALF_UP);
-
-                // ===============================
-                // 4. INTERESSI NETTI (CEDOLE)
-                // ===============================
-                BigDecimal tassoCedolare = titolo.getTassoNominale()
-                                .divide(RendimentoConstants.PERCENT_100, 10, RoundingMode.HALF_UP);
-
-                // Imposta la cedola annua
-                BigDecimal cedolaAnnua = titolo.getTassoNominale();
-                dto.setCedolaAnnua(cedolaAnnua);
-
-                BigDecimal cedoleNetteAnnue = nominale
-                                .multiply(tassoCedolare)
-                                .multiply(RendimentoConstants.TAX_FACTOR)
-                                .setScale(8, RoundingMode.HALF_UP);
-                dto.setCedoleNetteAnnue(cedoleNetteAnnue);
-
-                BigDecimal interessiNetti = cedoleNetteAnnue.multiply(fattoreTempo)
-                                .setScale(8, RoundingMode.HALF_UP);
-                dto.setInteressiNetti(interessiNetti);
-
-                // ===============================
-                // 5. GUADAGNO SENZA COSTI
-                // ===============================
-                BigDecimal guadagnoNettoSenzaCosti = plusvalenzaNetta.add(interessiNetti)
-                                .setScale(8, RoundingMode.HALF_UP);
-                dto.setGuadagnoNettoSenzaCosti(guadagnoNettoSenzaCosti);
-
-                // Calcolo del guadagno con plusvalenza esente (non tassata) e interessi netti
-                // (tassati)
-                BigDecimal guadagnoConPlusvalenzaEsente = plusvalenzaEsente.add(interessiNetti)
-                                .setScale(8, RoundingMode.HALF_UP);
-
-    // ===============================
-    // 6. COMMISSIONI (ONE-SHOT)
-    // ===============================
-    // Imposta il tasso di commissione in base al tipo di titolo e al profilo
-    BigDecimal commissionRate;
-    
-    if (profiloCalcolo != null) {
-        // Usa le commissioni dal profilo in base al tipo di titolo
-        if (titolo.getTipoTitolo() != null) {
-            switch (titolo.getTipoTitolo()) {
-                case BTP:
-                    commissionRate = profiloCalcolo.getCommissioneBtp();
-                    break;
-                case BOT:
-                    // Calcola i giorni alla scadenza per determinare quale commissione BOT usare
-                    if (giorniAllaScadenza <= 120) {
-                        commissionRate = profiloCalcolo.getCommissioneBot120gg();
-                    } else if (giorniAllaScadenza <= 240) {
-                        commissionRate = profiloCalcolo.getCommissioneBot240gg();
-                    } else {
-                        commissionRate = profiloCalcolo.getCommissioneBotOltre();
-                    }
-                    break;
-                // Nota: CCT e CTZ non sono presenti nell'enum TipoTitolo
-                // Utilizziamo i valori di default per eventuali tipi futuri
-                default:
-                    commissionRate = profiloCalcolo.getCommissioneBtp(); // Default
-            }
-        } else {
-            commissionRate = profiloCalcolo.getCommissioneBtp(); // Default
-        }
-    } else {
-        // Usa il valore costante se il profilo è null
-        commissionRate = RendimentoConstants.COMMISSION_DEFAULT_RATE;
-    }
-    
-    dto.setCommissionRate(commissionRate);
-
-                BigDecimal commissioni = capitaleInvestito
-                                .multiply(commissionRate)
-                                .setScale(8, RoundingMode.HALF_UP);
-                dto.setCommissioni(commissioni);
-
-                BigDecimal guadagnoConCommissioni = guadagnoNettoSenzaCosti.subtract(commissioni);
-                dto.setGuadagnoNettoCommissioni(guadagnoConCommissioni);
-
-                // Calcolo del guadagno con plusvalenza esente e commissioni
-                BigDecimal guadagnoConPlusvalenzaEsenteECommissioni = guadagnoConPlusvalenzaEsente.subtract(commissioni)
-                                .setScale(8, RoundingMode.HALF_UP);
-
-                BigDecimal capitaleConCommissioni = capitaleInvestito.add(commissioni);
-                dto.setCapitaleConCommissioni(capitaleConCommissioni);
-
-    // ===============================
-    // 7. BOLLO
-    // ===============================
-    // Determina la periodicità e percentuale del bollo dal profilo o usa i valori di default
-    String periodicitaBollo = profiloCalcolo != null ? profiloCalcolo.getPeriodicitaBollo() : "ANNUALE";
-    BigDecimal percentualeBollo = profiloCalcolo != null ? profiloCalcolo.getPercentualeBollo() : RendimentoConstants.TAX_BOLLO_RATE;
-    
-    // Bollo annuale (una volta se scadenza > 31/12)
-    BigDecimal bolloAnnuale = BigDecimal.ZERO;
-    LocalDate fineAnno = LocalDate.of(dataAcquisto.getYear(), 12, 31);
-    if (dataScadenza.isAfter(fineAnno)) {
-        bolloAnnuale = nominale.multiply(percentualeBollo)
-                        .setScale(8, RoundingMode.HALF_UP);
-    }
-
-    // Bollo mensile proporzionale ai mesi residui
-    long mesiAllaScadenza = ChronoUnit.MONTHS.between(dataAcquisto, dataScadenza);
-    BigDecimal bolloMensile = BigDecimal.ZERO;
-    if (mesiAllaScadenza > 0) {
-        bolloMensile = nominale.multiply(percentualeBollo)
-                        .multiply(BigDecimal.valueOf(mesiAllaScadenza))
-                        .divide(RendimentoConstants.TIME_MONTHS_IN_YEAR, 8, RoundingMode.HALF_UP);
-    }
-
-    dto.setBolloTotaleAnnuale(bolloAnnuale);
-    dto.setBolloTotaleMensile(bolloMensile);
-
-    BigDecimal guadagnoConBolloAnnuale = guadagnoConCommissioni.subtract(bolloAnnuale);
-    BigDecimal guadagnoConBolloMensile = guadagnoConCommissioni.subtract(bolloMensile);
-    
-    // Usa il bollo appropriato in base alla periodicità configurata nel profilo
-    if ("ANNUALE".equals(periodicitaBollo)) {
-        dto.setGuadagnoNettoBollo(guadagnoConBolloAnnuale);
-        dto.setImpostaBollo(bolloAnnuale);
-    } else {
-        dto.setGuadagnoNettoBollo(guadagnoConBolloMensile);
-        dto.setImpostaBollo(bolloMensile);
-    }
-
-                // Calcolo del guadagno con plusvalenza esente, commissioni e bollo annuale
-                BigDecimal guadagnoConPlusvalenzaEsenteCommissioniEBollo = guadagnoConPlusvalenzaEsenteECommissioni
-                                .subtract(bolloAnnuale)
-                                .setScale(8, RoundingMode.HALF_UP);
-
-                // ===============================
-                // 8. RENDIMENTI ANNUALIZZATI
-                // ===============================
-                // Calcolo tasso di rendimento (guadagno totale / capitale investito * fattore
-                // annualizzazione)
-                BigDecimal tasso = guadagnoNettoSenzaCosti
-                                .divide(capitaleInvestito, 10, RoundingMode.HALF_UP)
-                                .multiply(fattoreAnnualizzazione)
-                                .multiply(RendimentoConstants.PERCENT_100)
-                                .setScale(4, RoundingMode.HALF_UP);
-                dto.setTasso(tasso);
-
-                // Calcolo tasso netto commissioni
-                BigDecimal tassoNettoCommissioni = guadagnoConCommissioni
-                                .divide(capitaleInvestito, 10, RoundingMode.HALF_UP)
-                                .multiply(fattoreAnnualizzazione)
-                                .multiply(RendimentoConstants.PERCENT_100)
-                                .setScale(4, RoundingMode.HALF_UP);
-                dto.setTassoNettoCommissioni(tassoNettoCommissioni);
-
-                // Calcolo tasso netto bollo
-                BigDecimal tassoNettoBollo = guadagnoConBolloMensile
-                                .divide(capitaleInvestito, 10, RoundingMode.HALF_UP)
-                                .multiply(fattoreAnnualizzazione)
-                                .multiply(RendimentoConstants.PERCENT_100)
-                                .setScale(4, RoundingMode.HALF_UP);
-                dto.setTassoNettoBollo(tassoNettoBollo);
-
-                // Rendimenti in formato decimale (non percentuale)
-                dto.setRendimentoSenzaCosti(
-                                guadagnoNettoSenzaCosti.divide(capitaleInvestito, 10, RoundingMode.HALF_UP)
-                                                .multiply(fattoreAnnualizzazione));
-
-                dto.setRendimentoConCommissioni(
-                                guadagnoConCommissioni.divide(capitaleInvestito, 10, RoundingMode.HALF_UP)
-                                                .multiply(fattoreAnnualizzazione));
-
-                dto.setRendimentoConCommissioniEBolloAnnuale(
-                                guadagnoConBolloAnnuale.divide(capitaleInvestito, 10, RoundingMode.HALF_UP)
-                                                .multiply(fattoreAnnualizzazione));
-
-                dto.setRendimentoConCommissioniEBolloMensile(
-                                guadagnoConBolloMensile.divide(capitaleInvestito, 10, RoundingMode.HALF_UP)
-                                                .multiply(fattoreAnnualizzazione));
-
-                // Rendimento con plusvalenza esente (non tassata) - solo per BTP
-                if (TipoTitolo.BTP.equals(titolo.getTipoTitolo())) {
-                        dto.setRendimentoPlusvalenzaEsente(
-                                        guadagnoConPlusvalenzaEsenteCommissioniEBollo
-                                                        .divide(capitaleInvestito, 10, RoundingMode.HALF_UP)
-                                                        .multiply(fattoreAnnualizzazione));
-                } else {
-                        dto.setRendimentoPlusvalenzaEsente(null); // Valore null per gli altri tipi di titoli
-                }
-
-                // Calcolo rendimento netto bollo non annualizzato
-                BigDecimal rendimentoNettoBollo = guadagnoConBolloMensile
-                                .divide(nominale, 4, RoundingMode.HALF_UP)
-                                .multiply(RendimentoConstants.PERCENT_100)
-                                .setScale(4, RoundingMode.HALF_UP);
-                dto.setRendimentoNettoBollo(rendimentoNettoBollo);
-
-                // Calcolo importo a scadenza
-                BigDecimal importoScadenza = nominale.add(guadagnoConBolloMensile)
-                                .setScale(4, RoundingMode.HALF_UP);
-                dto.setImportoScadenza(importoScadenza);
-
-                // ===============================
-                // 9. CALCOLO VALORI FINALI TEORICI
-                // ===============================
-
-                // Calcolo degli anni residui
-                BigDecimal anniResidui = giorni.divide(RendimentoConstants.TIME_DAYS_IN_YEAR, 10, RoundingMode.HALF_UP);
-
-                // Crea un'istanza del calcolatore di valori finali
-                CalcolatoreValoreFinale calcolatore = new CalcolatoreValoreFinale(
-                                giorni,
+        @Override
+        public RisultatoRendimentoAdvancedDTO calcolaRendimentoAdvanced(
+                        Titolo titolo,
+                        BigDecimal prezzoAcquistoPercentuale,
+                        BigDecimal nominale,
+                        LocalDate dataAcquisto,
+                        List<ProfiloCalcolo> profili) {
+                // Delega il calcolo alla classe utility CalcolatoreRendimentoAdvanced
+                return CalcolatoreRendimentoAdvanced.calcolaRendimentoAdvanced(
+                                titolo,
+                                prezzoAcquistoPercentuale,
                                 nominale,
-                                dto.getInteressiNetti(),
-                                anniResidui,
-                                dto.getPlusvalenzaNetta(),
-                                plusvalenzaEsente,
-                                commissioni,
-                                bolloAnnuale,
-                                bolloMensile,
-                                dto.getRendimentoConCommissioniEBolloAnnuale(),
-                                dto.getRendimentoConCommissioniEBolloMensile(),
-                                dto.getRendimentoPlusvalenzaEsente());
+                                dataAcquisto,
+                                profili);
+        }
 
-                // 1. Valore finale con bollo annuale e plusvalenza non esente
-                BigDecimal valoreBolloAnnualePlusvalenzaNonEsente = calcolatore
-                                .getValoreBolloAnnualePlusvalenzaNonEsente();
-                dto.setValoreBolloAnnualePlusvalenzaNonEsente(valoreBolloAnnualePlusvalenzaNonEsente);
+        @Override
+        public RisultatoRendimentoAdvancedDTO getCalcoloDettagliato(Integer id, Integer utenteId) {
+                log.info("Recupero dati dettagliati di calcolo per simulazione ID: {}, utente ID: {}", id, utenteId);
 
-                // 2. Valore finale con bollo mensile e plusvalenza non esente
-                BigDecimal valoreBolloMensilePlusvalenzaNonEsente = calcolatore
-                                .getValoreBolloMensilePlusvalenzaNonEsente();
-                dto.setValoreBolloMensilePlusvalenzaNonEsente(valoreBolloMensilePlusvalenzaNonEsente);
-
-                // 3. Valori finali con plusvalenza esente (solo per BTP)
-                if (TipoTitolo.BTP.equals(titolo.getTipoTitolo()) && dto.getRendimentoPlusvalenzaEsente() != null) {
-                        // 3.1 Valore finale con bollo annuale e plusvalenza esente
-                        BigDecimal valoreBolloAnnualePlusvalenzaEsente = calcolatore
-                                        .getValoreBolloAnnualePlusvalenzaEsente();
-                        dto.setValoreBolloAnnualePlusvalenzaEsente(valoreBolloAnnualePlusvalenzaEsente);
-
-                        // 3.2 Valore finale con bollo mensile e plusvalenza esente
-                        BigDecimal valoreBolloMensilePlusvalenzaEsente = calcolatore
-                                        .getValoreBolloMensilePlusvalenzaEsente();
-                        dto.setValoreBolloMensilePlusvalenzaEsente(valoreBolloMensilePlusvalenzaEsente);
-                } else {
-                        // Se non è un BTP o non ha rendimento con plusvalenza esente, imposta i valori
-                        // a null
-                        dto.setValoreBolloAnnualePlusvalenzaEsente(null);
-                        dto.setValoreBolloMensilePlusvalenzaEsente(null);
+                // Recupera la simulazione
+                SimulazioneDTO simulazione = findById(id);
+                if (simulazione == null) {
+                        throw new EntityNotFoundException("Simulazione non trovata con ID: " + id);
                 }
 
-                // ===============================
-                // 10. CAMPi DI COMPATIBILITÀ / RIEPILOGO
-                // ===============================
-                dto.setGuadagnoTotale(guadagnoNettoSenzaCosti);
-                dto.setImpostaBollo(bolloAnnuale.max(bolloMensile));
+                // Verifica che la simulazione appartenga all'utente corrente
+                if (simulazione.getTitolo() != null && simulazione.getTitolo().getUtenteId() != null &&
+                                utenteId != null && !simulazione.getTitolo().getUtenteId().equals(utenteId)) {
+                        throw new EntityNotFoundException("Simulazione non autorizzata con ID: " + id);
+                }
 
-                return dto;
+                // Recupera il titolo associato
+                Titolo titolo = titoloRepository.findById(simulazione.getIdTitolo())
+                                .orElseThrow(() -> new EntityNotFoundException(
+                                                "Titolo non trovato con ID: " + simulazione.getIdTitolo()));
+
+                // Recupera tutti i profili dell'utente
+                List<ProfiloCalcolo> profiliUtente = UserContext.getProfiles(utenteId);
+                log.info("Recuperati {} profili per l'utente ID: {}", profiliUtente.size(), utenteId);
+
+                // Calcola i rendimenti dettagliati utilizzando tutti i profili dell'utente
+                RisultatoRendimentoAdvancedDTO risultato = calcolaRendimentoAdvanced(
+                                titolo,
+                                simulazione.getPrezzoAcquisto(),
+                                simulazione.getNominale() != null ? simulazione.getNominale() : new BigDecimal("10000"),
+                                simulazione.getDataAcquisto(),
+                                profiliUtente);
+
+                log.info("Calcolo dettagliato completato per simulazione ID: {}", id);
+                return risultato;
         }
 
         @Override
@@ -736,6 +474,10 @@ public RisultatoRendimentoAdvancedDTO calcolaRendimentoAdvanced(
 
                 // Inizia il conteggio del tempo
                 long startTime = System.currentTimeMillis();
+
+                // Recupera tutti i profili dell'utente una sola volta
+                List<ProfiloCalcolo> profiliUtente = UserContext.getProfiles(utenteId);
+                log.info("Recuperati {} profili per l'utente ID: {}", profiliUtente.size(), utenteId);
 
                 List<Simulazione> simulazioni;
                 if (latest) {
@@ -763,6 +505,10 @@ public RisultatoRendimentoAdvancedDTO calcolaRendimentoAdvanced(
                 // Per ogni simulazione, calcola i valori finali utilizzando
                 // calcolaRendimentoAdvanced
                 for (SimulazioneDTO simulazioneDTO : simulazioniDTO) {
+                        if ("IT0005640666".equals(simulazioneDTO.getTitolo().getCodiceIsin())) {
+                                log.debug("Calcolo rendimento per simulazione con ISIN :"
+                                                + simulazioneDTO.getTitolo().getCodiceIsin());
+                        }
                         // Crea un oggetto Titolo dal TitoloDTO
                         Titolo titolo = new Titolo();
                         titolo.setIdTitolo(simulazioneDTO.getTitolo().getIdTitolo());
@@ -774,16 +520,17 @@ public RisultatoRendimentoAdvancedDTO calcolaRendimentoAdvanced(
                         titolo.setPeriodicitaBollo(simulazioneDTO.getTitolo().getPeriodicitaBollo());
                         titolo.setTipoTitolo(simulazioneDTO.getTitolo().getTipoTitolo());
 
-                        // Calcola i valori finali utilizzando calcolaRendimentoAdvanced
-                               
+                        // Calcola i valori finali utilizzando calcolaRendimentoAdvanced con tutti i
+                        // profili dell'utente
                         RisultatoRendimentoAdvancedDTO risultato = calcolaRendimentoAdvanced(
                                         titolo,
                                         simulazioneDTO.getPrezzoAcquisto(),
                                         simulazioneDTO.getNominale(),
                                         simulazioneDTO.getDataAcquisto(),
-                                        UserContext.getDefaultProfile(utenteId));
+                                        profiliUtente);
 
-                        // Imposta i valori finali nel DTO
+                        // Imposta i valori finali nel DTO (questi sono i valori per il profilo
+                        // predefinito)
                         simulazioneDTO.setValoreBolloAnnualePlusvalenzaNonEsente(
                                         risultato.getValoreBolloAnnualePlusvalenzaNonEsente());
                         simulazioneDTO.setValoreBolloMensilePlusvalenzaNonEsente(
@@ -792,205 +539,131 @@ public RisultatoRendimentoAdvancedDTO calcolaRendimentoAdvanced(
                                         risultato.getValoreBolloAnnualePlusvalenzaEsente());
                         simulazioneDTO.setValoreBolloMensilePlusvalenzaEsente(
                                         risultato.getValoreBolloMensilePlusvalenzaEsente());
+
+                        // Popola le liste di rendimenti e valori finali per tutti i profili
+                        if (risultato.getRendimentiPerProfili() != null) {
+                                simulazioneDTO.setRendimentiPerProfili(risultato.getRendimentiPerProfili());
+                        }
+
+                        if (risultato.getValoriFinaliPerProfili() != null) {
+                                simulazioneDTO.setValoriFinaliPerProfili(risultato.getValoriFinaliPerProfili());
+                        }
                 }
 
                 return simulazioniDTO;
         }
+
+        // Metodi mancanti da aggiungere a SimulazioneServiceImpl.java
 
         @Override
         public List<SimulazioneDTO> getSimulazioniByUtenteIdOrderByScadenzaAsc(Integer utenteId, boolean latest) {
-                log.info("Recupero simulazioni per utente ID: {} (latest: {}) ordinate per data di scadenza crescente",
-                                utenteId, latest);
+                log.info("Recupero simulazioni per utente ID: {} (latest: {}) ordinate per scadenza", utenteId, latest);
 
-                List<Simulazione> simulazioni;
-                if (latest) {
-                        // Utilizziamo il nuovo metodo che esclude i titoli scaduti e ordina per data di
-                        // scadenza crescente
-                        LocalDate dataOdierna = LocalDate.now();
-                        simulazioni = simulazioneRepository
-                                        .findLatestByUtenteIdAndNotExpiredOrderByScadenzaAsc(utenteId, dataOdierna);
-                        log.info("Trovate {} simulazioni più recenti per titoli non scaduti dell'utente ID: {} ordinate per data di scadenza crescente",
-                                        simulazioni.size(), utenteId);
-                } else {
-                        // Per il caso in cui latest è false, dobbiamo ordinare manualmente
-                        simulazioni = simulazioneRepository.findByUtenteId(utenteId);
-                        // Ordina le simulazioni per data di scadenza crescente
-                        simulazioni.sort((s1, s2) -> {
-                                LocalDate scadenza1 = s1.getTitolo().getDataScadenza();
-                                LocalDate scadenza2 = s2.getTitolo().getDataScadenza();
-                                return scadenza1.compareTo(scadenza2);
-                        });
-                        log.info("Trovate {} simulazioni totali per l'utente ID: {} ordinate per data di scadenza crescente",
-                                        simulazioni.size(), utenteId);
-                }
+                // Recupera le simulazioni utilizzando il metodo esistente
+                List<SimulazioneDTO> simulazioni = getSimulazioniByUtenteId(utenteId, latest);
 
-                // Converti le simulazioni in DTO
-                List<SimulazioneDTO> simulazioniDTO = simulazioni.stream()
-                                .map(simulazioneMapper::toDTO)
+                // Ordina le simulazioni per data di scadenza crescente
+                return simulazioni.stream()
+                                .sorted(Comparator.comparing(s -> s.getTitolo().getDataScadenza(),
+                                                Comparator.nullsLast(Comparator.naturalOrder())))
                                 .collect(Collectors.toList());
-
-                // Per ogni simulazione, calcola i valori finali utilizzando
-                // calcolaRendimentoAdvanced
-                for (SimulazioneDTO simulazioneDTO : simulazioniDTO) {
-                        // Crea un oggetto Titolo dal TitoloDTO
-                        Titolo titolo = new Titolo();
-                        titolo.setIdTitolo(simulazioneDTO.getTitolo().getIdTitolo());
-                        titolo.setNome(simulazioneDTO.getTitolo().getNome());
-                        titolo.setCodiceIsin(simulazioneDTO.getTitolo().getCodiceIsin());
-                        titolo.setDataScadenza(simulazioneDTO.getTitolo().getDataScadenza());
-                        titolo.setTassoNominale(simulazioneDTO.getTitolo().getTassoNominale());
-                        titolo.setPeriodicitaCedole(simulazioneDTO.getTitolo().getPeriodicitaCedole());
-                        titolo.setPeriodicitaBollo(simulazioneDTO.getTitolo().getPeriodicitaBollo());
-                        titolo.setTipoTitolo(simulazioneDTO.getTitolo().getTipoTitolo());
-
-                        // Calcola i valori finali utilizzando calcolaRendimentoAdvanced
-                        
-                        // Ottieni il profilo predefinito dell'utente corrente
-                        ProfiloCalcolo profiloPredefinito = getDefaultProfileFromTitolo(titolo);
-                        
-                        RisultatoRendimentoAdvancedDTO risultato = calcolaRendimentoAdvanced(
-                                        titolo,
-                                        simulazioneDTO.getPrezzoAcquisto(),
-                                        simulazioneDTO.getNominale(),
-                                        simulazioneDTO.getDataAcquisto(),
-                                        profiloPredefinito);
-
-                        // Imposta i valori finali nel DTO
-                        simulazioneDTO.setValoreBolloAnnualePlusvalenzaNonEsente(
-                                        risultato.getValoreBolloAnnualePlusvalenzaNonEsente());
-                        simulazioneDTO.setValoreBolloMensilePlusvalenzaNonEsente(
-                                        risultato.getValoreBolloMensilePlusvalenzaNonEsente());
-                        simulazioneDTO.setValoreBolloAnnualePlusvalenzaEsente(
-                                        risultato.getValoreBolloAnnualePlusvalenzaEsente());
-                        simulazioneDTO.setValoreBolloMensilePlusvalenzaEsente(
-                                        risultato.getValoreBolloMensilePlusvalenzaEsente());
-                }
-
-                return simulazioniDTO;
         }
 
-        /**
-         * Nuovo metodo che calcola internamente il risultato dettagliato utilizzando
-         * calcolaRendimentoAdvanced.
-         * Questo metodo è ottimizzato per essere utilizzato da
-         * elaboraSimulazionePerTitolo.
-         * 
-         * @param simulazioneEsistente la simulazione esistente da aggiornare
-         * @param titolo               il titolo per cui calcolare il rendimento
-         * @param prezzo               il prezzo del titolo
-         * @param importo              l'importo dell'investimento
-         * @param dataPrezzo           la data del prezzo (può essere null, in tal caso
-         *                             si usa la data della simulazione)
-         * @return la simulazione aggiornata e salvata
-         */
-        public SimulazioneDTO aggiornaSimulazione(SimulazioneDTO simulazioneEsistente,
-                        Titolo titolo, BigDecimal prezzo, BigDecimal importo, LocalDate dataPrezzo) {
-                // Verifica che i parametri non siano null
-                if (simulazioneEsistente == null || titolo == null || prezzo == null || importo == null) {
-                        throw new IllegalArgumentException(
-                                        "La simulazione esistente, il titolo, il prezzo e l'importo non possono essere null");
-                }
-
-                // Usa la data della simulazione se dataPrezzo è null
-                LocalDate dataEffettiva = dataPrezzo != null ? dataPrezzo : simulazioneEsistente.getDataAcquisto();
-
-                // Calcola il risultato dettagliato internamente
-                
-                // Ottieni il profilo predefinito dell'utente corrente
-                ProfiloCalcolo profiloPredefinito = getDefaultProfileFromTitolo(titolo);
-                
-                RisultatoRendimentoAdvancedDTO risultatoAdvanced = calcolaRendimentoAdvanced(
-                                titolo,
-                                prezzo,
-                                importo,
-                                dataEffettiva,
-                                profiloPredefinito);
-
-                // Utilizza convertToSimulazioneDTO per aggiornare i campi della simulazione
-                SimulazioneDTO simulazioneAggiornata = convertToSimulazioneDTO(
-                                risultatoAdvanced,
-                                simulazioneEsistente.getIdTitolo(),
-                                simulazioneEsistente.getDataAcquisto(),
-                                simulazioneEsistente.getPrezzoAcquisto(),
-                                importo);
-
-                // Mantieni l'ID e la versione della simulazione esistente
-                simulazioneAggiornata.setIdSimulazione(simulazioneEsistente.getIdSimulazione());
-                simulazioneAggiornata.setVersion(simulazioneEsistente.getVersion());
-
-                // Salva la simulazione aggiornata
-                return salvaSimulazione(simulazioneAggiornata);
-        }
-
-        /**
-         * Versione estesa del metodo elaboraSimulazionePerTitolo che accetta anche una
-         * data per il prezzo.
-         * 
-         * @param titolo     il titolo per cui elaborare la simulazione
-         * @param prezzo     il prezzo del titolo
-         * @param dataPrezzo la data del prezzo (può essere null, in tal caso si usa la
-         *                   data corrente)
-         * @return il risultato dell'elaborazione
-         */
+        @Override
         public ElaborazioneRisultatoDTO elaboraSimulazionePerTitolo(Titolo titolo, BigDecimal prezzo,
                         LocalDate dataPrezzo) {
-                try {
-                        // Verifica che i parametri obbligatori non siano null
-                        if (titolo == null || prezzo == null || dataPrezzo == null) {
-                                throw new IllegalArgumentException(
-                                                "Il titolo, il prezzo e la data del prezzo non possono essere null");
-                        }
+                log.info("Elaborazione simulazione per titolo: {}, prezzo: {}, data: {}",
+                                titolo.getCodiceIsin(), prezzo, dataPrezzo);
 
-                        // Verifica se esiste già una simulazione per questo titolo nella stessa
-                        // giornata
-                        List<SimulazioneDTO> simulazioniOggi = findByTitoloIdAndDataAcquisto(titolo.getIdTitolo(),
-                                        dataPrezzo);
-                        SimulazioneDTO simulazione;
+                // Se la data del prezzo non è specificata, usa la data corrente
+                LocalDate dataEffettiva = dataPrezzo != null ? dataPrezzo : LocalDate.now();
 
-                        // Calcola i rendimenti dettagliati per il titolo (necessario per il return)
-                        
-                        // Ottieni il profilo predefinito dell'utente corrente
-                        ProfiloCalcolo profiloPredefinito = getDefaultProfileFromTitolo(titolo);
-                        
-                        RisultatoRendimentoAdvancedDTO risultatoDettagliato = calcolaRendimentoAdvanced(
-                                        titolo,
-                                        prezzo,
-                                        RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE,
-                                        dataPrezzo,
-                                        profiloPredefinito);
+                // Ottieni il profilo predefinito dell'utente
+                ProfiloCalcolo profiloPredefinito = getDefaultProfileFromTitolo(titolo);
 
-                        if (!simulazioniOggi.isEmpty()) {
-                                // Aggiorna la simulazione esistente della giornata corrente
-                                SimulazioneDTO simulazioneEsistente = simulazioniOggi.get(0);
-                                log.info("Trovata simulazione esistente per il titolo ID: {}, ISIN: {} nella data odierna, aggiornamento in corso",
-                                                titolo.getIdTitolo(), titolo.getCodiceIsin());
+                // Crea una lista con il profilo predefinito
+                List<ProfiloCalcolo> profili = new ArrayList<>();
+                profili.add(profiloPredefinito);
 
-                                // Aggiorna la simulazione esistente utilizzando il nuovo metodo che calcola
-                                // internamente il risultato
-                                simulazione = aggiornaSimulazione(
-                                                simulazioneEsistente,
-                                                titolo,
-                                                prezzo,
-                                                RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE,
-                                                dataPrezzo);
-                                log.info("Simulazione aggiornata per il titolo ID: {}, ISIN: {}",
-                                                titolo.getIdTitolo(), titolo.getCodiceIsin());
-                        } else {
-                                // Crea una nuova simulazione
-                                simulazione = calcolaESalvaSimulazione(
-                                                titolo.getIdTitolo(),
-                                                prezzo,
-                                                RendimentoConstants.IMPORTO_FISSO_SIMULAZIONE,
-                                                dataPrezzo);
-                                log.info("Nuova simulazione creata per il titolo ID: {}, ISIN: {}",
-                                                titolo.getIdTitolo(), titolo.getCodiceIsin());
-                        }
+                // Calcola il rendimento avanzato
+                BigDecimal importoNominale = new BigDecimal("10000"); // Importo fisso di 10.000 euro
+                RisultatoRendimentoAdvancedDTO risultato = calcolaRendimentoAdvanced(
+                                titolo, prezzo, importoNominale, dataEffettiva, profili);
 
-                        return new ElaborazioneRisultatoDTO(simulazione, risultatoDettagliato);
-                } catch (Exception e) {
-                        log.error("Errore nell'elaborazione della simulazione per il titolo ID: {}, ISIN: {}, Errore: {}",
-                                        titolo.getIdTitolo(), titolo.getCodiceIsin(), e.getMessage());
-                        return null;
-                }
+                // Crea una simulazione temporanea per il titolo
+                SimulazioneDTO simulazioneDTO = convertToSimulazioneDTO(
+                                risultato, titolo.getIdTitolo(), dataEffettiva, prezzo, importoNominale);
+
+                // Crea l'oggetto di risposta utilizzando il costruttore con parametri
+                return new ElaborazioneRisultatoDTO(simulazioneDTO, risultato);
         }
+
+        @Override
+        @Transactional
+        public SimulazioneDTO aggiornaSimulazione(SimulazioneDTO simulazioneEsistente, Titolo titolo,
+                        BigDecimal prezzo, BigDecimal importo, LocalDate dataPrezzo) {
+                log.info("Aggiornamento simulazione ID: {} con prezzo: {}, importo: {}, data: {}",
+                                simulazioneEsistente.getIdSimulazione(), prezzo, importo, dataPrezzo);
+
+                // Se la data del prezzo non è specificata, usa la data della simulazione
+                // esistente
+                LocalDate dataEffettiva = dataPrezzo != null ? dataPrezzo : simulazioneEsistente.getDataAcquisto();
+
+                // Ottieni tutti i profili dell'utente
+                Integer utenteId = titolo.getUtente() != null ? titolo.getUtente().getIdUtente() : null;
+                List<ProfiloCalcolo> profiliUtente = utenteId != null ? UserContext.getProfiles(utenteId)
+                                : new ArrayList<>();
+
+                // Calcola il rendimento avanzato
+                RisultatoRendimentoAdvancedDTO risultato = calcolaRendimentoAdvanced(
+                                titolo, prezzo, importo, dataEffettiva, profiliUtente);
+
+                // Aggiorna i campi della simulazione esistente
+                simulazioneEsistente.setPrezzoAcquisto(prezzo);
+                simulazioneEsistente.setDataAcquisto(dataEffettiva);
+                simulazioneEsistente.setNominale(importo);
+
+                // Aggiorna i valori calcolati
+                simulazioneEsistente.setRendimentoSenzaCosti(risultato.getRendimentoSenzaCosti());
+                simulazioneEsistente.setRendimentoTassato(risultato.getTasso().multiply(new BigDecimal("0.875"))
+                                .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
+                simulazioneEsistente.setRendimentoConCommissioni(risultato.getRendimentoConCommissioni());
+                simulazioneEsistente.setImpostaBollo(risultato.getImpostaBollo());
+                simulazioneEsistente.setRendimentoNettoBollo(risultato.getGuadagnoNettoBollo()
+                                .divide(importo, 4, RoundingMode.HALF_UP)
+                                .multiply(new BigDecimal("100")));
+                simulazioneEsistente.setPlusMinusValenza(risultato.getPlusvalenzaNetta());
+
+                // Aggiorna i valori avanzati
+                simulazioneEsistente.setPrezzoRiferimentoBollo(risultato.getPrezzoRiferimentoBollo());
+                simulazioneEsistente.setCapitaleInvestito(risultato.getCapitaleInvestito());
+                simulazioneEsistente.setCapitaleConCommissioni(risultato.getCapitaleConCommissioni());
+                simulazioneEsistente.setCedoleNetteAnnue(risultato.getCedoleNetteAnnue());
+                simulazioneEsistente.setGuadagnoNettoSenzaCosti(risultato.getGuadagnoNettoSenzaCosti());
+                simulazioneEsistente.setRendimentoConBollo(risultato.getRendimentoConCommissioniEBolloAnnuale());
+                simulazioneEsistente.setRendimentoPlusvalenzaEsente(risultato.getRendimentoPlusvalenzaEsente());
+
+                // Aggiorna i valori finali
+                simulazioneEsistente.setValoreBolloAnnualePlusvalenzaNonEsente(
+                                risultato.getValoreBolloAnnualePlusvalenzaNonEsente());
+                simulazioneEsistente.setValoreBolloAnnualePlusvalenzaEsente(
+                                risultato.getValoreBolloAnnualePlusvalenzaEsente());
+                simulazioneEsistente.setValoreBolloMensilePlusvalenzaNonEsente(
+                                risultato.getValoreBolloMensilePlusvalenzaNonEsente());
+                simulazioneEsistente.setValoreBolloMensilePlusvalenzaEsente(
+                                risultato.getValoreBolloMensilePlusvalenzaEsente());
+
+                // Aggiorna le liste di rendimenti e valori finali per tutti i profili
+                if (risultato.getRendimentiPerProfili() != null) {
+                        simulazioneEsistente.setRendimentiPerProfili(risultato.getRendimentiPerProfili());
+                }
+
+                if (risultato.getValoriFinaliPerProfili() != null) {
+                        simulazioneEsistente.setValoriFinaliPerProfili(risultato.getValoriFinaliPerProfili());
+                }
+
+                // Salva la simulazione aggiornata
+                return salvaSimulazione(simulazioneEsistente);
+        }
+
 }

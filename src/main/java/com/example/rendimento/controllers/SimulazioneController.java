@@ -400,16 +400,21 @@ public class SimulazioneController {
                     continue; // Salta questo titolo se l'elaborazione ha fallito
                 }
 
-                // Salva il trend per il titolo utilizzando il rendimento senza costi
-                trendService.salvaOAggiornaTrendPerTitolo(
-                        titolo,
-                        prezzoAcquisto,
-                        risultatoElaborazione.getRisultatoDettagliato().getRendimentoSenzaCosti(),
-                        null);
-                log.info("Trend salvato per il titolo ID: {}, ISIN: {}",
-                        titolo.getIdTitolo(), titolo.getCodiceIsin());
+            // Salva la simulazione nel database
+            SimulazioneDTO simulazioneSalvata = simulazioneService.salvaSimulazione(risultatoElaborazione.getSimulazione());
+            log.info("Simulazione salvata per il titolo ID: {}, ISIN: {}, Simulazione ID: {}",
+                    titolo.getIdTitolo(), titolo.getCodiceIsin(), simulazioneSalvata.getIdSimulazione());
 
-                simulazioniSalvate.add(risultatoElaborazione.getSimulazione());
+            // Salva il trend per il titolo utilizzando il rendimento senza costi
+            trendService.salvaOAggiornaTrendPerTitolo(
+                    titolo,
+                    prezzoAcquisto,
+                    risultatoElaborazione.getRisultatoDettagliato().getRendimentoSenzaCosti(),
+                    null);
+            log.info("Trend salvato per il titolo ID: {}, ISIN: {}",
+                    titolo.getIdTitolo(), titolo.getCodiceIsin());
+
+                simulazioniSalvate.add(simulazioneSalvata);
                 titoliAggiornati++; // Incrementa il contatore dei titoli aggiornati con successo
             } catch (Exception e) {
                 log.error("Errore nel calcolo della simulazione per il titolo ID: {}, ISIN: {}, Errore: {}",
@@ -448,48 +453,18 @@ public class SimulazioneController {
                 .map(UtenteResponseDTO::getIdUtente)
                 .orElse(null);
 
-        // Recupera la simulazione
-        SimulazioneDTO simulazione = simulazioneService.findById(id);
-        if (simulazione == null) {
-            log.info("Risposta per GET /api/simulazioni/{}/calcolo-dettagliato: Simulazione non trovata", id);
-            return ResponseEntity.notFound().build();
-        }
-
-        // Verifica che la simulazione appartenga all'utente corrente
-        if (simulazione.getTitolo() != null && simulazione.getTitolo().getUtenteId() != null &&
-                utenteId != null && !simulazione.getTitolo().getUtenteId().equals(utenteId)) {
-            log.info("Risposta per GET /api/simulazioni/{}/calcolo-dettagliato: Simulazione non autorizzata", id);
-            return ResponseEntity.notFound().build();
-        }
-
-        // Recupera il titolo associato
-        Titolo titolo = titoloRepository.findById(simulazione.getIdTitolo())
-                .orElseThrow(
-                        () -> new EntityNotFoundException("Titolo non trovato con ID: " + simulazione.getIdTitolo()));
-
-        // Ottieni il profilo predefinito dell'utente corrente
-        com.example.rendimento.model.ProfiloCalcolo profiloPredefinito = null;
         try {
-            // Ottieni l'ID dell'utente dal titolo
-            Integer userId = titolo.getUtente() != null ? titolo.getUtente().getIdUtente() : null;
-            if (userId != null) {
-                profiloPredefinito = com.example.rendimento.context.UserContext.getDefaultProfile(userId);
-            }
+            // Utilizza il nuovo metodo del service che gestisce tutte le verifiche e calcoli
+            RisultatoRendimentoAdvancedDTO risultato = simulazioneService.getCalcoloDettagliato(id, utenteId);
+            log.info("Risposta per GET /api/simulazioni/{}/calcolo-dettagliato: calcolato con successo", id);
+            return ResponseEntity.ok(risultato);
+        } catch (EntityNotFoundException e) {
+            log.info("Risposta per GET /api/simulazioni/{}/calcolo-dettagliato: {}", id, e.getMessage());
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.warn("Impossibile ottenere il profilo predefinito: {}", e.getMessage());
-            // Continua con profiloPredefinito = null
+            log.error("Errore nel calcolo dettagliato per la simulazione ID: {}, Errore: {}", id, e.getMessage());
+            return ResponseEntity.status(500).build();
         }
-        
-        // Utilizza la logica esistente per calcolare i rendimenti dettagliati
-        RisultatoRendimentoAdvancedDTO risultato = simulazioneService.calcolaRendimentoAdvanced(
-                titolo,
-                simulazione.getPrezzoAcquisto(),
-                simulazione.getNominale() != null ? simulazione.getNominale() : new BigDecimal("10000"),
-                simulazione.getDataAcquisto(),
-                profiloPredefinito);
-
-        log.info("Risposta per GET /api/simulazioni/{}/calcolo-dettagliato: {}", id, risultato);
-        return ResponseEntity.ok(risultato);
     }
 
     /**
@@ -567,13 +542,17 @@ public class SimulazioneController {
                     // Continua con profiloPredefinito = null
                 }
                 
+                // Crea una lista con il profilo predefinito
+                List<com.example.rendimento.model.ProfiloCalcolo> profili = new ArrayList<>();
+                profili.add(profiloPredefinito);
+                
                 // Calcola i rendimenti dettagliati
                 RisultatoRendimentoAdvancedDTO risultato = simulazioneService.calcolaRendimentoAdvanced(
                         titolo,
                         simulazione.getPrezzoAcquisto(),
                         simulazione.getNominale() != null ? simulazione.getNominale() : new BigDecimal("10000"),
                         simulazione.getDataAcquisto(),
-                        profiloPredefinito);
+                        profili);
 
                 // Crea un oggetto TitoloRendimentoDTO con i dati del titolo e i rendimenti
                 // calcolati

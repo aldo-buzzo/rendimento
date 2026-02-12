@@ -32,6 +32,8 @@ public class ProfiloCalcoloDTO {
     
     private Boolean isDefault;
     
+    private Boolean plusvalenzaEsente;
+    
     private Long version;
 
     // Getter e Setter
@@ -131,6 +133,14 @@ public class ProfiloCalcoloDTO {
     public void setIsDefault(Boolean isDefault) {
         this.isDefault = isDefault;
     }
+    
+    public Boolean getPlusvalenzaEsente() {
+        return plusvalenzaEsente;
+    }
+    
+    public void setPlusvalenzaEsente(Boolean plusvalenzaEsente) {
+        this.plusvalenzaEsente = plusvalenzaEsente;
+    }
 
     public Long getVersion() {
         return version;
@@ -155,6 +165,7 @@ public class ProfiloCalcoloDTO {
                 ", commissioneCct=" + commissioneCct +
                 ", commissioneCtz=" + commissioneCtz +
                 ", isDefault=" + isDefault +
+                ", plusvalenzaEsente=" + plusvalenzaEsente +
                 ", version=" + version +
                 '}';
     }

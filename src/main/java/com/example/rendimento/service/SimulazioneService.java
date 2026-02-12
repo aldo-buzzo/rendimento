@@ -140,16 +140,17 @@ public interface SimulazioneService {
     List<SimulazioneDTO> getSimulazioniByUtenteIdOrderByScadenzaAsc(Integer utenteId, boolean latest);
     
 /**
- * Calcola il rendimento avanzato di un titolo in base ai parametri forniti e al profilo di calcolo.
+ * Calcola il rendimento avanzato di un titolo in base ai parametri forniti e ai profili di calcolo.
  * Questo metodo calcola sia il bollo mensile che annuale e fornisce dettagli
- * completi sul calcolo del rendimento, utilizzando i dati del profilo per commissioni e bollo.
+ * completi sul calcolo del rendimento, utilizzando i dati dei profili per commissioni e bollo.
+ * Per ogni profilo, calcola i rendimenti e i valori finali teorici.
  * 
  * @param titolo il titolo per cui calcolare il rendimento
  * @param prezzoAcquisto prezzo di acquisto inserito dall'utente
  * @param nominale importo nominale dell'investimento
  * @param dataAcquisto data di acquisto
- * @param profiloCalcolo profilo di calcolo da utilizzare per commissioni e bollo (può essere null)
- * @return DTO contenente tutti i risultati dettagliati del calcolo
+ * @param profili lista di profili di calcolo da utilizzare per commissioni e bollo (può essere null o vuota)
+ * @return DTO contenente tutti i risultati dettagliati del calcolo, inclusi i rendimenti e i valori finali per ogni profilo
  * @throws IllegalArgumentException se i parametri non sono validi
  */
 RisultatoRendimentoAdvancedDTO calcolaRendimentoAdvanced(
@@ -157,7 +158,7 @@ RisultatoRendimentoAdvancedDTO calcolaRendimentoAdvanced(
         BigDecimal prezzoAcquisto,
         BigDecimal nominale,
         LocalDate dataAcquisto,
-        ProfiloCalcolo profiloCalcolo);
+        List<ProfiloCalcolo> profili);
             
     /**
      * Versione estesa del metodo elaboraSimulazionePerTitolo che accetta anche una data per il prezzo.
@@ -181,4 +182,15 @@ RisultatoRendimentoAdvancedDTO calcolaRendimentoAdvanced(
      * @return la simulazione aggiornata e salvata
      */
     SimulazioneDTO aggiornaSimulazione(SimulazioneDTO simulazioneEsistente, Titolo titolo, BigDecimal prezzo, BigDecimal importo, LocalDate dataPrezzo);
+    
+    /**
+     * Recupera i dati dettagliati di calcolo per una simulazione.
+     * Questo metodo recupera la simulazione per ID, ottiene i profili dell'utente e calcola i rendimenti dettagliati.
+     *
+     * @param id l'ID della simulazione per cui recuperare i dati dettagliati
+     * @param utenteId l'ID dell'utente che richiede i dati
+     * @return i dati dettagliati di calcolo
+     * @throws jakarta.persistence.EntityNotFoundException se la simulazione non esiste
+     */
+    RisultatoRendimentoAdvancedDTO getCalcoloDettagliato(Integer id, Integer utenteId);
 }

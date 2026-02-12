@@ -1,7 +1,9 @@
 package com.example.rendimento.model;
 
+import com.example.rendimento.constants.RendimentoConstants;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  * Classe entità JPA che rappresenta un profilo di calcolo per le commissioni e i bolli.
@@ -28,33 +30,37 @@ public class ProfiloCalcolo {
     @Column(name = "periodicita_bollo", nullable = false, length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'ANNUALE'")
     private String periodicitaBollo;
 
-    @Column(name = "percentuale_bollo", nullable = false, precision = 5, scale = 4, columnDefinition = "DECIMAL(5,4) DEFAULT 0.0020")
+    @Column(name = "percentuale_bollo", nullable = false, precision = 7, scale = 6, columnDefinition = "DECIMAL(7,6) DEFAULT 0.0020")
     private BigDecimal percentualeBollo;
 
     // Commissioni BTP - default 0.9/1000 (0.0009)
-    @Column(name = "commissione_btp", nullable = false, precision = 5, scale = 4, columnDefinition = "DECIMAL(5,4) DEFAULT 0.0009")
+    @Column(name = "commissione_btp", nullable = false, precision = 7, scale = 6, columnDefinition = "DECIMAL(7,6) DEFAULT 0.0009")
     private BigDecimal commissioneBtp;
 
     // Commissioni BOT per fasce di scadenza - default 0.9/1000 (0.0009)
-    @Column(name = "commissione_bot_120gg", nullable = false, precision = 5, scale = 4, columnDefinition = "DECIMAL(5,4) DEFAULT 0.0009")
+    @Column(name = "commissione_bot_120gg", nullable = false, precision = 7, scale = 6, columnDefinition = "DECIMAL(7,6) DEFAULT 0.0009")
     private BigDecimal commissioneBot120gg;
 
-    @Column(name = "commissione_bot_240gg", nullable = false, precision = 5, scale = 4, columnDefinition = "DECIMAL(5,4) DEFAULT 0.0009")
+    @Column(name = "commissione_bot_240gg", nullable = false, precision = 7, scale = 6, columnDefinition = "DECIMAL(7,6) DEFAULT 0.0009")
     private BigDecimal commissioneBot240gg;
 
-    @Column(name = "commissione_bot_oltre", nullable = false, precision = 5, scale = 4, columnDefinition = "DECIMAL(5,4) DEFAULT 0.0009")
+    @Column(name = "commissione_bot_oltre", nullable = false, precision = 7, scale = 6, columnDefinition = "DECIMAL(7,6) DEFAULT 0.0009")
     private BigDecimal commissioneBotOltre;
 
     // Commissioni per altri tipi di titoli (opzionali) - default 0.9/1000 (0.0009)
-    @Column(name = "commissione_cct", precision = 5, scale = 4, columnDefinition = "DECIMAL(5,4) DEFAULT 0.0009")
+    @Column(name = "commissione_cct", precision = 7, scale = 6, columnDefinition = "DECIMAL(7,6) DEFAULT 0.0009")
     private BigDecimal commissioneCct;
 
-    @Column(name = "commissione_ctz", precision = 5, scale = 4, columnDefinition = "DECIMAL(5,4) DEFAULT 0.0009")
+    @Column(name = "commissione_ctz", precision = 7, scale = 6, columnDefinition = "DECIMAL(7,6) DEFAULT 0.0009")
     private BigDecimal commissioneCtz;
 
     // Flag per profilo predefinito
     @Column(name = "is_default", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isDefault;
+    
+    // Flag per indicare se la plusvalenza è esente
+    @Column(name = "plusvalenza_esente", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean plusvalenzaEsente;
 
     // Controllo versione
     @Version
@@ -63,19 +69,20 @@ public class ProfiloCalcolo {
 
     /**
      * Costruttore predefinito richiesto da JPA.
-     * Inizializza i valori di default per le commissioni.
+     * Inizializza i valori di default per le commissioni utilizzando le costanti definite in RendimentoConstants.
      */
     public ProfiloCalcolo() {
         // Imposta i valori di default anche nel costruttore per garantire coerenza
-        this.periodicitaBollo = "ANNUALE";
-        this.percentualeBollo = new BigDecimal("0.0020");
-        this.commissioneBtp = new BigDecimal("0.0009");
-        this.commissioneBot120gg = new BigDecimal("0.0009");
-        this.commissioneBot240gg = new BigDecimal("0.0009");
-        this.commissioneBotOltre = new BigDecimal("0.0009");
-        this.commissioneCct = new BigDecimal("0.0009");
-        this.commissioneCtz = new BigDecimal("0.0009");
+        this.periodicitaBollo = RendimentoConstants.PROFILE_DEFAULT_PERIODICITA_BOLLO;
+        this.percentualeBollo = RendimentoConstants.PROFILE_DEFAULT_PERCENTUALE_BOLLO;
+        this.commissioneBtp = RendimentoConstants.PROFILE_DEFAULT_COMMISSIONE_BTP;
+        this.commissioneBot120gg = RendimentoConstants.PROFILE_DEFAULT_COMMISSIONE_BOT_120GG;
+        this.commissioneBot240gg = RendimentoConstants.PROFILE_DEFAULT_COMMISSIONE_BOT_240GG;
+        this.commissioneBotOltre = RendimentoConstants.PROFILE_DEFAULT_COMMISSIONE_BOT_OLTRE;
+        this.commissioneCct = RendimentoConstants.PROFILE_DEFAULT_COMMISSIONE_CCT;
+        this.commissioneCtz = RendimentoConstants.PROFILE_DEFAULT_COMMISSIONE_CTZ;
         this.isDefault = false;
+        this.plusvalenzaEsente = RendimentoConstants.PROFILE_DEFAULT_PLUSVALENZA_ESENTE;
     }
 
     /**
@@ -95,7 +102,7 @@ public class ProfiloCalcolo {
                          String periodicitaBollo, BigDecimal percentualeBollo,
                          BigDecimal commissioneBtp, BigDecimal commissioneBot120gg,
                          BigDecimal commissioneBot240gg, BigDecimal commissioneBotOltre,
-                         Boolean isDefault) {
+                         Boolean isDefault, Boolean plusvalenzaEsente) {
         this.utente = utente;
         this.nome = nome;
         this.periodicitaBollo = periodicitaBollo;
@@ -105,6 +112,7 @@ public class ProfiloCalcolo {
         this.commissioneBot240gg = commissioneBot240gg;
         this.commissioneBotOltre = commissioneBotOltre;
         this.isDefault = isDefault;
+        this.plusvalenzaEsente = plusvalenzaEsente;
     }
 
     /**
@@ -119,13 +127,14 @@ public class ProfiloCalcolo {
         return new ProfiloCalcolo(
             utente,
             nome,
-            "ANNUALE",
-            new BigDecimal("0.0020"),
-            new BigDecimal("0.0009"),
-            new BigDecimal("0.0009"),
-            new BigDecimal("0.0009"),
-            new BigDecimal("0.0009"),
-            isDefault
+            RendimentoConstants.PROFILE_DEFAULT_PERIODICITA_BOLLO,
+            RendimentoConstants.PROFILE_DEFAULT_PERCENTUALE_BOLLO,
+            RendimentoConstants.PROFILE_DEFAULT_COMMISSIONE_BTP,
+            RendimentoConstants.PROFILE_DEFAULT_COMMISSIONE_BOT_120GG,
+            RendimentoConstants.PROFILE_DEFAULT_COMMISSIONE_BOT_240GG,
+            RendimentoConstants.PROFILE_DEFAULT_COMMISSIONE_BOT_OLTRE,
+            isDefault,
+            RendimentoConstants.PROFILE_DEFAULT_PLUSVALENZA_ESENTE
         );
     }
 
@@ -168,7 +177,7 @@ public class ProfiloCalcolo {
     }
 
     public void setPercentualeBollo(BigDecimal percentualeBollo) {
-        this.percentualeBollo = percentualeBollo;
+        this.percentualeBollo = percentualeBollo != null ? percentualeBollo.setScale(6, RoundingMode.HALF_UP) : null;
     }
 
     public BigDecimal getCommissioneBtp() {
@@ -176,7 +185,7 @@ public class ProfiloCalcolo {
     }
 
     public void setCommissioneBtp(BigDecimal commissioneBtp) {
-        this.commissioneBtp = commissioneBtp;
+        this.commissioneBtp = commissioneBtp != null ? commissioneBtp.setScale(6, RoundingMode.HALF_UP) : null;
     }
 
     public BigDecimal getCommissioneBot120gg() {
@@ -184,7 +193,7 @@ public class ProfiloCalcolo {
     }
 
     public void setCommissioneBot120gg(BigDecimal commissioneBot120gg) {
-        this.commissioneBot120gg = commissioneBot120gg;
+        this.commissioneBot120gg = commissioneBot120gg != null ? commissioneBot120gg.setScale(6, RoundingMode.HALF_UP) : null;
     }
 
     public BigDecimal getCommissioneBot240gg() {
@@ -192,7 +201,7 @@ public class ProfiloCalcolo {
     }
 
     public void setCommissioneBot240gg(BigDecimal commissioneBot240gg) {
-        this.commissioneBot240gg = commissioneBot240gg;
+        this.commissioneBot240gg = commissioneBot240gg != null ? commissioneBot240gg.setScale(6, RoundingMode.HALF_UP) : null;
     }
 
     public BigDecimal getCommissioneBotOltre() {
@@ -200,7 +209,7 @@ public class ProfiloCalcolo {
     }
 
     public void setCommissioneBotOltre(BigDecimal commissioneBotOltre) {
-        this.commissioneBotOltre = commissioneBotOltre;
+        this.commissioneBotOltre = commissioneBotOltre != null ? commissioneBotOltre.setScale(6, RoundingMode.HALF_UP) : null;
     }
 
     public BigDecimal getCommissioneCct() {
@@ -208,7 +217,7 @@ public class ProfiloCalcolo {
     }
 
     public void setCommissioneCct(BigDecimal commissioneCct) {
-        this.commissioneCct = commissioneCct;
+        this.commissioneCct = commissioneCct != null ? commissioneCct.setScale(6, RoundingMode.HALF_UP) : null;
     }
 
     public BigDecimal getCommissioneCtz() {
@@ -216,7 +225,7 @@ public class ProfiloCalcolo {
     }
 
     public void setCommissioneCtz(BigDecimal commissioneCtz) {
-        this.commissioneCtz = commissioneCtz;
+        this.commissioneCtz = commissioneCtz != null ? commissioneCtz.setScale(6, RoundingMode.HALF_UP) : null;
     }
 
     public Boolean getIsDefault() {
@@ -225,6 +234,14 @@ public class ProfiloCalcolo {
 
     public void setIsDefault(Boolean isDefault) {
         this.isDefault = isDefault;
+    }
+    
+    public Boolean getPlusvalenzaEsente() {
+        return plusvalenzaEsente;
+    }
+    
+    public void setPlusvalenzaEsente(Boolean plusvalenzaEsente) {
+        this.plusvalenzaEsente = plusvalenzaEsente;
     }
 
     public Long getVersion() {
@@ -248,6 +265,7 @@ public class ProfiloCalcolo {
                 ", commissioneBot240gg=" + commissioneBot240gg +
                 ", commissioneBotOltre=" + commissioneBotOltre +
                 ", isDefault=" + isDefault +
+                ", plusvalenzaEsente=" + plusvalenzaEsente +
                 ", version=" + version +
                 '}';
     }
